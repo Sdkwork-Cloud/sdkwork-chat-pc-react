@@ -2,5 +2,7 @@
 export * from "./sdk-adapter";
 export * from "./FeedbackService";
 export * from "./SettingsService";
+export * from "./OpenClawInstallService";
 export * from "./feedback-result.service";
 export * from "./settings-result.service";
+export * from "./openclaw-install-result.service";

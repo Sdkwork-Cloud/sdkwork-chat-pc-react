@@ -1,17 +1,81 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "@sdkwork/openchat-pc-auth";
 import { IS_DEV } from "@sdkwork/openchat-pc-kernel";
 import { useTheme, type ThemeType as UIThemeType } from "@sdkwork/openchat-pc-ui";
+import {
+  SdkworkOpenclawPcDesktop,
+  SdkworkOpenclawPcInstaller,
+  SdkworkOpenclawPcSettings,
+} from "../components";
 import { FeedbackResultService, SettingsResultService } from "../services";
 import type { AppInfo, FeedbackSupportInfo, SettingsState } from "../types";
 
 type SettingTab =
   | "account"
   | "imconfig"
+  | "installer"
+  | "desktop"
+  | "openclawSettings"
   | "general"
   | "notifications"
   | "privacy"
   | "about";
+
+const settingTabItems: Array<{ id: SettingTab; label: string }> = [
+  { id: "account", label: "Account" },
+  { id: "imconfig", label: "IM Config" },
+  { id: "installer", label: "Installer" },
+  { id: "desktop", label: "Desktop" },
+  { id: "openclawSettings", label: "OpenClaw Config" },
+  { id: "general", label: "General" },
+  { id: "notifications", label: "Notifications" },
+  { id: "privacy", label: "Privacy" },
+  { id: "about", label: "About" },
+];
+
+const settingTabSet = new Set<SettingTab>(settingTabItems.map((item) => item.id));
+
+function resolveSettingTabFromPath(pathname: string): SettingTab | null {
+  if (pathname === "/settings" || pathname.startsWith("/settings/account")) {
+    return "account";
+  }
+  if (pathname.startsWith("/settings/imconfig")) {
+    return "imconfig";
+  }
+  if (pathname.startsWith("/settings/installer")) {
+    return "installer";
+  }
+  if (pathname.startsWith("/settings/desktop")) {
+    return "desktop";
+  }
+  if (pathname.startsWith("/settings/openclaw")) {
+    return "openclawSettings";
+  }
+  if (pathname.startsWith("/settings/general")) {
+    return "general";
+  }
+  if (pathname.startsWith("/settings/notifications")) {
+    return "notifications";
+  }
+  if (pathname.startsWith("/settings/privacy")) {
+    return "privacy";
+  }
+  if (pathname.startsWith("/settings/about")) {
+    return "about";
+  }
+
+  if (!pathname.startsWith("/settings")) {
+    return null;
+  }
+
+  const segment = pathname.slice("/settings/".length);
+  if (settingTabSet.has(segment as SettingTab)) {
+    return segment as SettingTab;
+  }
+
+  return "account";
+}
 
 type DeviceFlag = "PC" | "WEB" | "DESKTOP";
 
@@ -176,6 +240,7 @@ export function SettingsPage() {
 
   const { user, logout } = useAuth();
   const { setTheme } = useTheme();
+  const location = useLocation();
 
   useEffect(() => {
     let cancelled = false;
@@ -263,17 +328,18 @@ export function SettingsPage() {
     };
   }, []);
 
-  const tabs = useMemo<Array<{ id: SettingTab; label: string }>>(
-    () => [
-      { id: "account", label: "Account" },
-      { id: "imconfig", label: "IM Config" },
-      { id: "general", label: "General" },
-      { id: "notifications", label: "Notifications" },
-      { id: "privacy", label: "Privacy" },
-      { id: "about", label: "About" },
-    ],
-    [],
-  );
+  const tabs = useMemo<Array<{ id: SettingTab; label: string }>>(() => settingTabItems, []);
+
+  useEffect(() => {
+    const tabFromPath = resolveSettingTabFromPath(location.pathname);
+    if (tabFromPath && tabFromPath !== activeTab) {
+      setActiveTab(tabFromPath);
+    }
+  }, [activeTab, location.pathname]);
+
+  const handleSelectTab = (tab: SettingTab) => {
+    setActiveTab(tab);
+  };
 
   const showSettingsSave =
     activeTab === "general" || activeTab === "notifications" || activeTab === "privacy";
@@ -403,7 +469,7 @@ export function SettingsPage() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleSelectTab(tab.id)}
               className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
                 activeTab === tab.id
                   ? "bg-primary-soft text-primary"
@@ -550,6 +616,18 @@ export function SettingsPage() {
               </button>
             </div>
           </div>
+        ) : null}
+
+        {activeTab === "installer" ? (
+          <SdkworkOpenclawPcInstaller />
+        ) : null}
+
+        {activeTab === "desktop" ? (
+          <SdkworkOpenclawPcDesktop />
+        ) : null}
+
+        {activeTab === "openclawSettings" ? (
+          <SdkworkOpenclawPcSettings />
         ) : null}
 
         {activeTab === "general" ? (

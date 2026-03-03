@@ -77,16 +77,27 @@ export const AIAgentIcon = ({ active, className = "" }: IconProps) => (
 
 export const AISkillIcon = ({ active, className = "" }: IconProps) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={iconClass(active, className)}>
-    <path
-      d="M11.5 3.5a2.5 2.5 0 0 1 2.87 2.2l.03.3a2.5 2.5 0 0 0 2.06 2.11l.31.05a2.5 2.5 0 0 1 1.33 4.24l-.23.22a2.5 2.5 0 0 0-.67 2.42l.08.31a2.5 2.5 0 0 1-3.3 2.96l-.3-.11a2.5 2.5 0 0 0-2.53.36l-.25.2a2.5 2.5 0 0 1-4-2.02v-.32a2.5 2.5 0 0 0-1.2-2.26l-.27-.16a2.5 2.5 0 0 1 .42-4.62l.31-.09a2.5 2.5 0 0 0 1.73-1.87l.06-.31a2.5 2.5 0 0 1 2.78-2.01z"
+    <rect
+      x="4.5"
+      y="7.5"
+      width="11"
+      height="11"
+      rx="2.5"
       stroke="currentColor"
       strokeWidth="1.5"
-      strokeLinecap="round"
+      fill={active ? "currentColor" : "none"}
+      fillOpacity={active ? 0.1 : 0}
+    />
+    <path d="M7.5 5.5v2M11 5.5v2M7.5 18.5v2M11 18.5v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M2.5 11h2M2.5 14.5h2M15.5 11h2M15.5 14.5h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path
+      d="M18.5 4.5l0.6 1.2 1.3 0.2-1 0.9 0.2 1.3-1.1-0.6-1.1 0.6 0.2-1.3-1-0.9 1.3-0.2 0.6-1.2z"
+      stroke="currentColor"
+      strokeWidth="1.3"
       strokeLinejoin="round"
       fill={active ? "currentColor" : "none"}
       fillOpacity={active ? 0.1 : 0}
     />
-    <circle cx="12" cy="12" r="2.2" fill="currentColor" />
   </svg>
 );
 
@@ -281,22 +292,79 @@ export const AISettingsIcon = ({ active, className = "" }: IconProps) => (
   </svg>
 );
 
-export const AIAppStoreIcon = ({ active, className = "" }: IconProps) => (
+export const AIMoreIcon = ({ active, className = "" }: IconProps) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={iconClass(active, className)}>
     <rect
       x="4"
-      y="4"
+      y="6"
       width="16"
-      height="16"
-      rx="4"
+      height="12"
+      rx="6"
       stroke="currentColor"
       strokeWidth="1.5"
       fill={active ? "currentColor" : "none"}
       fillOpacity={active ? 0.1 : 0}
     />
-    <rect x="8" y="8" width="3" height="3" rx="1" fill="currentColor" />
-    <rect x="13" y="8" width="3" height="3" rx="1" fill="currentColor" />
-    <rect x="8" y="13" width="3" height="3" rx="1" fill="currentColor" />
-    <rect x="13" y="13" width="3" height="3" rx="1" fill="currentColor" />
+    <circle cx="9" cy="12" r="1.2" fill="currentColor" />
+    <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+    <circle cx="15" cy="12" r="1.2" fill="currentColor" />
+    <path d="M18.5 5.5v3M17 7h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
+export const AIAppStoreIcon = ({ active, className = "" }: IconProps) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={iconClass(active, className)}>
+    <path
+      d="M4 10h16v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8z"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill={active ? "currentColor" : "none"}
+      fillOpacity={active ? 0.1 : 0}
+    />
+    <path d="M3.5 10l1.5-4h14l1.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M8 10v10M16 10v10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    <path d="M7 14h10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    <path d="M10 17h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+  </svg>
+);
+
+export const AIOpenClawInstallerIcon = ({ active, className = "" }: IconProps) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={iconClass(active, className)}>
+    <ellipse
+      cx="12"
+      cy="13"
+      rx="4.2"
+      ry="3.2"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      fill={active ? "currentColor" : "none"}
+      fillOpacity={active ? 0.1 : 0}
+    />
+    <path d="M9 8.8L7.2 7.2M15 8.8l1.8-1.6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    <path d="M7.5 12l-2.2-0.6 1.1-1.8 1.9 0.9M16.5 12l2.2-0.6-1.1-1.8-1.9 0.9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M10.2 16.2v2.1M12 16.6v2.2M13.8 16.2v2.1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    <path d="M12 4.2v4.1M10.2 6.7L12 8.5l1.8-1.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+export const AIOpenClawSettingsIcon = ({ active, className = "" }: IconProps) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={iconClass(active, className)}>
+    <ellipse
+      cx="11"
+      cy="13"
+      rx="4.1"
+      ry="3.1"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      fill={active ? "currentColor" : "none"}
+      fillOpacity={active ? 0.1 : 0}
+    />
+    <path d="M8.2 8.8L6.6 7.3M13.8 8.8l1.6-1.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    <path d="M6.8 12l-2-.5 1-1.7 1.7 0.8M15.2 12l2-.5-1-1.7-1.7 0.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M9.5 16.1v2M11 16.4v2.1M12.5 16.1v2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    <circle cx="17.8" cy="8.2" r="2" stroke="currentColor" strokeWidth="1.3" />
+    <path d="M17.8 5.1v1M17.8 10.3v1M14.7 8.2h1M19.9 8.2h1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
   </svg>
 );

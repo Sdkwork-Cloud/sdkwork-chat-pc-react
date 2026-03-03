@@ -20,7 +20,7 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
-    "@openchat/typescript-sdk": "file:../../sdk/typescript",
+    "@openchat/typescript-sdk": "file:../../vendor/openchat-typescript-sdk",
     "@sdkwork/openchat-pc-agent": "workspace:*",
     "@sdkwork/openchat-pc-contracts": "workspace:*",
     "@sdkwork/openchat-pc-contacts": "workspace:*",

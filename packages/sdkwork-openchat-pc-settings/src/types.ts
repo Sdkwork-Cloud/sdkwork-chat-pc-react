@@ -137,3 +137,66 @@ export interface FeedbackSupportInfo {
   faqUrl?: string;
   helpCenterUrl?: string;
 }
+
+export type InstallShell = "bash" | "powershell";
+
+export interface OpenClawInstallCommand {
+  id: string;
+  title: string;
+  command: string;
+  shell: InstallShell;
+  description?: string;
+}
+
+export interface OpenClawInstallStep {
+  id: string;
+  title: string;
+  description: string;
+  commands?: OpenClawInstallCommand[];
+  notes?: string[];
+}
+
+export interface OpenClawInstallCategory {
+  id: string;
+  label: string;
+  description: string;
+}
+
+export interface OpenClawInstallMode {
+  id: string;
+  name: string;
+  categoryId: string;
+  summary: string;
+  bestFor: string;
+  platforms: string[];
+  docsUrl: string;
+  steps: OpenClawInstallStep[];
+}
+
+export interface OpenClawInstallCatalog {
+  categories: OpenClawInstallCategory[];
+  modes: OpenClawInstallMode[];
+}
+
+export interface OpenClawDesktopGuide {
+  platform: "windows" | "macos" | "linux" | "unknown";
+  recommendation: string;
+  notes: string[];
+  quickCommands: OpenClawInstallCommand[];
+}
+
+export interface OpenClawPostInstallProfile {
+  gatewayMode: "local" | "remote";
+  gatewayBind: "loopback" | "lan" | "auto";
+  gatewayPort: string;
+  gatewayToken: string;
+  stateDir: string;
+  configPath: string;
+  workspaceDir: string;
+  channels: {
+    telegram: boolean;
+    discord: boolean;
+    whatsapp: boolean;
+    signal: boolean;
+  };
+}

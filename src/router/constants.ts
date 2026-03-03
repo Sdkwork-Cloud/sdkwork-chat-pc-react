@@ -15,6 +15,8 @@ export const ROUTES = {
 
   SETTINGS: "/settings",
   SETTINGS_ACCOUNT: "/settings/account",
+  SETTINGS_INSTALLER: "/settings/installer",
+  SETTINGS_OPENCLAW: "/settings/openclaw",
   SETTINGS_GENERAL: "/settings/general",
   SETTINGS_NOTIFICATIONS: "/settings/notifications",
   SETTINGS_PRIVACY: "/settings/privacy",
