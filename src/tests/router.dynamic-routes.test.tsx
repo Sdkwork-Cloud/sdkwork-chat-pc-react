@@ -1,7 +1,8 @@
 import { render, waitFor } from "@testing-library/react";
 import { MainLayout } from "@sdkwork/openchat-pc-commons";
+import { saveAuthData } from "../../packages/sdkwork-openchat-pc-auth/src/services/appAuthService";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppRouter } from "../router";
 
 vi.mock("@sdkwork/openchat-pc-rtc", async () => {
@@ -33,6 +34,31 @@ vi.mock("@sdkwork/openchat-pc-rtc", async () => {
 });
 
 describe("router dynamic route smoke", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    saveAuthData({
+      user: {
+        id: "u-1",
+        uid: "u-1",
+        username: "alice",
+        email: "alice@example.com",
+        phone: "13800000000",
+        nickname: "Alice",
+      },
+      token: "auth-token",
+      authToken: "auth-token",
+      accessToken: "access-token",
+      imToken: "im-token",
+      refreshToken: "refresh-token",
+      imConfig: {
+        wsUrl: "ws://localhost:5200",
+        uid: "u-1",
+        token: "im-token",
+      },
+      timestamp: Date.now(),
+    });
+  });
+
   it("renders key dynamic pages without route boundary errors", async () => {
     const paths = [
       "/agents/agent-a",

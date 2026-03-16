@@ -31,6 +31,7 @@ export function CreationPage() {
   const [negativePrompt, setNegativePrompt] = useState("");
   const [ratio, setRatio] = useState("16:9");
   const [style, setStyle] = useState("realistic");
+  const [provider, setProvider] = useState("");
   const [model, setModel] = useState("Midjourney V6");
 
   const [isLoading, setIsLoading] = useState(false);
@@ -45,13 +46,28 @@ export function CreationPage() {
     CreationService.getRecentCreationIds(),
   );
 
-  const modelOptions = useMemo(() => CreationService.getModels(formType), [formType]);
+  const modelProviders = useMemo(() => CreationService.getModelProviders(formType), [formType]);
+  const modelOptions = useMemo(() => {
+    const selectedProvider =
+      modelProviders.find((item) => item.id === provider) || modelProviders[0];
+    return selectedProvider?.models ?? [];
+  }, [modelProviders, provider]);
+
+  useEffect(() => {
+    if (modelProviders.length === 0) {
+      setProvider("");
+      return;
+    }
+    if (!modelProviders.some((item) => item.id === provider)) {
+      setProvider(modelProviders[0].id);
+    }
+  }, [modelProviders, provider]);
 
   useEffect(() => {
     if (!modelOptions.includes(model)) {
       setModel(modelOptions[0] || "");
     }
-  }, [formType, modelOptions]);
+  }, [modelOptions, model]);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -142,8 +158,9 @@ export function CreationPage() {
     setNegativePrompt(template.defaultNegativePrompt || "");
     setRatio(template.defaultRatio);
     setStyle(template.defaultStyle);
-    const nextModels = CreationService.getModels(template.type);
-    setModel(nextModels[0] || "");
+    const nextProviders = CreationService.getModelProviders(template.type);
+    setProvider(nextProviders[0]?.id || "");
+    setModel(nextProviders[0]?.models[0] || "");
     setStatusText(`Template applied: ${template.name}`);
   };
 
@@ -256,7 +273,7 @@ export function CreationPage() {
 
         <div className="mt-5 rounded-xl border border-border bg-bg-secondary p-4">
           <h2 className="text-sm font-semibold text-text-primary">Create Content</h2>
-          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-5">
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-6">
             <select
               value={formType}
               onChange={(event) => setFormType(event.target.value as CreationType)}
@@ -289,6 +306,18 @@ export function CreationPage() {
               {styleOptions.map((item) => (
                 <option key={item} value={item}>
                   {item}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={provider}
+              onChange={(event) => setProvider(event.target.value)}
+              className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
+            >
+              {modelProviders.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
                 </option>
               ))}
             </select>

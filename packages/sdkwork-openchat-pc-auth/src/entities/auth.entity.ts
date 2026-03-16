@@ -58,7 +58,7 @@ export interface LoginResponse {
   authToken?: string;
   /**
    * Access token for Access-Token header.
-   * If absent, fall back to auth token.
+   * Should be preconfigured at app-level and kept independent from auth token.
    */
   accessToken?: string;
   token: string;

@@ -8,7 +8,15 @@ import {
   SdkworkOpenclawPcInstaller,
   SdkworkOpenclawPcSettings,
 } from "../components";
-import { FeedbackResultService, SettingsResultService } from "../services";
+import {
+  FeedbackResultService,
+  SettingsResultService,
+  userCenterService,
+  type UserCenterAddress,
+  type UserCenterProfile,
+  type UserCenterSettings,
+  type UserCenterUpdateSettingsInput,
+} from "../services";
 import type { AppInfo, FeedbackSupportInfo, SettingsState } from "../types";
 
 type SettingTab =
@@ -217,6 +225,200 @@ function isUITheme(value: string): value is UIThemeType {
   return value === "light" || value === "dark" || value === "blue" || value === "purple" || value === "system";
 }
 
+interface AccountAddressDraft {
+  name: string;
+  phone: string;
+  provinceCode: string;
+  cityCode: string;
+  districtCode: string;
+  addressDetail: string;
+  isDefault: boolean;
+}
+
+interface AccountHistoryRow {
+  id: string;
+  title: string;
+  timeText: string;
+  detail: string;
+}
+
+interface AccountUserSettingsDraft {
+  theme: string;
+  language: string;
+  autoPlay: boolean;
+  highQuality: boolean;
+  dataSaver: boolean;
+  notificationSettings: {
+    system: boolean;
+    message: boolean;
+    activity: boolean;
+    promotion: boolean;
+    sound: boolean;
+    vibration: boolean;
+  };
+  privacySettings: {
+    publicProfile: boolean;
+    allowSearch: boolean;
+    allowFriendRequest: boolean;
+  };
+}
+
+interface AccountBindingDraft {
+  email: string;
+  emailCode: string;
+  phone: string;
+  phoneCode: string;
+  wechatCode: string;
+  wechatUserId: string;
+  qqCode: string;
+  qqUserId: string;
+}
+
+const ACCOUNT_HISTORY_PAGE_SIZE = 8;
+
+function emptyAccountAddressDraft(): AccountAddressDraft {
+  return {
+    name: "",
+    phone: "",
+    provinceCode: "",
+    cityCode: "",
+    districtCode: "",
+    addressDetail: "",
+    isDefault: false,
+  };
+}
+
+function emptyAccountBindingDraft(): AccountBindingDraft {
+  return {
+    email: "",
+    emailCode: "",
+    phone: "",
+    phoneCode: "",
+    wechatCode: "",
+    wechatUserId: "",
+    qqCode: "",
+    qqUserId: "",
+  };
+}
+
+function safeText(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function formatDateTime(value: unknown): string {
+  const raw = safeText(value);
+  if (!raw) {
+    return "--";
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    return raw;
+  }
+  return parsed.toLocaleString();
+}
+
+function pickHistoryTime(item: Record<string, unknown>): string {
+  return safeText(item.createdAt) || safeText(item.updatedAt) || safeText(item.timestamp) || safeText(item.time);
+}
+
+function mapAccountHistoryRows(content: Record<string, unknown>[] | undefined, fallbackLabel: string): AccountHistoryRow[] {
+  if (!Array.isArray(content)) {
+    return [];
+  }
+  return content.slice(0, ACCOUNT_HISTORY_PAGE_SIZE).map((item, index) => {
+    const title = safeText(item.title)
+      || safeText(item.event)
+      || safeText(item.type)
+      || safeText(item.action)
+      || fallbackLabel;
+    const location = safeText(item.location) || safeText(item.ip) || safeText(item.device) || safeText(item.platform);
+    const detail = location || safeText(item.status) || safeText(item.result) || "--";
+    const identifier = safeText(item.id) || safeText(item.recordId) || `${fallbackLabel}-${index + 1}`;
+    return {
+      id: identifier,
+      title,
+      timeText: formatDateTime(pickHistoryTime(item)),
+      detail,
+    };
+  });
+}
+
+function formatAccountAddressLine(address: UserCenterAddress): string {
+  const prefix = [address.provinceCode, address.cityCode, address.districtCode]
+    .map((item) => (item || "").trim())
+    .filter(Boolean)
+    .join(" ");
+  const detail = (address.addressDetail || address.fullAddress || "").trim();
+  return [prefix, detail].filter(Boolean).join(" ").trim() || "--";
+}
+
+function defaultAccountUserSettingsDraft(): AccountUserSettingsDraft {
+  return {
+    theme: "system",
+    language: "zh-CN",
+    autoPlay: true,
+    highQuality: true,
+    dataSaver: false,
+    notificationSettings: {
+      system: true,
+      message: true,
+      activity: true,
+      promotion: false,
+      sound: true,
+      vibration: true,
+    },
+    privacySettings: {
+      publicProfile: true,
+      allowSearch: true,
+      allowFriendRequest: true,
+    },
+  };
+}
+
+function toAccountUserSettingsDraft(value: UserCenterSettings | null): AccountUserSettingsDraft {
+  const defaults = defaultAccountUserSettingsDraft();
+  if (!value) {
+    return defaults;
+  }
+  const extended = value as UserCenterSettings & {
+    autoPlay?: boolean;
+    highQuality?: boolean;
+    dataSaver?: boolean;
+  };
+  return {
+    theme: (value.theme || "").trim() || defaults.theme,
+    language: (value.language || "").trim() || defaults.language,
+    autoPlay: extended.autoPlay ?? defaults.autoPlay,
+    highQuality: extended.highQuality ?? defaults.highQuality,
+    dataSaver: extended.dataSaver ?? defaults.dataSaver,
+    notificationSettings: {
+      system: value.notificationSettings?.system ?? defaults.notificationSettings.system,
+      message: value.notificationSettings?.message ?? defaults.notificationSettings.message,
+      activity: value.notificationSettings?.activity ?? defaults.notificationSettings.activity,
+      promotion: value.notificationSettings?.promotion ?? defaults.notificationSettings.promotion,
+      sound: value.notificationSettings?.sound ?? defaults.notificationSettings.sound,
+      vibration: value.notificationSettings?.vibration ?? defaults.notificationSettings.vibration,
+    },
+    privacySettings: {
+      publicProfile: value.privacySettings?.publicProfile ?? defaults.privacySettings.publicProfile,
+      allowSearch: value.privacySettings?.allowSearch ?? defaults.privacySettings.allowSearch,
+      allowFriendRequest: value.privacySettings?.allowFriendRequest ?? defaults.privacySettings.allowFriendRequest,
+    },
+  };
+}
+
+function toAccountUserSettingsPayload(draft: AccountUserSettingsDraft): UserCenterUpdateSettingsInput {
+  return {
+    theme: draft.theme,
+    language: draft.language,
+    autoPlay: draft.autoPlay,
+    highQuality: draft.highQuality,
+    dataSaver: draft.dataSaver,
+    notificationSettings: { ...draft.notificationSettings },
+    privacySettings: { ...draft.privacySettings },
+  };
+}
+
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingTab>("account");
   const [settings, setSettings] = useState<SettingsState>(defaultSettings);
@@ -237,6 +439,35 @@ export function SettingsPage() {
   const [feedbackSupport, setFeedbackSupport] = useState<FeedbackSupportInfo>(
     defaultFeedbackSupportInfo,
   );
+  const [accountProfile, setAccountProfile] = useState<UserCenterProfile | null>(null);
+  const [accountDraft, setAccountDraft] = useState({
+    nickname: "",
+    region: "",
+    bio: "",
+  });
+  const [passwordDraft, setPasswordDraft] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [accountSaving, setAccountSaving] = useState(false);
+  const [accountAddresses, setAccountAddresses] = useState<UserCenterAddress[]>([]);
+  const [accountAddressDraft, setAccountAddressDraft] = useState<AccountAddressDraft>(() => emptyAccountAddressDraft());
+  const [editingAccountAddressId, setEditingAccountAddressId] = useState<string>("");
+  const [accountAddressLoading, setAccountAddressLoading] = useState(false);
+  const [accountAddressSaving, setAccountAddressSaving] = useState(false);
+  const [accountLoginHistory, setAccountLoginHistory] = useState<AccountHistoryRow[]>([]);
+  const [accountGenerationHistory, setAccountGenerationHistory] = useState<AccountHistoryRow[]>([]);
+  const [accountHistoryLoading, setAccountHistoryLoading] = useState(false);
+  const [accountSettingsLoading, setAccountSettingsLoading] = useState(false);
+  const [accountSettingsSaving, setAccountSettingsSaving] = useState(false);
+  const [accountSettingsDraft, setAccountSettingsDraft] = useState<AccountUserSettingsDraft>(() =>
+    defaultAccountUserSettingsDraft(),
+  );
+  const [accountBindingDraft, setAccountBindingDraft] = useState<AccountBindingDraft>(() =>
+    emptyAccountBindingDraft(),
+  );
+  const [accountBindingSaving, setAccountBindingSaving] = useState(false);
 
   const { user, logout } = useAuth();
   const { setTheme } = useTheme();
@@ -336,6 +567,88 @@ export function SettingsPage() {
       setActiveTab(tabFromPath);
     }
   }, [activeTab, location.pathname]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAccountProfile = async () => {
+      if (activeTab !== "account") {
+        return;
+      }
+      setAccountAddressLoading(true);
+      setAccountHistoryLoading(true);
+      setAccountSettingsLoading(true);
+      try {
+        const [profileResult, addressesResult, loginResult, generationResult, settingsResult] = await Promise.allSettled([
+          userCenterService.getUserProfile(),
+          userCenterService.listUserAddresses(),
+          userCenterService.getLoginHistory({ page: 0, size: ACCOUNT_HISTORY_PAGE_SIZE }),
+          userCenterService.getGenerationHistory({ page: 0, size: ACCOUNT_HISTORY_PAGE_SIZE }),
+          userCenterService.getUserSettings(),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        if (profileResult.status === "fulfilled" && profileResult.value) {
+          const profile = profileResult.value;
+          setAccountProfile(profile);
+          setAccountDraft({
+            nickname: profile.nickname || "",
+            region: profile.region || "",
+            bio: profile.bio || "",
+          });
+          setAccountBindingDraft((prev) => ({
+            ...prev,
+            email: profile.email || "",
+            phone: profile.phone || "",
+          }));
+        } else if (profileResult.status === "rejected") {
+          console.warn("Failed to load account profile from SDK.", profileResult.reason);
+        }
+
+        if (addressesResult.status === "fulfilled") {
+          setAccountAddresses(addressesResult.value);
+        } else {
+          console.warn("Failed to load account addresses from SDK.", addressesResult.reason);
+        }
+
+        if (loginResult.status === "fulfilled") {
+          setAccountLoginHistory(mapAccountHistoryRows(loginResult.value.content, "Login"));
+        } else {
+          console.warn("Failed to load account login history from SDK.", loginResult.reason);
+        }
+
+        if (generationResult.status === "fulfilled") {
+          setAccountGenerationHistory(mapAccountHistoryRows(generationResult.value.content, "Generation"));
+        } else {
+          console.warn("Failed to load account generation history from SDK.", generationResult.reason);
+        }
+
+        if (settingsResult.status === "fulfilled") {
+          setAccountSettingsDraft(toAccountUserSettingsDraft(settingsResult.value));
+        } else {
+          console.warn("Failed to load account user settings from SDK.", settingsResult.reason);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.warn("Failed to load account data from SDK.", error);
+        }
+      } finally {
+        if (!cancelled) {
+          setAccountAddressLoading(false);
+          setAccountHistoryLoading(false);
+          setAccountSettingsLoading(false);
+        }
+      }
+    };
+
+    void loadAccountProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab]);
 
   const handleSelectTab = (tab: SettingTab) => {
     setActiveTab(tab);
@@ -450,6 +763,334 @@ export function SettingsPage() {
     }
   };
 
+  const handleSaveAccountProfile = async () => {
+    setAccountSaving(true);
+    setSaveMessage("");
+    try {
+      const updated = await userCenterService.updateUserProfile({
+        nickname: accountDraft.nickname.trim() || undefined,
+        region: accountDraft.region.trim() || undefined,
+        bio: accountDraft.bio.trim() || undefined,
+      });
+      setAccountProfile(updated);
+      setSaveMessage("Profile updated.");
+    } catch (error) {
+      console.error("Failed to update account profile.", error);
+      setSaveMessage(error instanceof Error ? error.message : "Profile update failed.");
+    } finally {
+      setAccountSaving(false);
+    }
+  };
+
+  const handleChangeAccountPassword = async () => {
+    if (!passwordDraft.oldPassword || !passwordDraft.newPassword || !passwordDraft.confirmPassword) {
+      setSaveMessage("Please complete all password fields.");
+      return;
+    }
+    if (passwordDraft.newPassword !== passwordDraft.confirmPassword) {
+      setSaveMessage("New password and confirmation do not match.");
+      return;
+    }
+
+    setAccountSaving(true);
+    setSaveMessage("");
+    try {
+      await userCenterService.changePassword({
+        oldPassword: passwordDraft.oldPassword,
+        newPassword: passwordDraft.newPassword,
+        confirmPassword: passwordDraft.confirmPassword,
+      });
+      setPasswordDraft({
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setSaveMessage("Password changed.");
+    } catch (error) {
+      console.error("Failed to change account password.", error);
+      setSaveMessage(error instanceof Error ? error.message : "Password change failed.");
+    } finally {
+      setAccountSaving(false);
+    }
+  };
+
+  const applyAccountBindingProfile = (profile: UserCenterProfile) => {
+    setAccountProfile(profile);
+    setAccountBindingDraft((prev) => ({
+      ...prev,
+      email: profile.email || "",
+      phone: profile.phone || "",
+    }));
+  };
+
+  const handleBindAccountEmail = async () => {
+    const email = accountBindingDraft.email.trim();
+    if (!email) {
+      setSaveMessage("Please enter email.");
+      return;
+    }
+    setAccountBindingSaving(true);
+    setSaveMessage("");
+    try {
+      const updated = await userCenterService.bindEmail(
+        email,
+        accountBindingDraft.emailCode.trim() || undefined,
+      );
+      applyAccountBindingProfile(updated);
+      setAccountBindingDraft((prev) => ({ ...prev, emailCode: "" }));
+      setSaveMessage("Email bound.");
+    } catch (error) {
+      console.error("Failed to bind account email.", error);
+      setSaveMessage(error instanceof Error ? error.message : "Email bind failed.");
+    } finally {
+      setAccountBindingSaving(false);
+    }
+  };
+
+  const handleUnbindAccountEmail = async () => {
+    setAccountBindingSaving(true);
+    setSaveMessage("");
+    try {
+      const updated = await userCenterService.unbindEmail();
+      applyAccountBindingProfile(updated);
+      setAccountBindingDraft((prev) => ({ ...prev, emailCode: "" }));
+      setSaveMessage("Email unbound.");
+    } catch (error) {
+      console.error("Failed to unbind account email.", error);
+      setSaveMessage(error instanceof Error ? error.message : "Email unbind failed.");
+    } finally {
+      setAccountBindingSaving(false);
+    }
+  };
+
+  const handleBindAccountPhone = async () => {
+    const phone = accountBindingDraft.phone.trim();
+    if (!phone) {
+      setSaveMessage("Please enter phone.");
+      return;
+    }
+    setAccountBindingSaving(true);
+    setSaveMessage("");
+    try {
+      const updated = await userCenterService.bindPhone(
+        phone,
+        accountBindingDraft.phoneCode.trim() || undefined,
+      );
+      applyAccountBindingProfile(updated);
+      setAccountBindingDraft((prev) => ({ ...prev, phoneCode: "" }));
+      setSaveMessage("Phone bound.");
+    } catch (error) {
+      console.error("Failed to bind account phone.", error);
+      setSaveMessage(error instanceof Error ? error.message : "Phone bind failed.");
+    } finally {
+      setAccountBindingSaving(false);
+    }
+  };
+
+  const handleUnbindAccountPhone = async () => {
+    setAccountBindingSaving(true);
+    setSaveMessage("");
+    try {
+      const updated = await userCenterService.unbindPhone();
+      applyAccountBindingProfile(updated);
+      setAccountBindingDraft((prev) => ({ ...prev, phoneCode: "" }));
+      setSaveMessage("Phone unbound.");
+    } catch (error) {
+      console.error("Failed to unbind account phone.", error);
+      setSaveMessage(error instanceof Error ? error.message : "Phone unbind failed.");
+    } finally {
+      setAccountBindingSaving(false);
+    }
+  };
+
+  const handleBindAccountSocial = async (platform: "wechat" | "qq") => {
+    const code = platform === "wechat"
+      ? accountBindingDraft.wechatCode.trim()
+      : accountBindingDraft.qqCode.trim();
+    const thirdPartyUserId = platform === "wechat"
+      ? accountBindingDraft.wechatUserId.trim()
+      : accountBindingDraft.qqUserId.trim();
+    if (!code && !thirdPartyUserId) {
+      setSaveMessage(`Please enter ${platform.toUpperCase()} code or user ID.`);
+      return;
+    }
+    setAccountBindingSaving(true);
+    setSaveMessage("");
+    try {
+      await userCenterService.bindThirdParty(platform, {
+        code: code || undefined,
+        thirdPartyUserId: thirdPartyUserId || undefined,
+      });
+      if (platform === "wechat") {
+        setAccountBindingDraft((prev) => ({ ...prev, wechatCode: "", wechatUserId: "" }));
+      } else {
+        setAccountBindingDraft((prev) => ({ ...prev, qqCode: "", qqUserId: "" }));
+      }
+      setSaveMessage(`${platform.toUpperCase()} account bound.`);
+    } catch (error) {
+      console.error(`Failed to bind ${platform} account.`, error);
+      setSaveMessage(error instanceof Error ? error.message : `${platform.toUpperCase()} bind failed.`);
+    } finally {
+      setAccountBindingSaving(false);
+    }
+  };
+
+  const handleUnbindAccountSocial = async (platform: "wechat" | "qq") => {
+    setAccountBindingSaving(true);
+    setSaveMessage("");
+    try {
+      await userCenterService.unbindThirdParty(platform);
+      setSaveMessage(`${platform.toUpperCase()} account unbound.`);
+    } catch (error) {
+      console.error(`Failed to unbind ${platform} account.`, error);
+      setSaveMessage(error instanceof Error ? error.message : `${platform.toUpperCase()} unbind failed.`);
+    } finally {
+      setAccountBindingSaving(false);
+    }
+  };
+
+  const reloadAccountExtendedData = async () => {
+    setAccountAddressLoading(true);
+    setAccountHistoryLoading(true);
+    setAccountSettingsLoading(true);
+    try {
+      const [addresses, loginHistory, generationHistory, userSettings] = await Promise.all([
+        userCenterService.listUserAddresses(),
+        userCenterService.getLoginHistory({ page: 0, size: ACCOUNT_HISTORY_PAGE_SIZE }),
+        userCenterService.getGenerationHistory({ page: 0, size: ACCOUNT_HISTORY_PAGE_SIZE }),
+        userCenterService.getUserSettings(),
+      ]);
+      setAccountAddresses(addresses);
+      setAccountLoginHistory(mapAccountHistoryRows(loginHistory.content, "Login"));
+      setAccountGenerationHistory(mapAccountHistoryRows(generationHistory.content, "Generation"));
+      setAccountSettingsDraft(toAccountUserSettingsDraft(userSettings));
+    } catch (error) {
+      console.error("Failed to reload account data.", error);
+      setSaveMessage(error instanceof Error ? error.message : "Failed to reload account data.");
+    } finally {
+      setAccountAddressLoading(false);
+      setAccountHistoryLoading(false);
+      setAccountSettingsLoading(false);
+    }
+  };
+
+  const resetAccountAddressDraft = () => {
+    setEditingAccountAddressId("");
+    setAccountAddressDraft(emptyAccountAddressDraft());
+  };
+
+  const handleEditAccountAddress = (address: UserCenterAddress) => {
+    setEditingAccountAddressId(address.id === undefined || address.id === null ? "" : String(address.id));
+    setAccountAddressDraft({
+      name: (address.name || "").trim(),
+      phone: (address.phone || "").trim(),
+      provinceCode: (address.provinceCode || "").trim(),
+      cityCode: (address.cityCode || "").trim(),
+      districtCode: (address.districtCode || "").trim(),
+      addressDetail: (address.addressDetail || "").trim(),
+      isDefault: !!address.isDefault,
+    });
+  };
+
+  const handleSaveAccountAddress = async () => {
+    const name = accountAddressDraft.name.trim();
+    const phone = accountAddressDraft.phone.trim();
+    const addressDetail = accountAddressDraft.addressDetail.trim();
+    if (!name || !phone || !addressDetail) {
+      setSaveMessage("Address name, phone and detail are required.");
+      return;
+    }
+
+    setAccountAddressSaving(true);
+    setSaveMessage("");
+    try {
+      const payload = {
+        name,
+        phone,
+        countryCode: "CN",
+        provinceCode: accountAddressDraft.provinceCode.trim() || undefined,
+        cityCode: accountAddressDraft.cityCode.trim() || undefined,
+        districtCode: accountAddressDraft.districtCode.trim() || undefined,
+        addressDetail,
+        isDefault: accountAddressDraft.isDefault,
+      };
+      const wasEditing = Boolean(editingAccountAddressId);
+      if (wasEditing) {
+        await userCenterService.updateAddress(editingAccountAddressId, payload);
+      } else {
+        await userCenterService.createAddress(payload);
+      }
+      await reloadAccountExtendedData();
+      resetAccountAddressDraft();
+      setSaveMessage(wasEditing ? "Address updated." : "Address created.");
+    } catch (error) {
+      console.error("Failed to save account address.", error);
+      setSaveMessage(error instanceof Error ? error.message : "Address save failed.");
+    } finally {
+      setAccountAddressSaving(false);
+    }
+  };
+
+  const handleDeleteAccountAddress = async (addressId: string | number | undefined) => {
+    if (addressId === undefined || addressId === null) {
+      return;
+    }
+    const confirmed = window.confirm("Delete this address?");
+    if (!confirmed) {
+      return;
+    }
+    setAccountAddressSaving(true);
+    setSaveMessage("");
+    try {
+      await userCenterService.deleteAddress(addressId);
+      await reloadAccountExtendedData();
+      if (editingAccountAddressId && editingAccountAddressId === String(addressId)) {
+        resetAccountAddressDraft();
+      }
+      setSaveMessage("Address deleted.");
+    } catch (error) {
+      console.error("Failed to delete account address.", error);
+      setSaveMessage(error instanceof Error ? error.message : "Address delete failed.");
+    } finally {
+      setAccountAddressSaving(false);
+    }
+  };
+
+  const handleSetDefaultAccountAddress = async (addressId: string | number | undefined) => {
+    if (addressId === undefined || addressId === null) {
+      return;
+    }
+    setAccountAddressSaving(true);
+    setSaveMessage("");
+    try {
+      await userCenterService.setDefaultAddress(addressId);
+      await reloadAccountExtendedData();
+      setSaveMessage("Default address updated.");
+    } catch (error) {
+      console.error("Failed to set default account address.", error);
+      setSaveMessage(error instanceof Error ? error.message : "Set default address failed.");
+    } finally {
+      setAccountAddressSaving(false);
+    }
+  };
+
+  const handleSaveAccountUserSettings = async () => {
+    setAccountSettingsSaving(true);
+    setSaveMessage("");
+    try {
+      const updated = await userCenterService.updateUserSettings(
+        toAccountUserSettingsPayload(accountSettingsDraft),
+      );
+      setAccountSettingsDraft(toAccountUserSettingsDraft(updated));
+      setSaveMessage("User settings updated.");
+    } catch (error) {
+      console.error("Failed to update account user settings.", error);
+      setSaveMessage(error instanceof Error ? error.message : "User settings update failed.");
+    } finally {
+      setAccountSettingsSaving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary p-6">
@@ -488,10 +1129,757 @@ export function SettingsPage() {
             <div className="rounded-xl border border-border bg-bg-secondary p-4">
               <h2 className="text-sm font-semibold text-text-primary">Profile</h2>
               <div className="mt-3 space-y-2 text-sm text-text-secondary">
-                <p>Nickname: {user?.nickname || "Not set"}</p>
-                <p>User ID: {user?.id || "-"}</p>
-                <p>Email: {user?.email || "Not bound"}</p>
-                <p>Phone: {user?.phone || "Not bound"}</p>
+                <p>Nickname: {accountProfile?.nickname || user?.nickname || "Not set"}</p>
+                <p>User ID: {accountProfile?.userId || user?.id || "-"}</p>
+                <p>Email: {accountProfile?.email || user?.email || "Not bound"}</p>
+                <p>Phone: {accountProfile?.phone || user?.phone || "Not bound"}</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-bg-secondary p-4">
+              <h2 className="text-sm font-semibold text-text-primary">Edit Profile</h2>
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <label className="text-sm text-text-secondary">
+                  Nickname
+                  <input
+                    value={accountDraft.nickname}
+                    onChange={(event) =>
+                      setAccountDraft((prev) => ({ ...prev, nickname: event.target.value }))
+                    }
+                    placeholder="Enter nickname"
+                    className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                  />
+                </label>
+                <label className="text-sm text-text-secondary">
+                  Region
+                  <input
+                    value={accountDraft.region}
+                    onChange={(event) =>
+                      setAccountDraft((prev) => ({ ...prev, region: event.target.value }))
+                    }
+                    placeholder="Enter region"
+                    className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                  />
+                </label>
+                <label className="text-sm text-text-secondary md:col-span-2">
+                  Bio
+                  <textarea
+                    value={accountDraft.bio}
+                    onChange={(event) =>
+                      setAccountDraft((prev) => ({ ...prev, bio: event.target.value }))
+                    }
+                    placeholder="Tell others about yourself"
+                    rows={3}
+                    className="mt-1 w-full rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
+                  />
+                </label>
+              </div>
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleSaveAccountProfile();
+                  }}
+                  disabled={accountSaving}
+                  className="rounded-lg border border-primary/40 bg-primary-soft px-4 py-2 text-sm text-primary transition hover:bg-primary/20 disabled:opacity-60"
+                >
+                  {accountSaving ? "Saving..." : "Save Profile"}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-bg-secondary p-4">
+              <h2 className="text-sm font-semibold text-text-primary">Change Password</h2>
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                <label className="text-sm text-text-secondary">
+                  Current Password
+                  <input
+                    type="password"
+                    value={passwordDraft.oldPassword}
+                    onChange={(event) =>
+                      setPasswordDraft((prev) => ({ ...prev, oldPassword: event.target.value }))
+                    }
+                    className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                  />
+                </label>
+                <label className="text-sm text-text-secondary">
+                  New Password
+                  <input
+                    type="password"
+                    value={passwordDraft.newPassword}
+                    onChange={(event) =>
+                      setPasswordDraft((prev) => ({ ...prev, newPassword: event.target.value }))
+                    }
+                    className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                  />
+                </label>
+                <label className="text-sm text-text-secondary">
+                  Confirm Password
+                  <input
+                    type="password"
+                    value={passwordDraft.confirmPassword}
+                    onChange={(event) =>
+                      setPasswordDraft((prev) => ({ ...prev, confirmPassword: event.target.value }))
+                    }
+                    className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                  />
+                </label>
+              </div>
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleChangeAccountPassword();
+                  }}
+                  disabled={accountSaving}
+                  className="rounded-lg border border-primary/40 bg-primary-soft px-4 py-2 text-sm text-primary transition hover:bg-primary/20 disabled:opacity-60"
+                >
+                  {accountSaving ? "Submitting..." : "Update Password"}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-bg-secondary p-4">
+              <h2 className="text-sm font-semibold text-text-primary">Account Binding</h2>
+              <p className="mt-1 text-xs text-text-muted">
+                Bind email/phone/WeChat/QQ through SDK user & bind APIs.
+              </p>
+              <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <div className="rounded-lg border border-border bg-bg-primary p-3">
+                  <div className="text-xs text-text-secondary">Email</div>
+                  <div className="mt-1 text-[11px] text-text-muted">Current: {accountProfile?.email || "Not bound"}</div>
+                  <label className="mt-2 block text-sm text-text-secondary">
+                    Email
+                    <input
+                      value={accountBindingDraft.email}
+                      onChange={(event) =>
+                        setAccountBindingDraft((prev) => ({ ...prev, email: event.target.value }))
+                      }
+                      placeholder="you@example.com"
+                      className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                    />
+                  </label>
+                  <label className="mt-2 block text-sm text-text-secondary">
+                    Verify Code (optional)
+                    <input
+                      value={accountBindingDraft.emailCode}
+                      onChange={(event) =>
+                        setAccountBindingDraft((prev) => ({ ...prev, emailCode: event.target.value }))
+                      }
+                      placeholder="Email verify code"
+                      className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                    />
+                  </label>
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleBindAccountEmail();
+                      }}
+                      disabled={accountBindingSaving}
+                      className="rounded-lg border border-primary/40 bg-primary-soft px-3 py-1.5 text-xs text-primary transition hover:bg-primary/20 disabled:opacity-60"
+                    >
+                      {accountBindingSaving ? "Processing..." : "Bind Email"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleUnbindAccountEmail();
+                      }}
+                      disabled={accountBindingSaving}
+                      className="rounded-lg border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition hover:bg-bg-hover disabled:opacity-60"
+                    >
+                      Unbind
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border bg-bg-primary p-3">
+                  <div className="text-xs text-text-secondary">Phone</div>
+                  <div className="mt-1 text-[11px] text-text-muted">Current: {accountProfile?.phone || "Not bound"}</div>
+                  <label className="mt-2 block text-sm text-text-secondary">
+                    Phone
+                    <input
+                      value={accountBindingDraft.phone}
+                      onChange={(event) =>
+                        setAccountBindingDraft((prev) => ({ ...prev, phone: event.target.value }))
+                      }
+                      placeholder="Phone number"
+                      className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                    />
+                  </label>
+                  <label className="mt-2 block text-sm text-text-secondary">
+                    Verify Code (optional)
+                    <input
+                      value={accountBindingDraft.phoneCode}
+                      onChange={(event) =>
+                        setAccountBindingDraft((prev) => ({ ...prev, phoneCode: event.target.value }))
+                      }
+                      placeholder="SMS verify code"
+                      className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                    />
+                  </label>
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleBindAccountPhone();
+                      }}
+                      disabled={accountBindingSaving}
+                      className="rounded-lg border border-primary/40 bg-primary-soft px-3 py-1.5 text-xs text-primary transition hover:bg-primary/20 disabled:opacity-60"
+                    >
+                      {accountBindingSaving ? "Processing..." : "Bind Phone"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleUnbindAccountPhone();
+                      }}
+                      disabled={accountBindingSaving}
+                      className="rounded-lg border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition hover:bg-bg-hover disabled:opacity-60"
+                    >
+                      Unbind
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border bg-bg-primary p-3">
+                  <div className="text-xs text-text-secondary">WeChat</div>
+                  <label className="mt-2 block text-sm text-text-secondary">
+                    Auth Code
+                    <input
+                      value={accountBindingDraft.wechatCode}
+                      onChange={(event) =>
+                        setAccountBindingDraft((prev) => ({ ...prev, wechatCode: event.target.value }))
+                      }
+                      placeholder="WeChat auth code"
+                      className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                    />
+                  </label>
+                  <label className="mt-2 block text-sm text-text-secondary">
+                    Third-party User ID (optional)
+                    <input
+                      value={accountBindingDraft.wechatUserId}
+                      onChange={(event) =>
+                        setAccountBindingDraft((prev) => ({ ...prev, wechatUserId: event.target.value }))
+                      }
+                      placeholder="openid/unionid"
+                      className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                    />
+                  </label>
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleBindAccountSocial("wechat");
+                      }}
+                      disabled={accountBindingSaving}
+                      className="rounded-lg border border-primary/40 bg-primary-soft px-3 py-1.5 text-xs text-primary transition hover:bg-primary/20 disabled:opacity-60"
+                    >
+                      {accountBindingSaving ? "Processing..." : "Bind WeChat"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleUnbindAccountSocial("wechat");
+                      }}
+                      disabled={accountBindingSaving}
+                      className="rounded-lg border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition hover:bg-bg-hover disabled:opacity-60"
+                    >
+                      Unbind
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border bg-bg-primary p-3">
+                  <div className="text-xs text-text-secondary">QQ</div>
+                  <label className="mt-2 block text-sm text-text-secondary">
+                    Auth Code
+                    <input
+                      value={accountBindingDraft.qqCode}
+                      onChange={(event) =>
+                        setAccountBindingDraft((prev) => ({ ...prev, qqCode: event.target.value }))
+                      }
+                      placeholder="QQ auth code"
+                      className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                    />
+                  </label>
+                  <label className="mt-2 block text-sm text-text-secondary">
+                    Third-party User ID (optional)
+                    <input
+                      value={accountBindingDraft.qqUserId}
+                      onChange={(event) =>
+                        setAccountBindingDraft((prev) => ({ ...prev, qqUserId: event.target.value }))
+                      }
+                      placeholder="openid/unionid"
+                      className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                    />
+                  </label>
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleBindAccountSocial("qq");
+                      }}
+                      disabled={accountBindingSaving}
+                      className="rounded-lg border border-primary/40 bg-primary-soft px-3 py-1.5 text-xs text-primary transition hover:bg-primary/20 disabled:opacity-60"
+                    >
+                      {accountBindingSaving ? "Processing..." : "Bind QQ"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleUnbindAccountSocial("qq");
+                      }}
+                      disabled={accountBindingSaving}
+                      className="rounded-lg border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition hover:bg-bg-hover disabled:opacity-60"
+                    >
+                      Unbind
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-bg-secondary p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-text-primary">Addresses</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void reloadAccountExtendedData();
+                  }}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Refresh
+                </button>
+              </div>
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <label className="text-sm text-text-secondary">
+                  Contact Name
+                  <input
+                    value={accountAddressDraft.name}
+                    onChange={(event) =>
+                      setAccountAddressDraft((prev) => ({ ...prev, name: event.target.value }))
+                    }
+                    placeholder="Receiver name"
+                    className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                  />
+                </label>
+                <label className="text-sm text-text-secondary">
+                  Phone
+                  <input
+                    value={accountAddressDraft.phone}
+                    onChange={(event) =>
+                      setAccountAddressDraft((prev) => ({ ...prev, phone: event.target.value }))
+                    }
+                    placeholder="Receiver phone"
+                    className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                  />
+                </label>
+                <label className="text-sm text-text-secondary">
+                  Province
+                  <input
+                    value={accountAddressDraft.provinceCode}
+                    onChange={(event) =>
+                      setAccountAddressDraft((prev) => ({ ...prev, provinceCode: event.target.value }))
+                    }
+                    placeholder="Province"
+                    className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                  />
+                </label>
+                <label className="text-sm text-text-secondary">
+                  City
+                  <input
+                    value={accountAddressDraft.cityCode}
+                    onChange={(event) =>
+                      setAccountAddressDraft((prev) => ({ ...prev, cityCode: event.target.value }))
+                    }
+                    placeholder="City"
+                    className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                  />
+                </label>
+                <label className="text-sm text-text-secondary">
+                  District
+                  <input
+                    value={accountAddressDraft.districtCode}
+                    onChange={(event) =>
+                      setAccountAddressDraft((prev) => ({ ...prev, districtCode: event.target.value }))
+                    }
+                    placeholder="District"
+                    className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
+                  />
+                </label>
+                <label className="text-sm text-text-secondary md:col-span-2">
+                  Address Detail
+                  <textarea
+                    value={accountAddressDraft.addressDetail}
+                    onChange={(event) =>
+                      setAccountAddressDraft((prev) => ({ ...prev, addressDetail: event.target.value }))
+                    }
+                    rows={2}
+                    placeholder="Street / building / room"
+                    className="mt-1 w-full rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
+                  />
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-text-secondary md:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={accountAddressDraft.isDefault}
+                    onChange={(event) =>
+                      setAccountAddressDraft((prev) => ({ ...prev, isDefault: event.target.checked }))
+                    }
+                  />
+                  Set as default
+                </label>
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleSaveAccountAddress();
+                  }}
+                  disabled={accountAddressSaving}
+                  className="rounded-lg border border-primary/40 bg-primary-soft px-4 py-2 text-sm text-primary transition hover:bg-primary/20 disabled:opacity-60"
+                >
+                  {accountAddressSaving ? "Submitting..." : editingAccountAddressId ? "Update Address" : "Add Address"}
+                </button>
+                {editingAccountAddressId ? (
+                  <button
+                    type="button"
+                    onClick={resetAccountAddressDraft}
+                    className="rounded-lg border border-border bg-bg-tertiary px-4 py-2 text-sm text-text-secondary transition hover:bg-bg-hover"
+                  >
+                    Cancel Edit
+                  </button>
+                ) : null}
+              </div>
+              {accountAddressLoading ? (
+                <div className="mt-2 text-xs text-text-muted">Loading addresses...</div>
+              ) : null}
+              <div className="mt-3 space-y-2">
+                {accountAddresses.length === 0 ? (
+                  <div className="rounded-lg border border-border bg-bg-primary px-3 py-2 text-xs text-text-muted">
+                    No saved addresses.
+                  </div>
+                ) : accountAddresses.map((address) => (
+                  <div key={address.id || `${address.name}-${address.phone}`} className="rounded-lg border border-border bg-bg-primary px-3 py-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm text-text-primary">
+                          {(address.name || "--").trim()} {(address.phone || "--").trim()}
+                        </div>
+                        <div className="text-xs text-text-muted">{formatAccountAddressLine(address)}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {address.isDefault ? (
+                          <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] text-primary">Default</span>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => handleEditAccountAddress(address)}
+                          className="text-xs text-primary hover:underline"
+                        >
+                          Edit
+                        </button>
+                        {!address.isDefault ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void handleSetDefaultAccountAddress(address.id);
+                            }}
+                            className="text-xs text-primary hover:underline"
+                          >
+                            Set Default
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void handleDeleteAccountAddress(address.id);
+                          }}
+                          className="text-xs text-red-400 hover:underline"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-bg-secondary p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-text-primary">User Settings</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void reloadAccountExtendedData();
+                  }}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Refresh
+                </button>
+              </div>
+              {accountSettingsLoading ? (
+                <div className="mt-2 text-xs text-text-muted">Loading user settings...</div>
+              ) : null}
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <label className="text-sm text-text-secondary">
+                  Theme
+                  <select
+                    value={accountSettingsDraft.theme}
+                    onChange={(event) =>
+                      setAccountSettingsDraft((prev) => ({ ...prev, theme: event.target.value }))
+                    }
+                    className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
+                  >
+                    <option value="system">System</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                  </select>
+                </label>
+                <label className="text-sm text-text-secondary">
+                  Language
+                  <select
+                    value={accountSettingsDraft.language}
+                    onChange={(event) =>
+                      setAccountSettingsDraft((prev) => ({ ...prev, language: event.target.value }))
+                    }
+                    className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
+                  >
+                    <option value="zh-CN">简体中文</option>
+                    <option value="en-US">English</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+                <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={accountSettingsDraft.notificationSettings.system}
+                    onChange={(event) =>
+                      setAccountSettingsDraft((prev) => ({
+                        ...prev,
+                        notificationSettings: {
+                          ...prev.notificationSettings,
+                          system: event.target.checked,
+                        },
+                      }))
+                    }
+                  />
+                  System Notifications
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={accountSettingsDraft.notificationSettings.message}
+                    onChange={(event) =>
+                      setAccountSettingsDraft((prev) => ({
+                        ...prev,
+                        notificationSettings: {
+                          ...prev.notificationSettings,
+                          message: event.target.checked,
+                        },
+                      }))
+                    }
+                  />
+                  Message Notifications
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={accountSettingsDraft.notificationSettings.activity}
+                    onChange={(event) =>
+                      setAccountSettingsDraft((prev) => ({
+                        ...prev,
+                        notificationSettings: {
+                          ...prev.notificationSettings,
+                          activity: event.target.checked,
+                        },
+                      }))
+                    }
+                  />
+                  Activity Notifications
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={accountSettingsDraft.notificationSettings.promotion}
+                    onChange={(event) =>
+                      setAccountSettingsDraft((prev) => ({
+                        ...prev,
+                        notificationSettings: {
+                          ...prev.notificationSettings,
+                          promotion: event.target.checked,
+                        },
+                      }))
+                    }
+                  />
+                  Promotion Notifications
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={accountSettingsDraft.notificationSettings.sound}
+                    onChange={(event) =>
+                      setAccountSettingsDraft((prev) => ({
+                        ...prev,
+                        notificationSettings: {
+                          ...prev.notificationSettings,
+                          sound: event.target.checked,
+                        },
+                      }))
+                    }
+                  />
+                  Sound
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={accountSettingsDraft.notificationSettings.vibration}
+                    onChange={(event) =>
+                      setAccountSettingsDraft((prev) => ({
+                        ...prev,
+                        notificationSettings: {
+                          ...prev.notificationSettings,
+                          vibration: event.target.checked,
+                        },
+                      }))
+                    }
+                  />
+                  Vibration
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={accountSettingsDraft.privacySettings.publicProfile}
+                    onChange={(event) =>
+                      setAccountSettingsDraft((prev) => ({
+                        ...prev,
+                        privacySettings: {
+                          ...prev.privacySettings,
+                          publicProfile: event.target.checked,
+                        },
+                      }))
+                    }
+                  />
+                  Public Profile
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={accountSettingsDraft.privacySettings.allowSearch}
+                    onChange={(event) =>
+                      setAccountSettingsDraft((prev) => ({
+                        ...prev,
+                        privacySettings: {
+                          ...prev.privacySettings,
+                          allowSearch: event.target.checked,
+                        },
+                      }))
+                    }
+                  />
+                  Allow Search
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={accountSettingsDraft.privacySettings.allowFriendRequest}
+                    onChange={(event) =>
+                      setAccountSettingsDraft((prev) => ({
+                        ...prev,
+                        privacySettings: {
+                          ...prev.privacySettings,
+                          allowFriendRequest: event.target.checked,
+                        },
+                      }))
+                    }
+                  />
+                  Allow Friend Request
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={accountSettingsDraft.autoPlay}
+                    onChange={(event) =>
+                      setAccountSettingsDraft((prev) => ({ ...prev, autoPlay: event.target.checked }))
+                    }
+                  />
+                  Auto Play
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={accountSettingsDraft.highQuality}
+                    onChange={(event) =>
+                      setAccountSettingsDraft((prev) => ({ ...prev, highQuality: event.target.checked }))
+                    }
+                  />
+                  High Quality
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={accountSettingsDraft.dataSaver}
+                    onChange={(event) =>
+                      setAccountSettingsDraft((prev) => ({ ...prev, dataSaver: event.target.checked }))
+                    }
+                  />
+                  Data Saver
+                </label>
+              </div>
+
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleSaveAccountUserSettings();
+                  }}
+                  disabled={accountSettingsSaving}
+                  className="rounded-lg border border-primary/40 bg-primary-soft px-4 py-2 text-sm text-primary transition hover:bg-primary/20 disabled:opacity-60"
+                >
+                  {accountSettingsSaving ? "Saving..." : "Save User Settings"}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-bg-secondary p-4">
+              <h2 className="text-sm font-semibold text-text-primary">Recent Activity</h2>
+              {accountHistoryLoading ? (
+                <div className="mt-2 text-xs text-text-muted">Loading activity records...</div>
+              ) : null}
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="rounded-lg border border-border bg-bg-primary p-3">
+                  <h3 className="text-xs font-semibold text-text-primary">Login History</h3>
+                  <div className="mt-2 space-y-2">
+                    {accountLoginHistory.length === 0 ? (
+                      <div className="text-xs text-text-muted">No login records.</div>
+                    ) : accountLoginHistory.map((item) => (
+                      <div key={`login-${item.id}`} className="rounded border border-border px-2 py-1.5">
+                        <div className="text-xs text-text-primary">{item.title}</div>
+                        <div className="text-[11px] text-text-secondary">{item.timeText}</div>
+                        <div className="text-[11px] text-text-muted">{item.detail}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border bg-bg-primary p-3">
+                  <h3 className="text-xs font-semibold text-text-primary">Generation History</h3>
+                  <div className="mt-2 space-y-2">
+                    {accountGenerationHistory.length === 0 ? (
+                      <div className="text-xs text-text-muted">No generation records.</div>
+                    ) : accountGenerationHistory.map((item) => (
+                      <div key={`generation-${item.id}`} className="rounded border border-border px-2 py-1.5">
+                        <div className="text-xs text-text-primary">{item.title}</div>
+                        <div className="text-[11px] text-text-secondary">{item.timeText}</div>
+                        <div className="text-[11px] text-text-muted">{item.detail}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 

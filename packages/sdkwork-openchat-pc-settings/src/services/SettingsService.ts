@@ -1,4 +1,4 @@
-import { apiClient, IS_DEV } from "@sdkwork/openchat-pc-kernel";
+import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
 import type {
   AppInfo,
   ModelConfig,
@@ -17,8 +17,6 @@ type ApiEnvelope<T> = {
 
 const SETTINGS_STORAGE_KEY = "openchat.settings.state";
 const APP_INFO_STORAGE_KEY = "openchat.settings.app-info";
-const SETTINGS_BASE_URL = "/settings";
-const DEFAULT_STORAGE_TOTAL = 10 * 1024 * 1024 * 1024;
 
 const DEFAULT_SETTINGS: SettingsState = {
   theme: "blue",
@@ -177,58 +175,14 @@ function writeLocalAppInfo(appInfo: AppInfo): void {
   writeJson(APP_INFO_STORAGE_KEY, appInfo);
 }
 
-function estimateStorageInfo(settings: SettingsState): StorageInfo {
-  const serialized = JSON.stringify(settings);
-  const estimatedSize = serialized.length * 2;
-  const cacheSize = Math.round(estimatedSize * 0.4);
-  const appUsage = Math.round(estimatedSize * 0.6);
-  const mediaSize = 0;
-  const documentSize = 0;
-  const used = appUsage + cacheSize + mediaSize + documentSize;
-
-  return {
-    total: DEFAULT_STORAGE_TOTAL,
-    used,
-    free: Math.max(DEFAULT_STORAGE_TOTAL - used, 0),
-    appUsage,
-    cacheSize,
-    mediaSize,
-    documentSize,
-  };
-}
-
-async function withFallback<T>(apiTask: () => Promise<T>, fallbackTask: () => T): Promise<T> {
-  try {
-    return await apiTask();
-  } catch (error) {
-    if (!IS_DEV) {
-      throw error;
-    }
-    return fallbackTask();
-  }
-}
-
 class SettingsServiceClass {
-  private readonly baseUrl = SETTINGS_BASE_URL;
-
   async getStorageInfo(): Promise<StorageInfo> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${this.baseUrl}/storage`);
-        return unwrapData<StorageInfo>(response);
-      },
-      () => estimateStorageInfo(readLocalSettings()),
-    );
+    const response = await getAppSdkClientWithSession().upload.getStorageUsage();
+    return unwrapData<StorageInfo>(response);
   }
 
   async cleanCache(): Promise<void> {
-    if (IS_DEV) {
-      const current = readLocalSettings();
-      writeLocalSettings(current);
-      return;
-    }
-
-    await apiClient.post(`${this.baseUrl}/storage/clean-cache`);
+    await getAppSdkClientWithSession().setting.clearCache();
   }
 
   async cleanAllData(): Promise<void> {
@@ -237,61 +191,36 @@ class SettingsServiceClass {
       localStorage.removeItem(APP_INFO_STORAGE_KEY);
     }
 
-    if (!IS_DEV) {
-      await apiClient.post(`${this.baseUrl}/storage/clean-all`);
-    }
+    await getAppSdkClientWithSession().setting.clearLocalData();
   }
 
   async getAppInfo(): Promise<AppInfo> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${this.baseUrl}/app-info`);
-        const appInfo = {
-          ...DEFAULT_APP_INFO,
-          ...unwrapData<Partial<AppInfo>>(response),
-        };
-        writeLocalAppInfo(appInfo);
-        return appInfo;
-      },
-      () => readLocalAppInfo(),
-    );
+    const response = await getAppSdkClientWithSession().setting.getAppConfig();
+    const appInfo = {
+      ...DEFAULT_APP_INFO,
+      ...unwrapData<Partial<AppInfo>>(response),
+    };
+    writeLocalAppInfo(appInfo);
+    return appInfo;
   }
 
   async checkForUpdates(): Promise<AppInfo> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${this.baseUrl}/check-update`);
-        const remote = unwrapData<Partial<AppInfo>>(response);
-        const appInfo: AppInfo = {
-          ...readLocalAppInfo(),
-          ...remote,
-        };
-        writeLocalAppInfo(appInfo);
-        return appInfo;
-      },
-      () => {
-        const current = readLocalAppInfo();
-        return {
-          ...current,
-          latestVersion: current.version,
-          updateAvailable: false,
-          releaseNotes: "You are using the latest local build.",
-        };
-      },
-    );
+    const response = await getAppSdkClientWithSession().setting.getAppVersion();
+    const remote = unwrapData<Partial<AppInfo>>(response);
+    const appInfo: AppInfo = {
+      ...readLocalAppInfo(),
+      ...remote,
+    };
+    writeLocalAppInfo(appInfo);
+    return appInfo;
   }
 
   async getSettings(): Promise<SettingsState> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(this.baseUrl);
-        const remote = unwrapData<Partial<SettingsState>>(response);
-        const merged = mergeSettings(cloneSettings(DEFAULT_SETTINGS), remote);
-        writeLocalSettings(merged);
-        return merged;
-      },
-      () => readLocalSettings(),
-    );
+    const response = await getAppSdkClientWithSession().setting.getAllSettings();
+    const remote = unwrapData<Partial<SettingsState>>(response);
+    const merged = mergeSettings(cloneSettings(DEFAULT_SETTINGS), remote);
+    writeLocalSettings(merged);
+    return merged;
   }
 
   async updateSettings(settings: Partial<SettingsState>): Promise<SettingsState> {
@@ -299,16 +228,11 @@ class SettingsServiceClass {
     const merged = mergeSettings(current, settings);
     writeLocalSettings(merged);
 
-    return withFallback(
-      async () => {
-        const response = await apiClient.put<unknown>(this.baseUrl, settings);
-        const remote = unwrapData<Partial<SettingsState>>(response);
-        const remoteMerged = mergeSettings(merged, remote);
-        writeLocalSettings(remoteMerged);
-        return remoteMerged;
-      },
-      () => merged,
-    );
+    const response = await getAppSdkClientWithSession().setting.updateModuleSettings("all", settings as any);
+    const remote = unwrapData<Partial<SettingsState>>(response);
+    const remoteMerged = mergeSettings(merged, remote);
+    writeLocalSettings(remoteMerged);
+    return remoteMerged;
   }
 
   async setTheme(theme: ThemeType): Promise<void> {
@@ -316,9 +240,7 @@ class SettingsServiceClass {
     const next = mergeSettings(current, { theme });
     writeLocalSettings(next);
 
-    if (!IS_DEV) {
-      await apiClient.put(`${this.baseUrl}/theme`, { theme });
-    }
+    await getAppSdkClientWithSession().setting.switchTheme({ theme } as any);
   }
 
   async updateNotificationSettings(settings: Partial<NotificationSettings>): Promise<void> {
@@ -331,9 +253,7 @@ class SettingsServiceClass {
     });
     writeLocalSettings(next);
 
-    if (!IS_DEV) {
-      await apiClient.put(`${this.baseUrl}/notifications`, settings);
-    }
+    await getAppSdkClientWithSession().notification.updateNotificationSettings(settings as any);
   }
 
   async updatePrivacySettings(settings: Partial<PrivacySettings>): Promise<void> {
@@ -346,23 +266,16 @@ class SettingsServiceClass {
     });
     writeLocalSettings(next);
 
-    if (!IS_DEV) {
-      await apiClient.put(`${this.baseUrl}/privacy`, settings);
-    }
+    await getAppSdkClientWithSession().setting.updatePrivacySettings(settings as any);
   }
 
   async getModelConfigs(): Promise<ModelConfig[]> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${this.baseUrl}/models`);
-        const list = unwrapData<unknown>(response);
-        if (!Array.isArray(list)) {
-          return readLocalSettings().modelConfigs;
-        }
-        return list as ModelConfig[];
-      },
-      () => readLocalSettings().modelConfigs,
-    );
+    const response = await getAppSdkClientWithSession().model.getActiveModels();
+    const list = unwrapData<unknown>(response);
+    if (!Array.isArray(list)) {
+      return readLocalSettings().modelConfigs;
+    }
+    return list as ModelConfig[];
   }
 
   async saveModelConfig(config: ModelConfig): Promise<void> {
@@ -371,9 +284,7 @@ class SettingsServiceClass {
     const nextList = [...others, { ...config }];
     writeLocalSettings(mergeSettings(current, { modelConfigs: nextList }));
 
-    if (!IS_DEV) {
-      await apiClient.post(`${this.baseUrl}/models`, config);
-    }
+    await getAppSdkClientWithSession().setting.updateModuleSettings("models", { action: "save", config } as any);
   }
 
   async deleteModelConfig(configId: string): Promise<void> {
@@ -381,9 +292,7 @@ class SettingsServiceClass {
     const nextList = current.modelConfigs.filter((item) => item.id !== configId);
     writeLocalSettings(mergeSettings(current, { modelConfigs: nextList }));
 
-    if (!IS_DEV) {
-      await apiClient.delete(`${this.baseUrl}/models/${configId}`);
-    }
+    await getAppSdkClientWithSession().setting.updateModuleSettings("models", { action: "delete", configId } as any);
   }
 
   async setDefaultModelConfig(configId: string): Promise<void> {
@@ -394,9 +303,7 @@ class SettingsServiceClass {
     }));
     writeLocalSettings(mergeSettings(current, { modelConfigs: nextList }));
 
-    if (!IS_DEV) {
-      await apiClient.put(`${this.baseUrl}/models/${configId}/default`);
-    }
+    await getAppSdkClientWithSession().setting.updateModuleSettings("models", { action: "setDefault", configId } as any);
   }
 }
 

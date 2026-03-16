@@ -15,6 +15,7 @@ import {
   AIShortVideoIcon,
   AISkillIcon,
   AISocialIcon,
+  AIVipIcon,
   AIOpenClawInstallerIcon,
   AIOpenClawSettingsIcon,
   AIShopIcon,
@@ -40,6 +41,8 @@ const primaryNavItems: NavItem[] = [
 
 const moreNavItems: NavItem[] = [
   { id: "contacts", path: "/contacts", label: "Contacts", icon: (active) => <AIContactsIcon active={active} /> },
+  { id: "me", path: "/me", label: "Me", icon: (active) => <AIWalletIcon active={active} /> },
+  { id: "app", path: "/app", label: "App Center", icon: (active) => <AIAppStoreIcon active={active} /> },
   {
     id: "notifications",
     path: "/notifications",
@@ -48,9 +51,18 @@ const moreNavItems: NavItem[] = [
     badge: 5,
   },
   { id: "commerce", path: "/commerce/mall", label: "Commerce", icon: (active) => <AIShopIcon active={active} /> },
+  { id: "shopping", path: "/shopping", label: "Shopping", icon: (active) => <AIShopIcon active={active} /> },
+  { id: "order-center", path: "/order-center", label: "Order Center", icon: (active) => <AIShopIcon active={active} /> },
   { id: "moments", path: "/moments", label: "Moments", icon: (active) => <AISocialIcon active={active} /> },
   { id: "discover", path: "/discover", label: "Discover", icon: (active) => <AIDiscoverIcon active={active} /> },
+  { id: "content", path: "/content", label: "Content", icon: (active) => <AIDiscoverIcon active={active} /> },
+  { id: "look", path: "/look", label: "Look", icon: (active) => <AIShortVideoIcon active={active} /> },
+  { id: "media", path: "/media", label: "Media", icon: (active) => <AIShortVideoIcon active={active} /> },
+  { id: "nearby", path: "/nearby", label: "Nearby", icon: (active) => <AICloudIcon active={active} /> },
+  { id: "appointments", path: "/appointments", label: "Appointments", icon: (active) => <AISettingsIcon active={active} /> },
+  { id: "communication", path: "/communication", label: "Communication", icon: (active) => <AIChatIcon active={active} /> },
   { id: "wallet", path: "/wallet", label: "Wallet", icon: (active) => <AIWalletIcon active={active} /> },
+  { id: "vip", path: "/vip", label: "VIP", icon: (active) => <AIVipIcon active={active} /> },
   { id: "creation", path: "/creation", label: "Creation", icon: (active) => <AICreationIcon active={active} /> },
   { id: "drive", path: "/drive", label: "Drive", icon: (active) => <AICloudIcon active={active} /> },
   {
@@ -236,10 +248,10 @@ export function Sidebar() {
     <div
       ref={morePopupRef}
       style={{ left: `${morePopupPosition.left}px`, top: `${morePopupPosition.top}px` }}
-      className="fixed z-[2147483647] w-[300px] rounded-2xl border border-border bg-bg-elevated p-3 shadow-2xl"
+      className="fixed z-[2147483647] w-[320px] max-h-[70vh] overflow-hidden rounded-2xl border border-border bg-bg-elevated p-3 shadow-2xl"
     >
       <div className="mb-2 px-1 text-xs font-medium text-text-secondary">More Features</div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid max-h-[62vh] grid-cols-2 gap-2 overflow-y-auto pr-1">
         {moreNavItems.map((item) => {
           const active = isPathActive(pathname, item.path);
           return (

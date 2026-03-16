@@ -3,7 +3,7 @@
  * 澶勭悊鐧诲綍銆佹敞鍐屻€佸瘑鐮佺鐞嗙瓑璁よ瘉鐩稿叧鎺ュ彛
  */
 
-import apiClient from './api.client';
+import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
 
 // 鐢ㄦ埛绫诲瀷
 export interface User {
@@ -19,7 +19,7 @@ export interface User {
 // 璁よ瘉鍝嶅簲
 export interface AuthResponse {
   user: User;
-  token: string;
+  authToken: string;
   refreshToken?: string;
   expiresIn?: number;
 }
@@ -47,43 +47,66 @@ export interface UpdatePasswordParams {
  * 鐢ㄦ埛鐧诲綍
  */
 export async function login(params: LoginParams): Promise<AuthResponse> {
-  return apiClient.post<AuthResponse>('/auth/login', params);
+  const response = await getAppSdkClientWithSession().auth.login(params as any);
+  const data = (response as { data?: any }).data ?? {};
+  return {
+    user: data.userInfo ?? {},
+    authToken: data.authToken ?? "",
+    refreshToken: data.refreshToken,
+    expiresIn: data.expiresIn,
+  };
 }
 
 /**
  * 鐢ㄦ埛娉ㄥ唽
  */
 export async function register(params: RegisterParams): Promise<AuthResponse> {
-  return apiClient.post<AuthResponse>('/auth/register', params);
+  const response = await getAppSdkClientWithSession().auth.register(params as any);
+  const data = (response as { data?: any }).data ?? {};
+  return {
+    user: data.userInfo ?? data,
+    authToken: data.authToken ?? "",
+    refreshToken: data.refreshToken,
+    expiresIn: data.expiresIn,
+  };
 }
 
 /**
  * 鑾峰彇褰撳墠鐢ㄦ埛淇℃伅
  */
 export async function getCurrentUser(): Promise<User> {
-  return apiClient.get<User>('/auth/me');
+  const response = await getAppSdkClientWithSession().user.getUserProfile();
+  return ((response as { data?: User }).data ?? {}) as User;
 }
 
 /**
  * 鏇存柊鐢ㄦ埛瀵嗙爜
  */
 export async function updatePassword(params: UpdatePasswordParams): Promise<{ success: boolean }> {
-  return apiClient.put<{ success: boolean }>('/auth/password', params);
+  await getAppSdkClientWithSession().user.changePassword({
+    oldPassword: params.oldPassword,
+    newPassword: params.newPassword,
+  } as any);
+  return { success: true };
 }
 
 /**
  * 鍒锋柊璁块棶浠ょ墝
  */
-export async function refreshToken(refreshToken: string): Promise<{ token: string; expiresIn: number }> {
-  return apiClient.post<{ token: string; expiresIn: number }>('/auth/refresh', { refreshToken });
+export async function refreshToken(refreshToken: string): Promise<{ authToken: string; expiresIn: number }> {
+  const response = await getAppSdkClientWithSession().auth.refreshToken({ refreshToken } as any);
+  const data = (response as { data?: any }).data ?? {};
+  return {
+    authToken: data.authToken ?? "",
+    expiresIn: Number(data.expiresIn ?? 0),
+  };
 }
 
 /**
  * 鐢ㄦ埛鐧诲嚭
  */
 export async function logout(): Promise<void> {
-  // 鍙€夛細璋冪敤鍚庣鐧诲嚭鎺ュ彛
-  // await apiClient.post('/auth/logout');
+  await getAppSdkClientWithSession().auth.logout();
 
   // 娓呯悊鏈湴瀛樺偍
   localStorage.removeItem('token');

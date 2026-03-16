@@ -1,15 +1,18 @@
-/**
- * Routing Entry
- *
- * Responsibilities:
- * 1. Define application routes
- * 2. Render route components
- * 3. Apply lazy loading to reduce initial bundle size
- */
-
-import { Component, lazy, Suspense, type ComponentType, type ErrorInfo, type ReactNode } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import {
+  Component,
+  lazy,
+  Suspense,
+  useEffect,
+  useState,
+  type ComponentType,
+  type ErrorInfo,
+  type ReactNode,
+} from "react";
+import { AuthPage } from "@sdkwork/openchat-pc-auth";
+import { MainLayout } from "@sdkwork/openchat-pc-commons";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { ROUTES } from "./constants";
+import { authGuard, executeGuards, type RouteGuard } from "./guards";
 import { routes } from "./routes";
 
 type RoutePageModule = Record<string, unknown>;
@@ -25,9 +28,20 @@ export type RoutePageKey =
   | "notifications"
   | "mall"
   | "shoppingCart"
+  | "shopping"
+  | "orderCenter"
   | "moments"
   | "discover"
+  | "appCenter"
+  | "me"
+  | "appointments"
+  | "communication"
+  | "content"
+  | "look"
+  | "media"
+  | "nearby"
   | "wallet"
+  | "vip"
   | "creation"
   | "drive"
   | "shortVideo"
@@ -42,27 +56,38 @@ export type RoutePageKey =
   | "appStoreDetail";
 
 export const routePageLoaders: Record<RoutePageKey, () => Promise<RoutePageModule>> = {
-  chat: async () => import("@sdkwork/openchat-pc-im"),
+  chat: async () => import("@sdkwork/openchat-pc-chat"),
   contacts: async () => import("@sdkwork/openchat-pc-contacts"),
   terminal: async () => import("@sdkwork/openchat-pc-terminal"),
   settings: async () => import("@sdkwork/openchat-pc-settings"),
-  agentMarket: async () => import("@sdkwork/openchat-pc-agent"),
-  agentDetail: async () => import("@sdkwork/openchat-pc-agent"),
+  agentMarket: async () => import("@sdkwork/openchat-pc-agents"),
+  agentDetail: async () => import("@sdkwork/openchat-pc-agents"),
   deviceList: async () => import("@sdkwork/openchat-pc-device"),
   deviceDetail: async () => import("@sdkwork/openchat-pc-device"),
   notifications: async () => import("@sdkwork/openchat-pc-notification"),
   mall: async () => import("@sdkwork/openchat-pc-commerce"),
   shoppingCart: async () => import("@sdkwork/openchat-pc-commerce"),
-  moments: async () => import("@sdkwork/openchat-pc-social"),
+  shopping: async () => import("@sdkwork/openchat-pc-shopping"),
+  orderCenter: async () => import("@sdkwork/openchat-pc-order-center"),
+  moments: async () => import("@sdkwork/openchat-pc-moments"),
   discover: async () => import("@sdkwork/openchat-pc-discover"),
+  appCenter: async () => import("@sdkwork/openchat-pc-app"),
+  me: async () => import("@sdkwork/openchat-pc-user"),
+  appointments: async () => import("@sdkwork/openchat-pc-appointments"),
+  communication: async () => import("@sdkwork/openchat-pc-communication"),
+  content: async () => import("@sdkwork/openchat-pc-content"),
+  look: async () => import("@sdkwork/openchat-pc-look"),
+  media: async () => import("@sdkwork/openchat-pc-media"),
+  nearby: async () => import("@sdkwork/openchat-pc-nearby"),
   wallet: async () => import("@sdkwork/openchat-pc-wallet"),
+  vip: async () => import("@sdkwork/openchat-pc-vip"),
   creation: async () => import("@sdkwork/openchat-pc-creation"),
   drive: async () => import("@sdkwork/openchat-pc-drive"),
   shortVideo: async () => import("@sdkwork/openchat-pc-video"),
   tools: async () => import("@sdkwork/openchat-pc-tools"),
-  skillMarket: async () => import("@sdkwork/openchat-pc-skill"),
-  mySkills: async () => import("@sdkwork/openchat-pc-skill"),
-  skillDetail: async () => import("@sdkwork/openchat-pc-skill"),
+  skillMarket: async () => import("@sdkwork/openchat-pc-skills"),
+  mySkills: async () => import("@sdkwork/openchat-pc-skills"),
+  skillDetail: async () => import("@sdkwork/openchat-pc-skills"),
   toolMarket: async () => import("@sdkwork/openchat-pc-tool"),
   myTools: async () => import("@sdkwork/openchat-pc-tool"),
   toolConfig: async () => import("@sdkwork/openchat-pc-tool"),
@@ -75,21 +100,32 @@ export const routePageExportNames: Record<RoutePageKey, string> = {
   contacts: "ContactsPage",
   terminal: "TerminalPage",
   settings: "SettingsPage",
-  agentMarket: "AgentMarketPage",
+  agentMarket: "AgentsPage",
   agentDetail: "AgentDetailPage",
   deviceList: "DeviceListPage",
   deviceDetail: "DeviceDetailPage",
   notifications: "NotificationsPage",
   mall: "MallPage",
   shoppingCart: "ShoppingCartPage",
+  shopping: "ShoppingPage",
+  orderCenter: "OrderCenterPage",
   moments: "MomentsPage",
   discover: "DiscoverPage",
+  appCenter: "AppCenterPage",
+  me: "MePage",
+  appointments: "AppointmentsPage",
+  communication: "CallsPage",
+  content: "ArticlesPage",
+  look: "LookPage",
+  media: "MediaCenterPage",
+  nearby: "NearbyPage",
   wallet: "WalletPage",
+  vip: "VipPage",
   creation: "CreationPage",
   drive: "CloudDrivePage",
   shortVideo: "ShortVideoPage",
   tools: "ToolsPage",
-  skillMarket: "SkillMarketPage",
+  skillMarket: "SkillsCenterPage",
   mySkills: "MySkillsPage",
   skillDetail: "SkillDetailPage",
   toolMarket: "ToolMarketPage",
@@ -99,6 +135,8 @@ export const routePageExportNames: Record<RoutePageKey, string> = {
   appStoreDetail: "AppStoreDetailPage",
 };
 
+const AUTH_ROUTE_GUARDS: RouteGuard[] = [authGuard];
+
 function lazyRoutePage(pageKey: RoutePageKey) {
   return lazy(async () => {
     const module = await routePageLoaders[pageKey]();
@@ -106,9 +144,7 @@ function lazyRoutePage(pageKey: RoutePageKey) {
     const pageComponent = module[exportName];
 
     if (!pageComponent) {
-      throw new Error(
-        `[router] Missing page export "${exportName}" for route key "${pageKey}".`,
-      );
+      throw new Error(`[router] Missing page export "${exportName}" for route key "${pageKey}".`);
     }
 
     return { default: pageComponent as ComponentType };
@@ -126,9 +162,20 @@ const DeviceDetailPage = lazyRoutePage("deviceDetail");
 const NotificationsPage = lazyRoutePage("notifications");
 const MallPage = lazyRoutePage("mall");
 const ShoppingCartPage = lazyRoutePage("shoppingCart");
+const ShoppingPage = lazyRoutePage("shopping");
+const OrderCenterPage = lazyRoutePage("orderCenter");
 const MomentsPage = lazyRoutePage("moments");
 const DiscoverPage = lazyRoutePage("discover");
+const AppCenterPage = lazyRoutePage("appCenter");
+const MePage = lazyRoutePage("me");
+const AppointmentsPage = lazyRoutePage("appointments");
+const CommunicationPage = lazyRoutePage("communication");
+const ContentPage = lazyRoutePage("content");
+const LookPage = lazyRoutePage("look");
+const MediaCenterPage = lazyRoutePage("media");
+const NearbyPage = lazyRoutePage("nearby");
 const WalletPage = lazyRoutePage("wallet");
+const VipPage = lazyRoutePage("vip");
 const CreationPage = lazyRoutePage("creation");
 const CloudDrivePage = lazyRoutePage("drive");
 const ShortVideoPage = lazyRoutePage("shortVideo");
@@ -231,47 +278,106 @@ function withSuspense(node: ReactNode): ReactNode {
   );
 }
 
-/**
- * Application router component
- */
+function GuardedRoute({ guards, children }: { guards: RouteGuard[]; children: ReactNode }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [guardResult, setGuardResult] = useState<true | string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setGuardResult(null);
+
+    void executeGuards(guards, { location, navigate }).then((result) => {
+      if (active) {
+        setGuardResult(result);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [guards, location, navigate]);
+
+  if (guardResult === null) {
+    return <RouteLoading />;
+  }
+
+  if (guardResult !== true) {
+    return <Navigate to={guardResult} replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function renderProtectedRoute(node: ReactNode): ReactNode {
+  return (
+    <GuardedRoute guards={AUTH_ROUTE_GUARDS}>
+      <MainLayout>{withSuspense(node)}</MainLayout>
+    </GuardedRoute>
+  );
+}
+
+function renderGuestRoute(initialMode: "login" | "register" | "forgotPassword"): ReactNode {
+  return (
+    <GuardedRoute guards={AUTH_ROUTE_GUARDS}>
+      <AuthPage initialMode={initialMode} />
+    </GuardedRoute>
+  );
+}
+
 export function AppRouter() {
   return (
     <Routes>
       <Route path={ROUTES.HOME} element={<Navigate to={ROUTES.CHAT} replace />} />
 
-      <Route path={`${ROUTES.CHAT}/*`} element={withSuspense(<ChatPage />)} />
-      <Route path={`${ROUTES.CONTACTS}/*`} element={withSuspense(<ContactsPage />)} />
-      <Route path={`${ROUTES.TERMINAL}/*`} element={withSuspense(<TerminalPage />)} />
-      <Route path={`${ROUTES.SETTINGS}/*`} element={withSuspense(<SettingsPage />)} />
+      <Route path={ROUTES.LOGIN} element={renderGuestRoute("login")} />
+      <Route path={ROUTES.REGISTER} element={renderGuestRoute("register")} />
+      <Route path={ROUTES.FORGOT_PASSWORD} element={renderGuestRoute("forgotPassword")} />
 
-      <Route path={ROUTES.AGENTS} element={withSuspense(<AgentMarketPage />)} />
-      <Route path={ROUTES.AGENT_DETAIL} element={withSuspense(<AgentDetailPage />)} />
+      <Route path={`${ROUTES.CHAT}/*`} element={renderProtectedRoute(<ChatPage />)} />
+      <Route path={`${ROUTES.CONTACTS}/*`} element={renderProtectedRoute(<ContactsPage />)} />
+      <Route path={`${ROUTES.TERMINAL}/*`} element={renderProtectedRoute(<TerminalPage />)} />
+      <Route path={`${ROUTES.SETTINGS}/*`} element={renderProtectedRoute(<SettingsPage />)} />
 
-      <Route path={ROUTES.SKILLS} element={withSuspense(<SkillMarketPage />)} />
-      <Route path={ROUTES.MY_SKILLS} element={withSuspense(<MySkillsPage />)} />
-      <Route path={ROUTES.SKILL_DETAIL} element={withSuspense(<SkillDetailPage />)} />
+      <Route path={ROUTES.AGENTS} element={renderProtectedRoute(<AgentMarketPage />)} />
+      <Route path={ROUTES.AGENT_DETAIL} element={renderProtectedRoute(<AgentDetailPage />)} />
 
-      <Route path={ROUTES.TOOL_MARKET} element={withSuspense(<ToolMarketPage />)} />
-      <Route path={ROUTES.MY_TOOLS} element={withSuspense(<MyToolsPage />)} />
-      <Route path={ROUTES.TOOL_CONFIG} element={withSuspense(<ToolConfigPage />)} />
+      <Route path={ROUTES.SKILLS} element={renderProtectedRoute(<SkillMarketPage />)} />
+      <Route path={ROUTES.MY_SKILLS} element={renderProtectedRoute(<MySkillsPage />)} />
+      <Route path={ROUTES.SKILL_DETAIL} element={renderProtectedRoute(<SkillDetailPage />)} />
 
-      <Route path={ROUTES.DEVICES} element={withSuspense(<DeviceListPage />)} />
-      <Route path={ROUTES.DEVICE_DETAIL} element={withSuspense(<DeviceDetailPage />)} />
+      <Route path={ROUTES.TOOL_MARKET} element={renderProtectedRoute(<ToolMarketPage />)} />
+      <Route path={ROUTES.MY_TOOLS} element={renderProtectedRoute(<MyToolsPage />)} />
+      <Route path={ROUTES.TOOL_CONFIG} element={renderProtectedRoute(<ToolConfigPage />)} />
 
-      <Route path={ROUTES.NOTIFICATIONS} element={withSuspense(<NotificationsPage />)} />
+      <Route path={ROUTES.DEVICES} element={renderProtectedRoute(<DeviceListPage />)} />
+      <Route path={ROUTES.DEVICE_DETAIL} element={renderProtectedRoute(<DeviceDetailPage />)} />
 
-      <Route path={ROUTES.COMMERCE_MALL} element={withSuspense(<MallPage />)} />
-      <Route path={ROUTES.COMMERCE_CART} element={withSuspense(<ShoppingCartPage />)} />
+      <Route path={ROUTES.NOTIFICATIONS} element={renderProtectedRoute(<NotificationsPage />)} />
 
-      <Route path={ROUTES.MOMENTS} element={withSuspense(<MomentsPage />)} />
-      <Route path={ROUTES.DISCOVER} element={withSuspense(<DiscoverPage />)} />
-      <Route path={ROUTES.WALLET} element={withSuspense(<WalletPage />)} />
-      <Route path={ROUTES.CREATION} element={withSuspense(<CreationPage />)} />
-      <Route path={ROUTES.DRIVE} element={withSuspense(<CloudDrivePage />)} />
-      <Route path={ROUTES.SHORT_VIDEO} element={withSuspense(<ShortVideoPage />)} />
-      <Route path={ROUTES.TOOLS} element={withSuspense(<ToolsPage />)} />
-      <Route path={ROUTES.APPSTORE} element={withSuspense(<AppStorePage />)} />
-      <Route path={ROUTES.APPSTORE_DETAIL} element={withSuspense(<AppStoreDetailPage />)} />
+      <Route path={ROUTES.COMMERCE_MALL} element={renderProtectedRoute(<MallPage />)} />
+      <Route path={ROUTES.COMMERCE_CART} element={renderProtectedRoute(<ShoppingCartPage />)} />
+      <Route path={ROUTES.SHOPPING} element={renderProtectedRoute(<ShoppingPage />)} />
+      <Route path={ROUTES.ORDER_CENTER} element={renderProtectedRoute(<OrderCenterPage />)} />
+
+      <Route path={ROUTES.MOMENTS} element={renderProtectedRoute(<MomentsPage />)} />
+      <Route path={ROUTES.DISCOVER} element={renderProtectedRoute(<DiscoverPage />)} />
+      <Route path={ROUTES.APP} element={renderProtectedRoute(<AppCenterPage />)} />
+      <Route path={ROUTES.ME} element={renderProtectedRoute(<MePage />)} />
+      <Route path={ROUTES.APPOINTMENTS} element={renderProtectedRoute(<AppointmentsPage />)} />
+      <Route path={ROUTES.COMMUNICATION} element={renderProtectedRoute(<CommunicationPage />)} />
+      <Route path={ROUTES.CONTENT} element={renderProtectedRoute(<ContentPage />)} />
+      <Route path={ROUTES.LOOK} element={renderProtectedRoute(<LookPage />)} />
+      <Route path={ROUTES.MEDIA} element={renderProtectedRoute(<MediaCenterPage />)} />
+      <Route path={ROUTES.NEARBY} element={renderProtectedRoute(<NearbyPage />)} />
+      <Route path={ROUTES.WALLET} element={renderProtectedRoute(<WalletPage />)} />
+      <Route path={ROUTES.VIP} element={renderProtectedRoute(<VipPage />)} />
+      <Route path={ROUTES.CREATION} element={renderProtectedRoute(<CreationPage />)} />
+      <Route path={ROUTES.DRIVE} element={renderProtectedRoute(<CloudDrivePage />)} />
+      <Route path={ROUTES.SHORT_VIDEO} element={renderProtectedRoute(<ShortVideoPage />)} />
+      <Route path={ROUTES.TOOLS} element={renderProtectedRoute(<ToolsPage />)} />
+      <Route path={ROUTES.APPSTORE} element={renderProtectedRoute(<AppStorePage />)} />
+      <Route path={ROUTES.APPSTORE_DETAIL} element={renderProtectedRoute(<AppStoreDetailPage />)} />
 
       <Route path="*" element={<Navigate to={ROUTES.CHAT} replace />} />
     </Routes>

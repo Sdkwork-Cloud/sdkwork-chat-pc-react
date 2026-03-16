@@ -1,7 +1,6 @@
-﻿import { apiClient, IS_DEV, type Page, type Result } from "@sdkwork/openchat-pc-kernel";
+﻿import { getAppSdkClientWithSession, type Page, type Result } from "@sdkwork/openchat-pc-kernel";
 import type { Video, VideoComment, VideoFilter, VideoStats, VideoType } from "../types";
 
-const VIDEO_ENDPOINT = "/videos";
 const favoriteVideosStorageKey = "openchat.video.favoriteVideos";
 const recentVideosStorageKey = "openchat.video.recentVideos";
 const maxRecentVideoCount = 20;
@@ -240,20 +239,6 @@ class VideoServiceImpl {
     this.recentVideoIds = this.readRecentVideosFromStorage();
   }
 
-  private async withFallback<T>(
-    apiTask: () => Promise<Result<T>>,
-    fallbackTask: () => Result<T> | Promise<Result<T>>,
-  ): Promise<Result<T>> {
-    try {
-      return await apiTask();
-    } catch (error) {
-      if (IS_DEV) {
-        return fallbackTask();
-      }
-      throw error;
-    }
-  }
-
   private readFavoriteVideosFromStorage(): Set<string> {
     if (typeof localStorage === "undefined") {
       return new Set<string>();
@@ -354,268 +339,149 @@ class VideoServiceImpl {
     }
   }
 
-  private queryFallback(filter: VideoFilter): Video[] {
-    return this.fallbackVideos
-      .filter((item) => (filter.type ? item.type === filter.type : true))
-      .filter((item) => {
-        if (!filter.search?.trim()) {
-          return true;
-        }
-        const lower = filter.search.toLowerCase();
-        const target = `${item.title} ${item.description || ""} ${item.tags.join(" ")}`.toLowerCase();
-        return target.includes(lower);
-      })
-      .sort((a, b) => b.likes + b.views * 0.1 - (a.likes + a.views * 0.1));
-  }
-
   async getVideos(filter: VideoFilter = {}, page: number = 1, size: number = 12): Promise<Result<Page<Video>>> {
-    return this.withFallback(
-      async () => {
-        const fallbackData = normalizePage({ content: [], total: 0, page, size }, page, size);
-        const response = await apiClient.get<unknown>(VIDEO_ENDPOINT, {
-          params: {
-            type: filter.type,
-            search: filter.search,
-            page,
-            size,
-          },
-        });
-        const result = toResult<unknown>(response, fallbackData);
-        if (!result.success) {
-          return { ...result, data: fallbackData };
-        }
+    const fallbackData = normalizePage({ content: [], total: 0, page, size }, page, size);
+    const response = await getAppSdkClientWithSession().video.getPublicVideos({
+      type: filter.type,
+      search: filter.search,
+      page,
+      size,
+    });
+    const result = toResult<unknown>(response, fallbackData);
+    if (!result.success) {
+      return { ...result, data: fallbackData };
+    }
 
-        if (Array.isArray(result.data)) {
-          const content = result.data.map((item) => normalizeVideo(item as Partial<Video>));
-          return {
-            ...result,
-            data: {
-              content,
-              total: content.length,
-              page,
-              size,
-              totalPages: Math.max(1, Math.ceil(content.length / size)),
-            },
-          };
-        }
+    if (Array.isArray(result.data)) {
+      const content = result.data.map((item) => normalizeVideo(item as Partial<Video>));
+      const normalized = {
+        content,
+        total: content.length,
+        page,
+        size,
+        totalPages: Math.max(1, Math.ceil(content.length / size)),
+      };
+      this.fallbackVideos = content.map((item) => ({ ...item }));
+      return { ...result, data: normalized };
+    }
 
-        return { ...result, data: normalizePage(result.data, page, size) };
-      },
-      () => {
-        const filtered = this.queryFallback(filter);
-        const start = (page - 1) * size;
-        const content = filtered.slice(start, start + size).map((item) => ({ ...item }));
-        return {
-          success: true,
-          data: {
-            content,
-            total: filtered.length,
-            page,
-            size,
-            totalPages: Math.max(1, Math.ceil(filtered.length / size)),
-          },
-        };
-      },
-    );
+    const normalized = normalizePage(result.data, page, size);
+    this.fallbackVideos = normalized.content.map((item) => ({ ...item }));
+    return { ...result, data: normalized };
   }
 
   async getVideoById(id: string): Promise<Result<Video | null>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${VIDEO_ENDPOINT}/${id}`);
-        const result = toResult<unknown>(response, null);
-        if (!result.success) {
-          return { success: false, data: null, message: result.message || result.error };
-        }
-        if (!result.data) {
-          return { success: true, data: null };
-        }
-        return { success: true, data: normalizeVideo(result.data as Partial<Video>) };
-      },
-      () => {
-        const target = this.fallbackVideos.find((item) => item.id === id) || null;
-        return { success: true, data: target ? { ...target } : null };
-      },
-    );
+    const response = await getAppSdkClientWithSession().video.getVideo(id);
+    const result = toResult<unknown>(response, null);
+    if (!result.success) {
+      return { success: false, data: null, message: result.message || result.error };
+    }
+    if (!result.data) {
+      return { success: true, data: null };
+    }
+    return { success: true, data: normalizeVideo(result.data as Partial<Video>) };
   }
 
   async toggleLike(id: string): Promise<Result<void>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(`${VIDEO_ENDPOINT}/${id}/like`);
-        const result = toResult<unknown>(response, undefined);
-        return result.success
-          ? { success: true, message: result.message }
-          : { success: false, message: result.message || result.error };
-      },
-      () => {
-        this.fallbackVideos = this.fallbackVideos.map((item) => {
-          if (item.id !== id) {
-            return item;
-          }
-          const hasLiked = !item.hasLiked;
-          return {
-            ...item,
-            hasLiked,
-            likes: hasLiked ? item.likes + 1 : Math.max(0, item.likes - 1),
-            updateTime: Date.now(),
-          };
-        });
-        return { success: true };
-      },
-    );
+    const response = await getAppSdkClientWithSession().video.like(id);
+    const result = toResult<unknown>(response, undefined);
+    if (result.success) {
+      this.fallbackVideos = this.fallbackVideos.map((item) => {
+        if (item.id !== id) {
+          return item;
+        }
+        const hasLiked = !item.hasLiked;
+        return {
+          ...item,
+          hasLiked,
+          likes: hasLiked ? item.likes + 1 : Math.max(0, item.likes - 1),
+          updateTime: Date.now(),
+        };
+      });
+    }
+    return result.success
+      ? { success: true, message: result.message }
+      : { success: false, message: result.message || result.error };
   }
 
   async toggleCollect(id: string): Promise<Result<void>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(`${VIDEO_ENDPOINT}/${id}/collect`);
-        const result = toResult<unknown>(response, undefined);
-        return result.success
-          ? { success: true, message: result.message }
-          : { success: false, message: result.message || result.error };
-      },
-      () => {
-        this.fallbackVideos = this.fallbackVideos.map((item) =>
-          item.id === id ? { ...item, hasCollected: !item.hasCollected, updateTime: Date.now() } : item,
-        );
-        return { success: true };
-      },
-    );
+    const response = await getAppSdkClientWithSession().video.favorite(id);
+    const result = toResult<unknown>(response, undefined);
+    if (result.success) {
+      this.fallbackVideos = this.fallbackVideos.map((item) =>
+        item.id === id ? { ...item, hasCollected: !item.hasCollected, updateTime: Date.now() } : item,
+      );
+    }
+    return result.success
+      ? { success: true, message: result.message }
+      : { success: false, message: result.message || result.error };
   }
 
   async incrementViews(id: string): Promise<Result<void>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(`${VIDEO_ENDPOINT}/${id}/view`);
-        const result = toResult<unknown>(response, undefined);
-        return result.success
-          ? { success: true, message: result.message }
-          : { success: false, message: result.message || result.error };
-      },
-      () => {
-        this.fallbackVideos = this.fallbackVideos.map((item) =>
-          item.id === id ? { ...item, views: item.views + 1, updateTime: Date.now() } : item,
-        );
-        return { success: true };
-      },
-    );
+    const response = await getAppSdkClientWithSession().video.recordDownload(id);
+    const result = toResult<unknown>(response, undefined);
+    if (result.success) {
+      this.fallbackVideos = this.fallbackVideos.map((item) =>
+        item.id === id ? { ...item, views: item.views + 1, updateTime: Date.now() } : item,
+      );
+    }
+    return result.success
+      ? { success: true, message: result.message }
+      : { success: false, message: result.message || result.error };
   }
 
   async getComments(videoId: string): Promise<Result<VideoComment[]>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${VIDEO_ENDPOINT}/${videoId}/comments`);
-        const result = toResult<unknown>(response, []);
-        if (!result.success) {
-          return { ...result, data: [] };
-        }
+    const response = await getAppSdkClientWithSession().comment.getComments({
+      videoId,
+    });
+    const result = toResult<unknown>(response, []);
+    if (!result.success) {
+      return { ...result, data: [] };
+    }
 
-        const list = Array.isArray(result.data)
-          ? result.data.map((item) => normalizeComment(item as Partial<VideoComment>))
-          : [];
-
-        return { ...result, data: list };
-      },
-      () => {
-        const list = this.fallbackCommentsByVideoId[videoId] || [];
-        if (list.length > 0) {
-          return { success: true, data: list.map((item) => ({ ...item })) };
-        }
-
-        const defaults: VideoComment[] = [
-          {
-            id: createId("comment"),
-            videoId,
-            userId: "u1",
-            userName: "OpenChat User",
-            userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=User",
-            content: "Great visuals and pacing.",
-            likes: 12,
-            createTime: Date.now() - 3600000,
-          },
-          {
-            id: createId("comment"),
-            videoId,
-            userId: "u2",
-            userName: "AI Creator",
-            userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Creator",
-            content: "Would love to see behind-the-scenes prompts.",
-            likes: 8,
-            createTime: Date.now() - 7200000,
-          },
-        ];
-
-        this.fallbackCommentsByVideoId[videoId] = defaults;
-        return { success: true, data: defaults.map((item) => ({ ...item })) };
-      },
-    );
+    const list = Array.isArray(result.data)
+      ? result.data.map((item) => normalizeComment(item as Partial<VideoComment>))
+      : [];
+    this.fallbackCommentsByVideoId[videoId] = list.map((item) => ({ ...item }));
+    return { ...result, data: list };
   }
 
   async getStats(): Promise<Result<VideoStats>> {
-    return this.withFallback(
-      async () => {
-        const fallbackData: VideoStats = {
-          totalVideos: 0,
-          totalViews: 0,
-          totalLikes: 0,
-          byType: {
-            neural: 0,
-            matrix: 0,
-            aurora: 0,
-            cyber: 0,
-            nature: 0,
-          },
-        };
-
-        const response = await apiClient.get<unknown>(`${VIDEO_ENDPOINT}/stats`);
-        const result = toResult<unknown>(response, fallbackData);
-        if (!result.success) {
-          return { ...result, data: fallbackData };
-        }
-
-        const payload = result.data as Partial<VideoStats>;
-
-        return {
-          ...result,
-          data: {
-            totalVideos: toNumber(payload.totalVideos),
-            totalViews: toNumber(payload.totalViews),
-            totalLikes: toNumber(payload.totalLikes),
-            byType: {
-              neural: toNumber(payload.byType?.neural),
-              matrix: toNumber(payload.byType?.matrix),
-              aurora: toNumber(payload.byType?.aurora),
-              cyber: toNumber(payload.byType?.cyber),
-              nature: toNumber(payload.byType?.nature),
-            },
-          },
-        };
+    const fallbackData: VideoStats = {
+      totalVideos: 0,
+      totalViews: 0,
+      totalLikes: 0,
+      byType: {
+        neural: 0,
+        matrix: 0,
+        aurora: 0,
+        cyber: 0,
+        nature: 0,
       },
-      () => {
-        const byType: Record<VideoType, number> = {
-          neural: 0,
-          matrix: 0,
-          aurora: 0,
-          cyber: 0,
-          nature: 0,
-        };
+    };
 
-        this.fallbackVideos.forEach((item) => {
-          byType[item.type] += 1;
-        });
+    const response = await getAppSdkClientWithSession().video.getVideoStatistics();
+    const result = toResult<unknown>(response, fallbackData);
+    if (!result.success) {
+      return { ...result, data: fallbackData };
+    }
 
-        return {
-          success: true,
-          data: {
-            totalVideos: this.fallbackVideos.length,
-            totalViews: this.fallbackVideos.reduce((sum, item) => sum + item.views, 0),
-            totalLikes: this.fallbackVideos.reduce((sum, item) => sum + item.likes, 0),
-            byType,
-          },
-        };
+    const payload = result.data as Partial<VideoStats>;
+    return {
+      ...result,
+      data: {
+        totalVideos: toNumber(payload.totalVideos),
+        totalViews: toNumber(payload.totalViews),
+        totalLikes: toNumber(payload.totalLikes),
+        byType: {
+          neural: toNumber(payload.byType?.neural),
+          matrix: toNumber(payload.byType?.matrix),
+          aurora: toNumber(payload.byType?.aurora),
+          cyber: toNumber(payload.byType?.cyber),
+          nature: toNumber(payload.byType?.nature),
+        },
       },
-    );
+    };
   }
 
   formatDuration(seconds: number): string {
@@ -636,3 +502,4 @@ class VideoServiceImpl {
 }
 
 export const VideoService = new VideoServiceImpl();
+

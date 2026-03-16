@@ -1,5 +1,6 @@
 export { ContactsPage } from "./pages/ContactsPage";
 export { useContacts } from "./hooks/useContacts";
+export * from "./pages/contacts.workspace.model";
 
 export * from "./services";
 

@@ -1,16 +1,11 @@
-﻿/**
- * 鑱旂郴浜?API 鏈嶅姟
- * 澶勭悊濂藉弸銆佸ソ鍙嬬敵璇枫€佽仈绯讳汉鍒嗙粍绛夋帴鍙? */
+﻿import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
 
-import apiClient from './api.client';
-
-// 濂藉弸绫诲瀷
 export interface Friend {
   id: string;
   username?: string;
   nickname: string;
   avatar?: string;
-  status?: 'online' | 'offline' | 'busy';
+  status?: "online" | "offline" | "busy";
   isOnline?: boolean;
   remark?: string;
   signature?: string;
@@ -19,145 +14,156 @@ export interface Friend {
   createdAt?: string;
 }
 
-// 濂藉弸鐢宠绫诲瀷
 export interface FriendRequest {
   id: string;
   fromId: string;
   fromName: string;
   fromAvatar?: string;
   toId: string;
-  status: 'pending' | 'accepted' | 'rejected';
+  status: "pending" | "accepted" | "rejected";
   message?: string;
   createdAt: string;
 }
 
-// 鑱旂郴浜哄垎缁勭被鍨?export interface ContactGroup {
+export interface ContactGroup {
   id: string;
   name: string;
   memberIds: string[];
   createdAt?: string;
 }
 
-// 鎼滅储鑱旂郴浜哄弬鏁?export interface SearchContactsParams {
+export interface SearchContactsParams {
   keyword?: string;
   region?: string;
   isOnline?: boolean;
 }
 
-// 娣诲姞濂藉弸鍙傛暟
 export interface AddFriendParams {
   userId: string;
   message?: string;
 }
 
-// 澶勭悊濂藉弸鐢宠鍙傛暟
 export interface ProcessFriendRequestParams {
   requestId: string;
-  action: 'accept' | 'reject';
+  action: "accept" | "reject";
 }
 
-// 濂藉弸缁熻
 export interface FriendStats {
   total: number;
   online: number;
   newToday: number;
 }
 
-/**
- * 鑾峰彇濂藉弸鍒楄〃
- */
+function unwrapData<T>(response: unknown, fallback: T): T {
+  if (response && typeof response === "object" && "data" in response) {
+    const payload = response as { data?: T };
+    return payload.data ?? fallback;
+  }
+  if (response === undefined || response === null) {
+    return fallback;
+  }
+  return response as T;
+}
+
 export async function getFriends(): Promise<Friend[]> {
-  return apiClient.get<Friend[]>('/friends');
+  const response = await getAppSdkClientWithSession().social.listContacts();
+  const list = unwrapData<unknown[]>(response, []);
+  return Array.isArray(list) ? (list as Friend[]) : [];
 }
 
-/**
- * 鎼滅储鑱旂郴浜? */
 export async function searchContacts(params: SearchContactsParams): Promise<Friend[]> {
-  return apiClient.get<Friend[]>('/friends/search', { params: params as Record<string, string | number | boolean> });
+  const response = await getAppSdkClientWithSession().social.listContacts(params as any);
+  const list = unwrapData<unknown[]>(response, []);
+  return Array.isArray(list) ? (list as Friend[]) : [];
 }
 
-/**
- * 鑾峰彇濂藉弸璇︽儏
- */
 export async function getFriendDetail(friendId: string): Promise<Friend> {
-  return apiClient.get<Friend>(`/friends/${friendId}`);
+  const response = await getAppSdkClientWithSession().social.getContactDetail(friendId);
+  const data = unwrapData<Record<string, unknown>>(response, {});
+  return {
+    id: friendId,
+    nickname: (data.nickname as string) || (data.name as string) || friendId,
+    avatar: data.avatar as string,
+    isOnline: Boolean(data.isOnline),
+    status: (data.status as Friend["status"]) || "offline",
+    remark: data.remark as string,
+    signature: data.signature as string,
+    region: data.region as string,
+    initial: data.initial as string,
+    username: data.username as string,
+  };
 }
 
-/**
- * 娣诲姞濂藉弸
- */
 export async function addFriend(params: AddFriendParams): Promise<{ success: boolean; error?: string }> {
-  return apiClient.post<{ success: boolean; error?: string }>('/friends/requests', params);
+  await getAppSdkClientWithSession().social.sendFriendRequest({
+    toUserId: params.userId,
+    message: params.message,
+  } as any);
+  return { success: true };
 }
 
-/**
- * 鍒犻櫎濂藉弸
- */
 export async function deleteFriend(friendId: string): Promise<{ success: boolean; error?: string }> {
-  return apiClient.delete<{ success: boolean; error?: string }>(`/friends/${friendId}`);
+  await getAppSdkClientWithSession().social.deleteContact(friendId);
+  return { success: true };
 }
 
-/**
- * 鑾峰彇濂藉弸鐢宠鍒楄〃
- */
 export async function getFriendRequests(): Promise<FriendRequest[]> {
-  return apiClient.get<FriendRequest[]>('/friends/requests');
+  const response = await getAppSdkClientWithSession().social.listFriendRequests();
+  const list = unwrapData<unknown[]>(response, []);
+  return Array.isArray(list) ? (list as FriendRequest[]) : [];
 }
 
-/**
- * 澶勭悊濂藉弸鐢宠
- */
 export async function processFriendRequest(
-  params: ProcessFriendRequestParams
+  params: ProcessFriendRequestParams,
 ): Promise<{ success: boolean; error?: string }> {
-  return apiClient.post<{ success: boolean; error?: string }>(`/friends/requests/${params.requestId}/${params.action}`);
+  await getAppSdkClientWithSession().social.processFriendRequest(params.requestId, {
+    action: params.action,
+  } as any);
+  return { success: true };
 }
 
-/**
- * 鏇存柊濂藉弸澶囨敞
- */
 export async function updateFriendRemark(
   friendId: string,
-  remark: string
+  remark: string,
 ): Promise<{ success: boolean; error?: string }> {
-  return apiClient.put<{ success: boolean; error?: string }>(`/friends/${friendId}/remark`, { remark });
+  await getAppSdkClientWithSession().social.updateFriendRemark(friendId, { remark } as any);
+  return { success: true };
 }
 
-/**
- * 鑾峰彇鑱旂郴浜哄垎缁勫垪琛? */
 export async function getContactGroups(): Promise<ContactGroup[]> {
-  return apiClient.get<ContactGroup[]>('/contacts/groups');
+  const response = await getAppSdkClientWithSession().social.listContactGroups();
+  const list = unwrapData<unknown[]>(response, []);
+  return Array.isArray(list) ? (list as ContactGroup[]) : [];
 }
 
-/**
- * 鍒涘缓鑱旂郴浜哄垎缁? */
 export async function createContactGroup(name: string): Promise<ContactGroup> {
-  return apiClient.post<ContactGroup>('/contacts/groups', { name });
+  const response = await getAppSdkClientWithSession().social.createContactGroup({ name } as any);
+  return unwrapData<ContactGroup>(response, { id: "", name, memberIds: [] });
 }
 
-/**
- * 鏇存柊鑱旂郴浜哄垎缁? */
 export async function updateContactGroup(
   groupId: string,
-  updates: { name?: string; memberIds?: string[] }
+  updates: { name?: string; memberIds?: string[] },
 ): Promise<ContactGroup> {
-  return apiClient.put<ContactGroup>(`/contacts/groups/${groupId}`, updates);
+  const response = await getAppSdkClientWithSession().social.updateContactGroup(groupId, updates as any);
+  return unwrapData<ContactGroup>(response, { id: groupId, name: updates.name ?? "", memberIds: updates.memberIds ?? [] });
 }
 
-/**
- * 鍒犻櫎鑱旂郴浜哄垎缁? */
 export async function deleteContactGroup(groupId: string): Promise<{ success: boolean }> {
-  return apiClient.delete<{ success: boolean }>(`/contacts/groups/${groupId}`);
+  await getAppSdkClientWithSession().social.deleteContactGroup(groupId);
+  return { success: true };
 }
 
-/**
- * 鑾峰彇濂藉弸缁熻
- */
 export async function getFriendStats(): Promise<FriendStats> {
-  return apiClient.get<FriendStats>('/friends/stats');
+  const response = await getAppSdkClientWithSession().social.getContactStats();
+  const data = unwrapData<Record<string, unknown>>(response, {});
+  return {
+    total: Number(data.total ?? data.followingCount ?? data.following ?? 0),
+    online: Number(data.online ?? 0),
+    newToday: Number(data.newToday ?? 0),
+  };
 }
 
-// 榛樿瀵煎嚭
 export default {
   getFriends,
   searchContacts,
@@ -173,4 +179,3 @@ export default {
   deleteContactGroup,
   getFriendStats,
 };
-

@@ -187,6 +187,20 @@ export const AIWalletIcon = ({ active, className = "" }: IconProps) => (
   </svg>
 );
 
+export const AIVipIcon = ({ active, className = "" }: IconProps) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={iconClass(active, className)}>
+    <path
+      d="M4 8l3.5 3.5L12 5l4.5 6.5L20 8l-2 10H6L4 8z"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinejoin="round"
+      fill={active ? "currentColor" : "none"}
+      fillOpacity={active ? 0.1 : 0}
+    />
+    <path d="M8 18h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
 export const AICreationIcon = ({ active, className = "" }: IconProps) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={iconClass(active, className)}>
     <path

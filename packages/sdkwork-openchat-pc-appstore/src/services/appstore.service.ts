@@ -1,197 +1,13 @@
-import { apiClient, IS_DEV } from "@sdkwork/openchat-pc-kernel";
+import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
 import type { App, AppCategory, SearchResult } from "../entities/app.entity";
 
-const APPSTORE_ENDPOINT = "/appstore";
 const APP_INSTALL_STORAGE_KEY = "openchat.appstore.install-state";
 
-const FALLBACK_CATEGORIES: AppCategory[] = [
-  { id: "all", name: "All", nameEn: "All", icon: "ALL", color: "#2563eb", appCount: 6 },
-  { id: "tool", name: "Tool", nameEn: "Tool", icon: "TL", color: "#0ea5e9", appCount: 2 },
-  { id: "plugin", name: "Plugin", nameEn: "Plugin", icon: "PL", color: "#f97316", appCount: 2 },
-  { id: "theme", name: "Theme", nameEn: "Theme", icon: "TH", color: "#14b8a6", appCount: 2 },
-];
-
-const FALLBACK_APPS: App[] = [
-  {
-    id: "tool-clip",
-    name: "Clip Toolkit",
-    nameEn: "Clip Toolkit",
-    shortDescription: "Extract and archive high-value chat snippets.",
-    description:
-      "Save messages to structured knowledge cards with tags and retrieval friendly metadata.",
-    icon: "CT",
-    screenshots: [],
-    developer: { id: "sdkwork", name: "SDKWork", verified: true, appCount: 8, rating: 4.8 },
-    category: FALLBACK_CATEGORIES[1],
-    tags: ["Tooling", "Productivity"],
-    features: [{ title: "Archive", description: "Tag based retrieval for quick recall." }],
-    version: "1.2.0",
-    size: "8MB",
-    downloads: 4123,
-    rating: { average: 4.5, count: 210, distribution: [2, 8, 26, 80, 94] },
-    price: 0,
-    currency: "CNY",
-    inAppPurchases: false,
-    ageRating: "12+",
-    languages: ["zh-CN"],
-    released: "2025-05-10",
-    updated: "2026-02-01",
-    type: "tool",
-    status: "active",
-    featured: false,
-    editorChoice: false,
-    trending: true,
-  },
-  {
-    id: "tool-inspector",
-    name: "Tool Inspector",
-    nameEn: "Tool Inspector",
-    shortDescription: "Validate tool schema and runtime health.",
-    description:
-      "Check tool contracts, run smoke tests, and produce actionable diagnostics for failures.",
-    icon: "TI",
-    screenshots: [],
-    developer: { id: "sdkwork", name: "SDKWork", verified: true, appCount: 8, rating: 4.8 },
-    category: FALLBACK_CATEGORIES[1],
-    tags: ["Tooling", "Debugging"],
-    features: [{ title: "Diagnostics", description: "Actionable checks for each tool endpoint." }],
-    version: "0.8.4",
-    size: "7MB",
-    downloads: 2534,
-    rating: { average: 4.3, count: 167, distribution: [4, 8, 29, 64, 62] },
-    price: 0,
-    currency: "CNY",
-    inAppPurchases: false,
-    ageRating: "12+",
-    languages: ["zh-CN", "en-US"],
-    released: "2025-11-03",
-    updated: "2026-02-08",
-    type: "tool",
-    status: "active",
-    featured: false,
-    editorChoice: false,
-    trending: false,
-  },
-  {
-    id: "plugin-theme-kit",
-    name: "Theme Starter Kit",
-    nameEn: "Theme Starter Kit",
-    shortDescription: "Starter package for branded OpenChat themes.",
-    description:
-      "Build and publish workspace themes with variable tokens, previews, and compatibility checks.",
-    icon: "TS",
-    screenshots: [],
-    developer: { id: "sdkwork", name: "SDKWork", verified: true, appCount: 8, rating: 4.8 },
-    category: FALLBACK_CATEGORIES[3],
-    tags: ["Theme", "Brand"],
-    features: [{ title: "Theme Pack", description: "Token-based brand style customization." }],
-    version: "1.0.2",
-    size: "10MB",
-    downloads: 1972,
-    rating: { average: 4.2, count: 104, distribution: [5, 9, 22, 35, 33] },
-    price: 0,
-    currency: "CNY",
-    inAppPurchases: false,
-    ageRating: "12+",
-    languages: ["zh-CN", "en-US"],
-    released: "2025-10-01",
-    updated: "2026-02-04",
-    type: "plugin",
-    status: "active",
-    featured: false,
-    editorChoice: false,
-    trending: true,
-  },
-  {
-    id: "plugin-flow-runtime",
-    name: "Flow Runtime Plugin",
-    nameEn: "Flow Runtime Plugin",
-    shortDescription: "Add event-driven runtime orchestration for tools.",
-    description:
-      "Connect tool actions with workflow triggers, guardrails, and reusable execution templates.",
-    icon: "FR",
-    screenshots: [],
-    developer: { id: "sdkwork", name: "SDKWork", verified: true, appCount: 8, rating: 4.8 },
-    category: FALLBACK_CATEGORIES[2],
-    tags: ["Workflow", "Automation"],
-    features: [{ title: "Flow Graph", description: "Visualize and validate plugin action chains." }],
-    version: "1.3.1",
-    size: "11MB",
-    downloads: 2742,
-    rating: { average: 4.4, count: 146, distribution: [3, 7, 24, 52, 60] },
-    price: 0,
-    currency: "CNY",
-    inAppPurchases: false,
-    ageRating: "12+",
-    languages: ["zh-CN", "en-US"],
-    released: "2025-12-01",
-    updated: "2026-02-18",
-    type: "plugin",
-    status: "active",
-    featured: true,
-    editorChoice: false,
-    trending: true,
-  },
-  {
-    id: "theme-midnight-pro",
-    name: "Midnight Pro Theme",
-    nameEn: "Midnight Pro Theme",
-    shortDescription: "Professional high-contrast desktop theme pack.",
-    description:
-      "Provide tuned color tokens, typography scales, and component-level appearance presets.",
-    icon: "MP",
-    screenshots: [],
-    developer: { id: "sdkwork", name: "SDKWork", verified: true, appCount: 8, rating: 4.8 },
-    category: FALLBACK_CATEGORIES[3],
-    tags: ["Theme", "Desktop"],
-    features: [{ title: "Token Set", description: "Ready-to-use semantic token palette." }],
-    version: "2.0.0",
-    size: "9MB",
-    downloads: 3180,
-    rating: { average: 4.7, count: 268, distribution: [1, 4, 16, 66, 181] },
-    price: 0,
-    currency: "CNY",
-    inAppPurchases: false,
-    ageRating: "12+",
-    languages: ["zh-CN", "en-US"],
-    released: "2025-10-20",
-    updated: "2026-02-22",
-    type: "theme",
-    status: "active",
-    featured: true,
-    editorChoice: true,
-    trending: true,
-  },
-  {
-    id: "theme-paper-light",
-    name: "Paper Light Theme",
-    nameEn: "Paper Light Theme",
-    shortDescription: "A light workspace theme with strong reading contrast.",
-    description:
-      "Optimized for all-day document review and long-form writing with balanced color contrast.",
-    icon: "PL",
-    screenshots: [],
-    developer: { id: "sdkwork", name: "SDKWork", verified: true, appCount: 8, rating: 4.8 },
-    category: FALLBACK_CATEGORIES[3],
-    tags: ["Theme", "Light"],
-    features: [{ title: "Readability", description: "Improved visual hierarchy for long content." }],
-    version: "1.4.0",
-    size: "8MB",
-    downloads: 2058,
-    rating: { average: 4.5, count: 154, distribution: [2, 8, 20, 56, 68] },
-    price: 0,
-    currency: "CNY",
-    inAppPurchases: false,
-    ageRating: "12+",
-    languages: ["zh-CN", "en-US"],
-    released: "2025-11-11",
-    updated: "2026-02-16",
-    type: "theme",
-    status: "active",
-    featured: false,
-    editorChoice: false,
-    trending: false,
-  },
+const DEFAULT_CATEGORIES: AppCategory[] = [
+  { id: "all", name: "All", nameEn: "All", icon: "ALL", color: "#2563eb", appCount: 0 },
+  { id: "tool", name: "Tool", nameEn: "Tool", icon: "TL", color: "#0ea5e9", appCount: 0 },
+  { id: "plugin", name: "Plugin", nameEn: "Plugin", icon: "PL", color: "#f97316", appCount: 0 },
+  { id: "theme", name: "Theme", nameEn: "Theme", icon: "TH", color: "#14b8a6", appCount: 0 },
 ];
 
 type SearchAppParams = {
@@ -305,21 +121,12 @@ function unwrapData<T>(response: unknown): T {
   return response as T;
 }
 
-function withFallback<T>(apiTask: () => Promise<T>, fallbackTask: () => T): Promise<T> {
-  return apiTask().catch((error) => {
-    if (IS_DEV) {
-      return fallbackTask();
-    }
-    throw error;
-  });
-}
-
 function normalizeCategory(category: PartialAppCategory, defaultCount = 0): AppCategory {
   return {
     id: category.id || "all",
     name: category.name || "All",
     nameEn: category.nameEn || category.name || "All",
-    icon: category.icon || "✨",
+    icon: category.icon || "ALL",
     color: category.color || "#2563eb",
     appCount: Number(category.appCount ?? defaultCount),
   };
@@ -327,13 +134,13 @@ function normalizeCategory(category: PartialAppCategory, defaultCount = 0): AppC
 
 function resolveCategory(value: PartialAppCategory | string | undefined): AppCategory {
   if (typeof value === "string") {
-    return FALLBACK_CATEGORIES.find((item) => item.id === value) || FALLBACK_CATEGORIES[0];
+    return DEFAULT_CATEGORIES.find((item) => item.id === value) || DEFAULT_CATEGORIES[0];
   }
   if (value && typeof value === "object") {
-    const byId = value.id ? FALLBACK_CATEGORIES.find((item) => item.id === value.id) : null;
+    const byId = value.id ? DEFAULT_CATEGORIES.find((item) => item.id === value.id) : null;
     return normalizeCategory({ ...byId, ...value }, byId?.appCount || 0);
   }
-  return FALLBACK_CATEGORIES[0];
+  return DEFAULT_CATEGORIES[0];
 }
 
 function normalizeApp(payload: PartialApp): App {
@@ -344,7 +151,7 @@ function normalizeApp(payload: PartialApp): App {
     nameEn: payload.nameEn || payload.name || "Unnamed App",
     shortDescription: payload.shortDescription || "",
     description: payload.description || "",
-    icon: payload.icon || "🧩",
+    icon: payload.icon || "APP",
     coverImage: payload.coverImage,
     screenshots: Array.isArray(payload.screenshots) ? payload.screenshots : [],
     developer: {
@@ -364,9 +171,7 @@ function normalizeApp(payload: PartialApp): App {
     rating: {
       average: Number(payload.rating?.average ?? 0),
       count: Number(payload.rating?.count ?? 0),
-      distribution: Array.isArray(payload.rating?.distribution)
-        ? payload.rating.distribution
-        : [0, 0, 0, 0, 0],
+      distribution: Array.isArray(payload.rating?.distribution) ? payload.rating.distribution : [0, 0, 0, 0, 0],
     },
     price: Number(payload.price ?? 0),
     currency: payload.currency || "CNY",
@@ -386,96 +191,48 @@ function normalizeApp(payload: PartialApp): App {
   };
 }
 
-function filterFallbackApps(params: SearchAppParams): SearchResult {
-  const keyword = params.keyword?.trim().toLowerCase();
-  const categoryId = params.categoryId && params.categoryId !== "all" ? params.categoryId : undefined;
-  const page = params.page || 1;
-  const pageSize = params.pageSize || 24;
-
-  let filtered = [...FALLBACK_APPS];
-  if (categoryId) {
-    filtered = filtered.filter((app) => app.category.id === categoryId);
-  }
-  if (keyword) {
-    filtered = filtered.filter((app) => {
-      const indexText = `${app.name} ${app.nameEn} ${app.shortDescription} ${app.tags.join(" ")}`.toLowerCase();
-      return indexText.includes(keyword);
-    });
-  }
-
-  const total = filtered.length;
-  const start = (page - 1) * pageSize;
-  const apps = filtered.slice(start, start + pageSize);
-  return { apps, total, page, pageSize };
-}
-
 export async function getCategories(): Promise<AppCategory[]> {
-  return withFallback(
-    async () => {
-      const response = await apiClient.get<unknown>(`${APPSTORE_ENDPOINT}/categories`);
-      const data = unwrapData<unknown>(response);
-      const list = Array.isArray(data) ? data : [];
-      return list.map((item) => normalizeCategory(item as PartialAppCategory));
-    },
-    () => {
-      return FALLBACK_CATEGORIES.map((category) => {
-        const appCount =
-          category.id === "all"
-            ? FALLBACK_APPS.length
-            : FALLBACK_APPS.filter((app) => app.category.id === category.id).length;
-        return { ...category, appCount };
-      });
-    },
-  );
+  const response = await getAppSdkClientWithSession().category.listCategories();
+  const data = unwrapData<unknown>(response);
+  const list = Array.isArray(data) ? data : [];
+  return list.map((item) => normalizeCategory(item as PartialAppCategory));
 }
 
 export async function searchApps(params: SearchAppParams = {}): Promise<SearchResult> {
-  return withFallback(
-    async () => {
-      const response = await apiClient.get<unknown>(`${APPSTORE_ENDPOINT}/apps`, {
-        params: {
-          keyword: params.keyword,
-          categoryId: params.categoryId,
-          page: params.page,
-          pageSize: params.pageSize,
-        },
-      });
+  const response = await getAppSdkClientWithSession().app.searchApps({
+    keyword: params.keyword,
+    categoryId: params.categoryId,
+    page: params.page,
+    pageSize: params.pageSize,
+  });
 
-      const data = unwrapData<unknown>(response);
-      if (data && typeof data === "object" && "apps" in data) {
-        const result = data as { apps: unknown[]; total?: number; page?: number; pageSize?: number };
-        return {
-          apps: Array.isArray(result.apps) ? result.apps.map((item) => normalizeApp(item as PartialApp)) : [],
-          total: Number(result.total ?? 0),
-          page: Number(result.page ?? params.page ?? 1),
-          pageSize: Number(result.pageSize ?? params.pageSize ?? 24),
-        };
-      }
+  const data = unwrapData<unknown>(response);
+  if (data && typeof data === "object" && "apps" in data) {
+    const result = data as { apps: unknown[]; total?: number; page?: number; pageSize?: number };
+    return {
+      apps: Array.isArray(result.apps) ? result.apps.map((item) => normalizeApp(item as PartialApp)) : [],
+      total: Number(result.total ?? 0),
+      page: Number(result.page ?? params.page ?? 1),
+      pageSize: Number(result.pageSize ?? params.pageSize ?? 24),
+    };
+  }
 
-      const list = Array.isArray(data) ? data.map((item) => normalizeApp(item as PartialApp)) : [];
-      return {
-        apps: list,
-        total: list.length,
-        page: params.page || 1,
-        pageSize: params.pageSize || list.length || 24,
-      };
-    },
-    () => filterFallbackApps(params),
-  );
+  const list = Array.isArray(data) ? data.map((item) => normalizeApp(item as PartialApp)) : [];
+  return {
+    apps: list,
+    total: list.length,
+    page: params.page || 1,
+    pageSize: params.pageSize || list.length || 24,
+  };
 }
 
 export async function getAppById(appId: string): Promise<App | null> {
-  return withFallback(
-    async () => {
-      const response = await apiClient.get<unknown>(`${APPSTORE_ENDPOINT}/apps/${appId}`);
-      const data = unwrapData<unknown>(response);
-      if (!data) {
-        return null;
-      }
-      return normalizeApp(data as PartialApp);
-    },
-    () => FALLBACK_APPS.find((app) => app.id === appId) ?? null,
-  );
+  const response = await getAppSdkClientWithSession().app.retrieve(appId);
+  const data = unwrapData<unknown>(response);
+  if (!data) {
+    return null;
+  }
+  return normalizeApp(data as PartialApp);
 }
 
 export function getInstalledAppIds(): string[] {

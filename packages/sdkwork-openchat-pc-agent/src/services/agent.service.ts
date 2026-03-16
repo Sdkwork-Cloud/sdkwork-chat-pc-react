@@ -1,4 +1,4 @@
-﻿import { IS_DEV, apiClient } from "@sdkwork/openchat-pc-kernel";
+import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
 import {
   AgentCategory,
   AgentStatus,
@@ -13,7 +13,6 @@ import {
   type UpdateAgentRequest,
 } from "../entities/agent.entity";
 
-const AGENT_ENDPOINT = "/agents";
 const FAVORITE_STORAGE_KEY = "openchat.agent.favorite";
 const RECENT_STORAGE_KEY = "openchat.agent.recent";
 const MAX_RECENT_AGENT_COUNT = 12;
@@ -33,153 +32,6 @@ interface AgentListResponse {
   agents: Agent[];
   total: number;
 }
-
-const fallbackAgentSeed: Agent[] = [
-  {
-    id: "agent-devops",
-    uuid: "agent-devops-001",
-    name: "DevOps Copilot",
-    description: "Assist deployment checks, incident triage, and release runbooks.",
-    type: AgentType.ASSISTANT,
-    status: AgentStatus.READY,
-    avatar: "ops",
-    config: {
-      category: AgentCategory.PROGRAMMING,
-      tags: ["devops", "release", "incident"],
-      rating: 4.9,
-      usageCount: 18240,
-      creator: "OpenChat Team",
-      llmConfig: {
-        model: "gpt-4o",
-        temperature: 0.3,
-        maxTokens: 4096,
-        systemPrompt: "You are a senior DevOps assistant.",
-      },
-      welcomeMessage: "Tell me your release goal or incident symptoms.",
-    },
-    ownerId: "system",
-    isPublic: true,
-    isDeleted: false,
-    createdAt: "2025-11-10T08:00:00.000Z",
-    updatedAt: "2026-02-10T08:00:00.000Z",
-  },
-  {
-    id: "agent-writing",
-    uuid: "agent-writing-001",
-    name: "Writing Studio",
-    description: "Draft product docs, announcements, and localized content.",
-    type: AgentType.ASSISTANT,
-    status: AgentStatus.READY,
-    avatar: "wr",
-    config: {
-      category: AgentCategory.WRITING,
-      tags: ["docs", "copy", "localization"],
-      rating: 4.8,
-      usageCount: 14320,
-      creator: "OpenChat Team",
-      llmConfig: {
-        model: "gpt-4o-mini",
-        temperature: 0.7,
-        maxTokens: 4096,
-        systemPrompt: "You are a precise and concise writing assistant.",
-      },
-      welcomeMessage: "Share your audience and tone, then I will draft it.",
-    },
-    ownerId: "system",
-    isPublic: true,
-    isDeleted: false,
-    createdAt: "2025-11-20T08:00:00.000Z",
-    updatedAt: "2026-02-08T08:00:00.000Z",
-  },
-  {
-    id: "agent-analyst",
-    uuid: "agent-analyst-001",
-    name: "Data Analyst",
-    description: "Summarize trends and generate concise data insights.",
-    type: AgentType.ASSISTANT,
-    status: AgentStatus.READY,
-    avatar: "da",
-    config: {
-      category: AgentCategory.BUSINESS,
-      tags: ["data", "analytics", "kpi"],
-      rating: 4.7,
-      usageCount: 11960,
-      creator: "OpenChat Team",
-      llmConfig: {
-        model: "gpt-4o",
-        temperature: 0.4,
-        maxTokens: 4096,
-        systemPrompt: "You are an analytics assistant focused on business outcomes.",
-      },
-      welcomeMessage: "Describe your metric question and available dataset.",
-    },
-    ownerId: "system",
-    isPublic: true,
-    isDeleted: false,
-    createdAt: "2025-12-01T08:00:00.000Z",
-    updatedAt: "2026-02-15T08:00:00.000Z",
-  },
-  {
-    id: "agent-learning",
-    uuid: "agent-learning-001",
-    name: "Learning Coach",
-    description: "Build step-by-step learning plans and review progress.",
-    type: AgentType.ASSISTANT,
-    status: AgentStatus.READY,
-    avatar: "lc",
-    config: {
-      category: AgentCategory.EDUCATION,
-      tags: ["learning", "plan", "exam"],
-      rating: 4.6,
-      usageCount: 8740,
-      creator: "OpenChat Team",
-      llmConfig: {
-        model: "gpt-4o-mini",
-        temperature: 0.6,
-        maxTokens: 3072,
-        systemPrompt: "You are a structured learning coach.",
-      },
-      welcomeMessage: "What skill do you want to master in the next month?",
-    },
-    ownerId: "system",
-    isPublic: true,
-    isDeleted: false,
-    createdAt: "2025-12-12T08:00:00.000Z",
-    updatedAt: "2026-02-05T08:00:00.000Z",
-  },
-  {
-    id: "agent-travel",
-    uuid: "agent-travel-001",
-    name: "Trip Planner",
-    description: "Create efficient travel itineraries with risk reminders.",
-    type: AgentType.ASSISTANT,
-    status: AgentStatus.READY,
-    avatar: "tp",
-    config: {
-      category: AgentCategory.LIFE,
-      tags: ["travel", "itinerary", "budget"],
-      rating: 4.5,
-      usageCount: 6920,
-      creator: "OpenChat Team",
-      llmConfig: {
-        model: "gpt-4o-mini",
-        temperature: 0.8,
-        maxTokens: 3072,
-        systemPrompt: "You are a practical travel planner.",
-      },
-      welcomeMessage: "Tell me your destination, dates, and budget.",
-    },
-    ownerId: "system",
-    isPublic: true,
-    isDeleted: false,
-    createdAt: "2025-12-18T08:00:00.000Z",
-    updatedAt: "2026-02-03T08:00:00.000Z",
-  },
-];
-
-let fallbackAgents: Agent[] = fallbackAgentSeed.map((agent) => ({ ...agent, config: { ...agent.config } }));
-const fallbackSessions = new Map<string, AgentSession>();
-const fallbackMessages = new Map<string, ChatMessage[]>();
 
 function readFavoriteAgentIds(): Set<string> {
   if (typeof localStorage === "undefined") {
@@ -340,82 +192,6 @@ function toTextContent(content: ChatMessage["content"]): string {
     .join(" ");
 }
 
-function sortAgents(list: Agent[], sortBy: AgentSortType): Agent[] {
-  const result = [...list];
-
-  if (sortBy === "rating") {
-    result.sort((left, right) => (right.config.rating || 0) - (left.config.rating || 0));
-    return result;
-  }
-
-  if (sortBy === "newest") {
-    result.sort(
-      (left, right) =>
-        new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
-    );
-    return result;
-  }
-
-  result.sort((left, right) => (right.config.usageCount || 0) - (left.config.usageCount || 0));
-  return result;
-}
-
-function filterAgents(agents: Agent[], params?: GetAgentsParams): Agent[] {
-  const keyword = params?.search?.trim().toLowerCase();
-
-  return agents.filter((agent) => {
-    if (params?.category && params.category !== AgentCategory.ALL) {
-      if (agent.config.category !== params.category) {
-        return false;
-      }
-    }
-
-    if (params?.type && agent.type !== params.type) {
-      return false;
-    }
-
-    if (!keyword) {
-      return true;
-    }
-
-    const source = `${agent.name} ${agent.description || ""} ${(agent.config.tags || []).join(" ")}`.toLowerCase();
-    return source.includes(keyword);
-  });
-}
-
-function buildAssistantReply(prompt: string): string {
-  const text = prompt.trim();
-
-  if (!text) {
-    return "I am ready whenever you are.";
-  }
-
-  if (text.length <= 40) {
-    return `I received: "${text}". Would you like a concise answer or a step-by-step plan?`;
-  }
-
-  return `I reviewed your request. Suggested next steps:\n1. Clarify the expected output.\n2. Split the task into executable actions.\n3. Validate each action and summarize the result.`;
-}
-
-async function withFallback<T>(apiTask: () => Promise<T>, fallbackTask: () => T | Promise<T>): Promise<T> {
-  try {
-    return await apiTask();
-  } catch (error) {
-    if (IS_DEV) {
-      return fallbackTask();
-    }
-    throw error;
-  }
-}
-
-function getFallbackAgent(agentId: string): Agent {
-  const agent = fallbackAgents.find((item) => item.id === agentId);
-  if (!agent) {
-    throw new Error(`Agent not found: ${agentId}`);
-  }
-  return agent;
-}
-
 export const AgentService = {
   getFavoriteAgentIds(): string[] {
     return Array.from(favoriteAgentIds);
@@ -449,255 +225,72 @@ export const AgentService = {
   },
 
   async getAgents(params?: GetAgentsParams): Promise<AgentListResponse> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(AGENT_ENDPOINT, {
-          params: {
-            category:
-              params?.category && params.category !== AgentCategory.ALL
-                ? params.category
-                : undefined,
-            type: params?.type,
-            search: params?.search?.trim() || undefined,
-            sortBy: params?.sortBy,
-            page: params?.page,
-            pageSize: params?.pageSize,
-          },
-        });
+    const response = await getAppSdkClientWithSession().agent.getList({
+      category: params?.category && params.category !== AgentCategory.ALL ? params.category : undefined,
+      type: params?.type,
+      search: params?.search?.trim() || undefined,
+      sortBy: params?.sortBy,
+      page: params?.page,
+      pageSize: params?.pageSize,
+    });
 
-        const unwrapped = unwrapData<unknown>(response, response);
-        const payload = unwrapped as Partial<AgentListResponse> & { items?: unknown[] };
+    const unwrapped = unwrapData<unknown>(response, response);
+    const payload = unwrapped as Partial<AgentListResponse> & { items?: unknown[] };
 
-        const list = Array.isArray(payload.agents)
-          ? payload.agents
-          : Array.isArray(payload.items)
-            ? payload.items
-            : Array.isArray(unwrapped)
-              ? unwrapped
-              : [];
+    const list = Array.isArray(payload.agents)
+      ? payload.agents
+      : Array.isArray(payload.items)
+        ? payload.items
+        : Array.isArray(unwrapped)
+          ? unwrapped
+          : [];
 
-        const agents = list.map((item) => normalizeAgent(item as Partial<Agent>));
-        return {
-          agents,
-          total: Number(payload.total ?? agents.length),
-        };
-      },
-      () => {
-        const filtered = filterAgents(fallbackAgents, params);
-        const sorted = sortAgents(filtered, params?.sortBy || "popular");
-
-        const page = params?.page || 1;
-        const pageSize = params?.pageSize || 20;
-        const start = (page - 1) * pageSize;
-
-        return {
-          agents: sorted.slice(start, start + pageSize).map((item) => ({ ...item, config: { ...item.config } })),
-          total: sorted.length,
-        };
-      },
-    );
+    const agents = list.map((item) => normalizeAgent(item as Partial<Agent>));
+    return {
+      agents,
+      total: Number(payload.total ?? agents.length),
+    };
   },
 
   async getAgent(agentId: string): Promise<Agent> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${AGENT_ENDPOINT}/${agentId}`);
-        return normalizeAgent(unwrapData<Partial<Agent>>(response, {}));
-      },
-      () => {
-        const agent = getFallbackAgent(agentId);
-        return { ...agent, config: { ...agent.config } };
-      },
-    );
+    const response = await getAppSdkClientWithSession().agent.get(agentId);
+    return normalizeAgent(unwrapData<Partial<Agent>>(response, {}));
   },
 
   async createAgent(request: CreateAgentRequest): Promise<Agent> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(AGENT_ENDPOINT, request);
-        return normalizeAgent(unwrapData<Partial<Agent>>(response, {}));
-      },
-      () => {
-        const timestamp = new Date().toISOString();
-        const created = normalizeAgent({
-          ...request,
-          id: `agent-${Date.now()}`,
-          uuid: `agent-uuid-${Date.now()}`,
-          ownerId: "current-user",
-          isPublic: request.isPublic ?? false,
-          isDeleted: false,
-          status: AgentStatus.READY,
-          createdAt: timestamp,
-          updatedAt: timestamp,
-          config: {
-            ...request.config,
-            category: request.config?.category || AgentCategory.LIFE,
-            tags: request.config?.tags || [],
-            usageCount: 0,
-            rating: 0,
-            creator: "You",
-          },
-        });
-
-        fallbackAgents = [created, ...fallbackAgents];
-        return created;
-      },
-    );
+    const response = await getAppSdkClientWithSession().agent.create(request as any);
+    return normalizeAgent(unwrapData<Partial<Agent>>(response, {}));
   },
 
   async updateAgent(agentId: string, request: UpdateAgentRequest): Promise<Agent> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.put<unknown>(`${AGENT_ENDPOINT}/${agentId}`, request);
-        return normalizeAgent(unwrapData<Partial<Agent>>(response, {}));
-      },
-      () => {
-        const index = fallbackAgents.findIndex((item) => item.id === agentId);
-        if (index < 0) {
-          throw new Error(`Agent not found: ${agentId}`);
-        }
-
-        const current = fallbackAgents[index];
-        const updated = normalizeAgent({
-          ...current,
-          ...request,
-          config: {
-            ...current.config,
-            ...request.config,
-            llmConfig: {
-              ...current.config.llmConfig,
-              ...request.config?.llmConfig,
-            },
-            tags: request.config?.tags || current.config.tags,
-          },
-          updatedAt: new Date().toISOString(),
-        });
-
-        fallbackAgents[index] = updated;
-        return updated;
-      },
-    );
+    const response = await getAppSdkClientWithSession().agent.update(agentId, request as any);
+    return normalizeAgent(unwrapData<Partial<Agent>>(response, {}));
   },
 
   async deleteAgent(agentId: string): Promise<void> {
-    return withFallback(
-      async () => {
-        await apiClient.delete(`${AGENT_ENDPOINT}/${agentId}`);
-      },
-      () => {
-        fallbackAgents = fallbackAgents.filter((item) => item.id !== agentId);
-
-        Array.from(fallbackSessions.values())
-          .filter((session) => session.agentId === agentId)
-          .forEach((session) => {
-            fallbackSessions.delete(session.id);
-            fallbackMessages.delete(session.id);
-          });
-      },
-    );
+    await getAppSdkClientWithSession().agent.delete(agentId);
   },
 
   async getAgentSessions(agentId: string): Promise<AgentSession[]> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${AGENT_ENDPOINT}/${agentId}/sessions`);
-        const list = unwrapData<unknown[]>(response, []);
-        return Array.isArray(list)
-          ? list.map((item) => normalizeSession(item as Partial<AgentSession>))
-          : [];
-      },
-      () =>
-        Array.from(fallbackSessions.values())
-          .filter((item) => item.agentId === agentId)
-          .sort(
-            (left, right) =>
-              new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
-          ),
-    );
+    const response = await getAppSdkClientWithSession().agent.listSessions(agentId);
+    const list = unwrapData<unknown[]>(response, []);
+    return Array.isArray(list) ? list.map((item) => normalizeSession(item as Partial<AgentSession>)) : [];
   },
 
   async createSession(agentId: string, request: CreateSessionRequest): Promise<AgentSession> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(
-          `${AGENT_ENDPOINT}/${agentId}/sessions`,
-          request,
-        );
-        return normalizeSession(unwrapData<Partial<AgentSession>>(response, {}));
-      },
-      () => {
-        const session = normalizeSession({
-          id: `session-${Date.now()}`,
-          agentId,
-          userId: "current-user",
-          title: request.title || "New Session",
-          context: [],
-        });
-
-        fallbackSessions.set(session.id, session);
-        if (!fallbackMessages.has(session.id)) {
-          fallbackMessages.set(session.id, []);
-        }
-        return session;
-      },
-    );
+    const response = await getAppSdkClientWithSession().agent.createSession(agentId, request as any);
+    return normalizeSession(unwrapData<Partial<AgentSession>>(response, {}));
   },
 
   async getSessionMessages(sessionId: string): Promise<ChatMessage[]> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${AGENT_ENDPOINT}/sessions/${sessionId}/messages`);
-        const list = unwrapData<unknown[]>(response, []);
-        return Array.isArray(list)
-          ? list.map((item) => normalizeChatMessage(item as Partial<ChatMessage>))
-          : [];
-      },
-      () => (fallbackMessages.get(sessionId) || []).map((item) => ({ ...item })),
-    );
+    const response = await getAppSdkClientWithSession().agent.listSessionMessages(sessionId);
+    const list = unwrapData<unknown[]>(response, []);
+    return Array.isArray(list) ? list.map((item) => normalizeChatMessage(item as Partial<ChatMessage>)) : [];
   },
 
   async sendMessage(sessionId: string, request: SendMessageRequest): Promise<ChatMessage> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(
-          `${AGENT_ENDPOINT}/sessions/${sessionId}/messages`,
-          request,
-        );
-        return normalizeChatMessage(unwrapData<Partial<ChatMessage>>(response, {}));
-      },
-      () => {
-        const messages = fallbackMessages.get(sessionId) || [];
-        const now = Date.now();
-
-        const userMessage = normalizeChatMessage({
-          id: `msg-user-${now}`,
-          role: "user",
-          content: request.content,
-          timestamp: now,
-        });
-        messages.push(userMessage);
-
-        const assistantMessage = normalizeChatMessage({
-          id: `msg-assistant-${now + 1}`,
-          role: "assistant",
-          content: buildAssistantReply(request.content),
-          timestamp: now + 1,
-        });
-        messages.push(assistantMessage);
-
-        fallbackMessages.set(sessionId, messages);
-
-        const session = fallbackSessions.get(sessionId);
-        if (session) {
-          fallbackSessions.set(sessionId, {
-            ...session,
-            updatedAt: new Date().toISOString(),
-          });
-        }
-
-        return assistantMessage;
-      },
-    );
+    const response = await getAppSdkClientWithSession().agent.sendSessionMessage(sessionId, request as any);
+    return normalizeChatMessage(unwrapData<Partial<ChatMessage>>(response, {}));
   },
 
   async streamMessage(
@@ -708,57 +301,12 @@ export const AgentService = {
     onError: (error: Error) => void,
   ): Promise<void> {
     try {
-      if (!IS_DEV) {
-        const message = await this.sendMessage(sessionId, request);
-        onChunk({
-          id: message.id,
-          content: toTextContent(message.content),
-          done: true,
-        });
-        onComplete();
-        return;
-      }
-
-      const messages = fallbackMessages.get(sessionId) || [];
-      const userMessage = normalizeChatMessage({
-        id: `msg-user-${Date.now()}`,
-        role: "user",
-        content: request.content,
+      const message = await this.sendMessage(sessionId, request);
+      onChunk({
+        id: message.id,
+        content: toTextContent(message.content),
+        done: true,
       });
-      messages.push(userMessage);
-
-      const fullText = buildAssistantReply(request.content);
-      const chunkWords = fullText.split(" ");
-      const messageId = `msg-stream-${Date.now()}`;
-
-      let current = "";
-      for (let index = 0; index < chunkWords.length; index += 1) {
-        current = current ? `${current} ${chunkWords[index]}` : chunkWords[index];
-        onChunk({
-          id: messageId,
-          content: current,
-          done: index === chunkWords.length - 1,
-        });
-        await new Promise((resolve) => setTimeout(resolve, 28));
-      }
-
-      messages.push(
-        normalizeChatMessage({
-          id: messageId,
-          role: "assistant",
-          content: current,
-        }),
-      );
-
-      fallbackMessages.set(sessionId, messages);
-      const session = fallbackSessions.get(sessionId);
-      if (session) {
-        fallbackSessions.set(sessionId, {
-          ...session,
-          updatedAt: new Date().toISOString(),
-        });
-      }
-
       onComplete();
     } catch (error) {
       onError(error as Error);
@@ -766,89 +314,31 @@ export const AgentService = {
   },
 
   async deleteSession(sessionId: string): Promise<void> {
-    return withFallback(
-      async () => {
-        await apiClient.delete(`${AGENT_ENDPOINT}/sessions/${sessionId}`);
-      },
-      () => {
-        fallbackSessions.delete(sessionId);
-        fallbackMessages.delete(sessionId);
-      },
-    );
+    await getAppSdkClientWithSession().agent.deleteSession(sessionId);
   },
 
   async clearSessionHistory(sessionId: string): Promise<void> {
-    return withFallback(
-      async () => {
-        await apiClient.post(`${AGENT_ENDPOINT}/sessions/${sessionId}/clear`);
-      },
-      () => {
-        fallbackMessages.set(sessionId, []);
-      },
-    );
+    await getAppSdkClientWithSession().agent.createClearSession(sessionId);
   },
 
   async resetAgent(agentId: string): Promise<void> {
-    return withFallback(
-      async () => {
-        await apiClient.post(`${AGENT_ENDPOINT}/${agentId}/reset`);
-      },
-      () => {
-        Array.from(fallbackSessions.entries()).forEach(([sessionId, session]) => {
-          if (session.agentId === agentId) {
-            fallbackSessions.delete(sessionId);
-            fallbackMessages.delete(sessionId);
-          }
-        });
-      },
-    );
+    await getAppSdkClientWithSession().agent.reset(agentId);
   },
 
   async getAgentStats(agentId: string): Promise<AgentStats> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${AGENT_ENDPOINT}/${agentId}/stats`);
-        const stats = unwrapData<Partial<AgentStats>>(response, {});
-        return {
-          totalUsage: stats.totalUsage,
-          todayUsage: stats.todayUsage,
-          weeklyUsage: stats.weeklyUsage,
-          averageRating: stats.averageRating,
-          favoriteCount: stats.favoriteCount,
-          totalSessions: Number(stats.totalSessions ?? 0),
-          totalMessages: Number(stats.totalMessages ?? 0),
-          avgResponseTime: Number(stats.avgResponseTime ?? 0),
-          satisfactionRate: Number(stats.satisfactionRate ?? 0),
-        };
-      },
-      () => {
-        const agent = fallbackAgents.find((item) => item.id === agentId);
-        const usage = agent?.config.usageCount || 0;
-        const rating = agent?.config.rating || 4.5;
-
-        const relatedSessions = Array.from(fallbackSessions.values()).filter(
-          (session) => session.agentId === agentId,
-        );
-
-        const messageCount = relatedSessions.reduce((sum, session) => {
-          return sum + (fallbackMessages.get(session.id)?.length || 0);
-        }, 0);
-
-        const stableOffset = agentId
-          .split("")
-          .reduce((sum, char) => sum + char.charCodeAt(0), 0);
-
-        const inferredSessions = Math.max(1, Math.floor(usage / 22));
-        const inferredMessages = Math.max(inferredSessions * 3, Math.floor(usage * 2.7));
-
-        return {
-          totalSessions: Math.max(relatedSessions.length, inferredSessions),
-          totalMessages: Math.max(messageCount, inferredMessages),
-          avgResponseTime: 180 + (stableOffset % 160),
-          satisfactionRate: Math.min(0.99, Math.max(0.7, rating / 5)),
-        };
-      },
-    );
+    const response = await getAppSdkClientWithSession().agent.getStats(agentId);
+    const stats = unwrapData<Partial<AgentStats>>(response, {});
+    return {
+      totalUsage: Number(stats.totalUsage ?? 0),
+      todayUsage: Number(stats.todayUsage ?? 0),
+      weeklyUsage: Number(stats.weeklyUsage ?? 0),
+      averageRating: Number(stats.averageRating ?? 0),
+      favoriteCount: Number(stats.favoriteCount ?? 0),
+      totalSessions: Number(stats.totalSessions ?? 0),
+      totalMessages: Number(stats.totalMessages ?? 0),
+      avgResponseTime: Number(stats.avgResponseTime ?? 0),
+      satisfactionRate: Number(stats.satisfactionRate ?? 0),
+    };
   },
 
   async searchAgents(

@@ -1,4 +1,4 @@
-import { apiClient, IS_DEV } from "@sdkwork/openchat-pc-kernel";
+import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
 import type {
   FeedbackSubmission,
   FeedbackSubmitRequest,
@@ -10,8 +10,6 @@ type ApiEnvelope<T> = {
   data?: T;
   message?: string;
 };
-
-const FEEDBACK_BASE_URL = "/app/v3/api/feedback";
 
 function asObject(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object") {
@@ -81,45 +79,18 @@ function validateSubmitRequest(request: FeedbackSubmitRequest): void {
   }
 }
 
-async function withFallback<T>(
-  apiTask: () => Promise<T>,
-  fallbackTask: () => T,
-): Promise<T> {
-  try {
-    return await apiTask();
-  } catch (error) {
-    if (!IS_DEV) {
-      throw error;
-    }
-    return fallbackTask();
-  }
-}
-
 class FeedbackServiceClass {
   async submitFeedback(request: FeedbackSubmitRequest): Promise<FeedbackSubmission> {
     const payload = normalizeSubmitRequest(request);
     validateSubmitRequest(payload);
 
-    return withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(FEEDBACK_BASE_URL, payload);
-        return normalizeFeedbackSubmission(unwrapData<unknown>(response), payload);
-      },
-      () => normalizeFeedbackSubmission(undefined, payload),
-    );
+    const response = await getAppSdkClientWithSession().feedback.submit(payload as any);
+    return normalizeFeedbackSubmission(unwrapData<unknown>(response), payload);
   }
 
   async getFeedbackSupportInfo(): Promise<FeedbackSupportInfo> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${FEEDBACK_BASE_URL}/support`);
-        return normalizeSupportInfo(unwrapData<unknown>(response));
-      },
-      () => ({
-        email: "support@example.com",
-        workingHours: "Mon-Fri 09:00-18:00",
-      }),
-    );
+    const response = await getAppSdkClientWithSession().feedback.getSupportInfo();
+    return normalizeSupportInfo(unwrapData<unknown>(response));
   }
 }
 

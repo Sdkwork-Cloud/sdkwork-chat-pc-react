@@ -1,112 +1,128 @@
-/**
- * 忘记密码页面 - 完整版
- *
- * 职责：
- * 1. 忘记密码表单（用户名）
- * 2. 调用服务端忘记密码API
- * 3. 显示密码重置链接发送成功提示
- * 4. 提供返回登录的按钮
- */
-
-import { useState } from 'react';
-import type { UseAuthReturn } from '../hooks/useAuth';
+import { useMemo, useState } from "react";
+import type { UseAuthReturn } from "../hooks/useAuth";
 
 interface ForgotPasswordPageProps {
   auth: UseAuthReturn;
   onSwitchToLogin: () => void;
 }
 
-/**
- * 忘记密码页面
- */
+type RecoveryMethod = "email" | "phone";
+type ResetStage = "request" | "verify" | "reset" | "done";
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isValidPhone(value: string): boolean {
+  return /^1[3-9]\d{9}$/.test(value);
+}
+
 export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPageProps) {
-  const [recoveryMethod, setRecoveryMethod] = useState<'email' | 'phone'>('email');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [method, setMethod] = useState<RecoveryMethod>("email");
+  const [stage, setStage] = useState<ResetStage>("request");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [verifiedCode, setVerifiedCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const account = useMemo(() => {
+    return method === "email" ? email.trim() : phone.trim();
+  }, [email, method, phone]);
 
-    if ((recoveryMethod === 'email' && !email.trim()) || (recoveryMethod === 'phone' && !phone.trim())) {
+  const channel = method === "email" ? "EMAIL" : "SMS";
+
+  const clearFeedback = () => {
+    setLocalError(null);
+    setSuccessMessage(null);
+    auth.clearError();
+  };
+
+  const validateAccount = (): boolean => {
+    if (!account) {
+      setLocalError("Email or phone is required.");
+      return false;
+    }
+    if (method === "email" && !isValidEmail(account)) {
+      setLocalError("Please enter a valid email address.");
+      return false;
+    }
+    if (method === "phone" && !isValidPhone(account)) {
+      setLocalError("Please enter a valid mainland China phone number.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSendCode = async () => {
+    clearFeedback();
+    if (!validateAccount()) {
+      return;
+    }
+    const ok = await auth.requestPasswordReset(account, channel);
+    if (!ok) {
+      setLocalError(auth.error || "Failed to send reset code.");
+      return;
+    }
+    setSuccessMessage("Verification code sent.");
+    setStage("verify");
+  };
+
+  const handleVerifyCode = async () => {
+    clearFeedback();
+    if (!validateAccount()) {
+      return;
+    }
+    const normalizedCode = code.trim();
+    if (!normalizedCode) {
+      setLocalError("Verification code is required.");
       return;
     }
 
-    // 调用忘记密码服务
-    const success = await auth.forgotPassword(
-      recoveryMethod === 'email' ? email.trim() : undefined,
-      recoveryMethod === 'phone' ? phone.trim() : undefined
-    );
-    
-    if (success) {
-      setIsSubmitted(true);
+    const ok = await auth.verifyPasswordResetCode(account, normalizedCode, channel);
+    if (!ok) {
+      setLocalError(auth.error || "Verification code is invalid.");
+      return;
     }
+    setVerifiedCode(normalizedCode);
+    setSuccessMessage("Code verification succeeded.");
+    setStage("reset");
   };
 
-  if (isSubmitted) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          {/* Logo */}
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-[var(--ai-primary)] flex items-center justify-center shadow-[var(--shadow-glow)]">
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">OpenChat</h1>
-          </div>
+  const handleResetPassword = async () => {
+    clearFeedback();
+    if (!validateAccount()) {
+      return;
+    }
+    if (!verifiedCode) {
+      setLocalError("Please verify the code first.");
+      setStage("verify");
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      setLocalError("Password must be at least 6 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setLocalError("Passwords do not match.");
+      return;
+    }
 
-          {/* 成功提示 */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-color)] p-8 shadow-[var(--shadow-lg)] text-center">
-            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-[var(--ai-success-soft)] flex items-center justify-center">
-              <svg className="w-8 h-8 text-[var(--ai-success)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3">
-              {recoveryMethod === 'email' ? '密码重置邮件已发送' : '密码重置验证码已发送'}
-            </h2>
-            <p className="text-sm text-[var(--text-secondary)] mb-6">
-              {recoveryMethod === 'email' 
-                ? '我们已向您的邮箱发送了密码重置链接，请查收邮件并按照提示操作。' 
-                : '我们已向您的手机号发送了密码重置验证码，请查收短信并按照提示操作。'}
-            </p>
-            <div className="space-y-3">
-              <p className="text-xs text-[var(--text-muted)]">
-                ⏰ 链接将在24小时后失效
-              </p>
-              {recoveryMethod === 'email' ? (
-                <p className="text-xs text-[var(--text-muted)]">
-                  📧 如果没有收到邮件，请检查垃圾邮件文件夹
-                </p>
-              ) : (
-                <p className="text-xs text-[var(--text-muted)]">
-                  📱 如果没有收到短信，请检查手机号是否正确
-                </p>
-              )}
-            </div>
-            <button
-              onClick={onSwitchToLogin}
-              className="mt-8 px-6 py-2.5 bg-[var(--ai-primary)] hover:bg-[var(--ai-primary-hover)] text-white font-medium rounded-xl transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
-            >
-              返回登录
-            </button>
-          </div>
-
-          {/* 版权信息 */}
-          <p className="text-center text-xs text-[var(--text-muted)] mt-8">
-            © 2024 OpenChat Team
-          </p>
-        </div>
-      </div>
-    );
-  }
+    const ok = await auth.resetPassword(account, verifiedCode, newPassword, confirmPassword);
+    if (!ok) {
+      setLocalError(auth.error || "Failed to reset password.");
+      return;
+    }
+    setSuccessMessage("Password reset succeeded.");
+    setStage("done");
+  };
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-[var(--ai-primary)] flex items-center justify-center shadow-[var(--shadow-glow)]">
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,135 +130,201 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">OpenChat</h1>
-          <p className="text-sm text-[var(--text-muted)] mt-2">找回密码</p>
+          <p className="text-sm text-[var(--text-muted)] mt-2">Reset Password</p>
         </div>
 
-        {/* 忘记密码表单 */}
         <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-color)] p-6 shadow-[var(--shadow-lg)]">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-6">忘记密码？</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-6">Forgot Password</h2>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* 找回方式选择 */}
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                找回方式
-              </label>
-              <div className="flex space-x-4">
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    name="recoveryMethod"
-                    value="email"
-                    checked={recoveryMethod === 'email'}
-                    onChange={() => setRecoveryMethod('email')}
-                    className="h-4 w-4 text-[var(--ai-primary)] focus:ring-[var(--ai-primary)] border-[var(--border-color)]"
-                    disabled={auth.isLoading}
-                  />
-                  <span className="ml-2 text-sm text-[var(--text-secondary)]">邮箱</span>
-                </label>
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    name="recoveryMethod"
-                    value="phone"
-                    checked={recoveryMethod === 'phone'}
-                    onChange={() => setRecoveryMethod('phone')}
-                    className="h-4 w-4 text-[var(--ai-primary)] focus:ring-[var(--ai-primary)] border-[var(--border-color)]"
-                    disabled={auth.isLoading}
-                  />
-                  <span className="ml-2 text-sm text-[var(--text-secondary)]">手机号</span>
-                </label>
-              </div>
-            </div>
+          <div className="flex space-x-4 mb-4">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name="recoveryMethod"
+                value="email"
+                checked={method === "email"}
+                onChange={() => {
+                  clearFeedback();
+                  setMethod("email");
+                }}
+                className="h-4 w-4 text-[var(--ai-primary)] focus:ring-[var(--ai-primary)] border-[var(--border-color)]"
+                disabled={auth.isLoading || stage !== "request"}
+              />
+              <span className="ml-2 text-sm text-[var(--text-secondary)]">Email</span>
+            </label>
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name="recoveryMethod"
+                value="phone"
+                checked={method === "phone"}
+                onChange={() => {
+                  clearFeedback();
+                  setMethod("phone");
+                }}
+                className="h-4 w-4 text-[var(--ai-primary)] focus:ring-[var(--ai-primary)] border-[var(--border-color)]"
+                disabled={auth.isLoading || stage !== "request"}
+              />
+              <span className="ml-2 text-sm text-[var(--text-secondary)]">Phone</span>
+            </label>
+          </div>
 
-            {/* 邮箱输入 */}
-            {recoveryMethod === 'email' && (
+          <div className="space-y-4">
+            {method === "email" ? (
               <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                  邮箱
-                </label>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Email</label>
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="请输入您的邮箱地址"
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="Please enter your email"
                   className="w-full px-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--ai-primary)] focus:ring-1 focus:ring-[var(--ai-primary)] transition-colors"
                   disabled={auth.isLoading}
                 />
               </div>
-            )}
-
-            {/* 手机号输入 */}
-            {recoveryMethod === 'phone' && (
+            ) : (
               <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                  手机号
-                </label>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Phone</label>
                 <input
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="请输入您的手机号"
+                  onChange={(event) => setPhone(event.target.value)}
+                  placeholder="Please enter your phone number"
                   className="w-full px-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--ai-primary)] focus:ring-1 focus:ring-[var(--ai-primary)] transition-colors"
                   disabled={auth.isLoading}
                 />
               </div>
             )}
 
-            {/* 说明 */}
-            <div className="p-3 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl">
-              <p className="text-xs text-[var(--text-secondary)]">
-                {recoveryMethod === 'email' 
-                  ? '请输入您的邮箱，我们将向您的邮箱发送密码重置链接。' 
-                  : '请输入您的手机号，我们将向您的手机号发送密码重置验证码。'}
-              </p>
-            </div>
-
-            {/* 错误提示 */}
-            {auth.error && (
-              <div className="p-3 bg-[var(--ai-error-soft)] border border-[var(--ai-error)]/20 rounded-xl">
-                <p className="text-sm text-[var(--ai-error)]">{auth.error}</p>
+            {(stage === "verify" || stage === "reset") && (
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Verification Code</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={code}
+                    onChange={(event) => setCode(event.target.value)}
+                    placeholder="Please enter verification code"
+                    className="flex-1 px-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--ai-primary)] focus:ring-1 focus:ring-[var(--ai-primary)] transition-colors"
+                    disabled={auth.isLoading || stage === "reset"}
+                  />
+                  {stage === "verify" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleSendCode();
+                      }}
+                      disabled={auth.isLoading}
+                      className="px-4 py-2.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded-xl border border-[var(--border-color)] hover:border-[var(--ai-primary)] transition-colors"
+                    >
+                      Resend
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* 提交按钮 */}
-            <button
-              type="submit"
-              disabled={((recoveryMethod === 'email' && !email.trim()) || (recoveryMethod === 'phone' && !phone.trim())) || auth.isLoading}
-              className="w-full py-3 bg-[var(--ai-primary)] hover:bg-[var(--ai-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors flex items-center justify-center"
-            >
-              {auth.isLoading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  发送中...
-                </>
-              ) : (
-                recoveryMethod === 'email' ? '发送重置链接' : '发送验证码'
-              )}
-            </button>
-          </form>
+            {stage === "reset" && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">New Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    placeholder="Please enter new password"
+                    className="w-full px-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--ai-primary)] focus:ring-1 focus:ring-[var(--ai-primary)] transition-colors"
+                    disabled={auth.isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Confirm Password</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    placeholder="Please confirm new password"
+                    className="w-full px-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--ai-primary)] focus:ring-1 focus:ring-[var(--ai-primary)] transition-colors"
+                    disabled={auth.isLoading}
+                  />
+                </div>
+              </>
+            )}
+          </div>
 
-          {/* 切换到登录 */}
-          <div className="mt-6 pt-6 border-t border-[var(--border-color)] text-center">
-            <p className="text-sm text-[var(--text-secondary)]">
-              想起密码了？
+          {(localError || auth.error) && (
+            <div className="p-3 bg-[var(--ai-error-soft)] border border-[var(--ai-error)]/20 rounded-xl mt-4">
+              <p className="text-sm text-[var(--ai-error)]">{localError || auth.error}</p>
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="p-3 bg-[var(--ai-success-soft)] border border-[var(--ai-success)]/20 rounded-xl mt-4">
+              <p className="text-sm text-[var(--ai-success)]">{successMessage}</p>
+            </div>
+          )}
+
+          <div className="space-y-2 mt-6">
+            {stage === "request" && (
               <button
-                onClick={onSwitchToLogin}
-                className="ml-1 text-[var(--ai-primary)] hover:underline focus:outline-none"
+                type="button"
+                onClick={() => {
+                  void handleSendCode();
+                }}
+                disabled={auth.isLoading}
+                className="w-full py-3 bg-[var(--ai-primary)] hover:bg-[var(--ai-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors"
               >
-                立即登录
+                {auth.isLoading ? "Sending..." : "Send Verification Code"}
               </button>
-            </p>
+            )}
+
+            {stage === "verify" && (
+              <button
+                type="button"
+                onClick={() => {
+                  void handleVerifyCode();
+                }}
+                disabled={auth.isLoading}
+                className="w-full py-3 bg-[var(--ai-primary)] hover:bg-[var(--ai-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors"
+              >
+                {auth.isLoading ? "Verifying..." : "Verify Code"}
+              </button>
+            )}
+
+            {stage === "reset" && (
+              <button
+                type="button"
+                onClick={() => {
+                  void handleResetPassword();
+                }}
+                disabled={auth.isLoading}
+                className="w-full py-3 bg-[var(--ai-primary)] hover:bg-[var(--ai-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors"
+              >
+                {auth.isLoading ? "Resetting..." : "Reset Password"}
+              </button>
+            )}
+
+            {stage === "done" && (
+              <button
+                type="button"
+                onClick={onSwitchToLogin}
+                className="w-full py-3 bg-[var(--ai-primary)] hover:bg-[var(--ai-primary-hover)] text-white font-medium rounded-xl transition-colors"
+              >
+                Back to Login
+              </button>
+            )}
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-[var(--border-color)] text-center">
+            <button
+              type="button"
+              onClick={onSwitchToLogin}
+              className="text-sm text-[var(--ai-primary)] hover:underline focus:outline-none"
+            >
+              Back to Login
+            </button>
           </div>
         </div>
-
-        {/* 版权信息 */}
-        <p className="text-center text-xs text-[var(--text-muted)] mt-8">
-          © 2024 OpenChat Team
-        </p>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-﻿import { apiClient, IS_DEV, type PageQuery, type Result } from "@sdkwork/openchat-pc-kernel";
+﻿import { getAppSdkClientWithSession, type PageQuery, type Result } from "@sdkwork/openchat-pc-kernel";
 import type {
   Notification,
   NotificationFilter,
@@ -7,7 +7,6 @@ import type {
   NotificationType,
 } from "../types";
 
-const NOTIFICATION_ENDPOINT = "/notifications";
 const settingsStorageKey = "openchat.notification.settings";
 const notificationStorageKey = "openchat.notification.items";
 const now = Date.now();
@@ -169,20 +168,6 @@ class NotificationServiceImpl {
     }
   }
 
-  private async withFallback<T>(
-    apiTask: () => Promise<Result<T>>,
-    fallbackTask: () => Result<T> | Promise<Result<T>>,
-  ): Promise<Result<T>> {
-    try {
-      return await apiTask();
-    } catch (error) {
-      if (IS_DEV) {
-        return fallbackTask();
-      }
-      throw error;
-    }
-  }
-
   private readSettingsFromStorage(): NotificationSettings | null {
     if (typeof localStorage === "undefined") {
       return null;
@@ -234,314 +219,192 @@ class NotificationServiceImpl {
     }
   }
 
-  private queryFallback(filter: NotificationFilter): Notification[] {
-    return this.fallbackNotifications
-      .filter((item) => (filter.type && filter.type !== "all" ? item.type === filter.type : true))
-      .filter((item) => (filter.isRead !== undefined ? item.isRead === filter.isRead : true))
-      .filter((item) => (filter.startTime !== undefined ? (item.createTime || 0) >= filter.startTime : true))
-      .filter((item) => (filter.endTime !== undefined ? (item.createTime || 0) <= filter.endTime : true))
-      .sort((a, b) => (b.createTime || 0) - (a.createTime || 0));
-  }
-
   async getNotifications(filter: NotificationFilter = {}): Promise<Result<Notification[]>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(NOTIFICATION_ENDPOINT, {
-          params: {
-            type: filter.type,
-            isRead: filter.isRead,
-            startTime: filter.startTime,
-            endTime: filter.endTime,
-          },
-        });
-        const result = toResult<unknown>(response, []);
-        if (!result.success) {
-          return { ...result, data: [] };
-        }
+    const response = await getAppSdkClientWithSession().notification.listNotifications({
+      type: filter.type,
+      isRead: filter.isRead,
+      startTime: filter.startTime,
+      endTime: filter.endTime,
+    });
+    const result = toResult<unknown>(response, []);
+    if (!result.success) {
+      return { ...result, data: [] };
+    }
 
-        const list = Array.isArray(result.data)
-          ? result.data.map((item) => normalizeNotification(item as Partial<Notification>))
-          : [];
-
-        if (!IS_DEV) {
-          return { ...result, data: list };
-        }
-
-        const merged = new Map<string, Notification>();
-        this.queryFallback(filter).forEach((item) => {
-          merged.set(item.id, { ...item });
-        });
-        list.forEach((item) => {
-          merged.set(item.id, item);
-        });
-
-        return {
-          ...result,
-          data: Array.from(merged.values()).sort((left, right) => (right.createTime || 0) - (left.createTime || 0)),
-        };
-      },
-      () => ({ success: true, data: this.queryFallback(filter).map((item) => ({ ...item })) }),
-    );
+    const list = Array.isArray(result.data)
+      ? result.data.map((item) => normalizeNotification(item as Partial<Notification>))
+      : [];
+    return { ...result, data: list };
   }
 
   async getNotificationsPage(
     filter: NotificationFilter = {},
     pageRequest: PageQuery,
   ): Promise<Result<{ content: Notification[]; total: number }>> {
-    return this.withFallback(
-      async () => {
-        const page = pageRequest.page || 1;
-        const pageSize = pageRequest.pageSize || 10;
+    const page = pageRequest.page || 1;
+    const pageSize = pageRequest.pageSize || 10;
 
-        const response = await apiClient.get<unknown>(`${NOTIFICATION_ENDPOINT}/page`, {
-          params: {
-            ...filter,
-            page,
-            pageSize,
-          },
-        });
+    const response = await getAppSdkClientWithSession().notification.listNotifications({
+      ...filter,
+      page,
+      pageSize,
+    });
 
-        const fallbackData = { content: [], total: 0 };
-        const result = toResult<unknown>(response, fallbackData);
-        if (!result.success) {
-          return { ...result, data: fallbackData };
-        }
+    const fallbackData = { content: [], total: 0 };
+    const result = toResult<unknown>(response, fallbackData);
+    if (!result.success) {
+      return { ...result, data: fallbackData };
+    }
 
-        const payload = result.data as Partial<{ content: unknown[]; list: unknown[]; total: number }>;
-        const source = Array.isArray(payload.content) ? payload.content : Array.isArray(payload.list) ? payload.list : [];
+    const payload = result.data as Partial<{ content: unknown[]; list: unknown[]; total: number }>;
+    const source = Array.isArray(payload.content) ? payload.content : Array.isArray(payload.list) ? payload.list : [];
 
-        return {
-          ...result,
-          data: {
-            content: source.map((item) => normalizeNotification(item as Partial<Notification>)),
-            total: toNumber(payload.total, source.length),
-          },
-        };
+    return {
+      ...result,
+      data: {
+        content: source.map((item) => normalizeNotification(item as Partial<Notification>)),
+        total: toNumber(payload.total, source.length),
       },
-      async () => {
-        const listRes = await this.getNotifications(filter);
-        const list = listRes.data || [];
-        const page = pageRequest.page || 1;
-        const pageSize = pageRequest.pageSize || 10;
-        const start = (page - 1) * pageSize;
-        const content = list.slice(start, start + pageSize);
-
-        return { success: true, data: { content, total: list.length } };
-      },
-    );
+    };
   }
 
   async getUnreadCount(): Promise<number> {
-    try {
-      const response = await apiClient.get<unknown>(`${NOTIFICATION_ENDPOINT}/unread-count`);
-      const result = toResult<unknown>(response, 0);
-      if (result.success) {
-        return toNumber(result.data, 0);
-      }
-    } catch {
-      if (!IS_DEV) {
-        throw new Error("Failed to load unread count.");
-      }
+    const response = await getAppSdkClientWithSession().notification.getUnreadCount();
+    const result = toResult<unknown>(response, 0);
+    if (!result.success) {
+      throw new Error(result.message || result.error || "Failed to load unread count.");
     }
-
-    return this.fallbackNotifications.filter((item) => !item.isRead).length;
+    return toNumber(result.data, 0);
   }
 
   async getStats(): Promise<Result<NotificationStats>> {
-    return this.withFallback(
-      async () => {
-        const fallbackData: NotificationStats = {
-          total: 0,
-          unread: 0,
-          byType: {
-            system: 0,
-            social: 0,
-            order: 0,
-            promotion: 0,
-            message: 0,
-          },
-        };
-
-        const response = await apiClient.get<unknown>(`${NOTIFICATION_ENDPOINT}/stats`);
-        const result = toResult<unknown>(response, fallbackData);
-        if (!result.success) {
-          return { ...result, data: fallbackData };
-        }
-
-        const payload = result.data as Partial<NotificationStats>;
-        return {
-          ...result,
-          data: {
-            total: toNumber(payload.total),
-            unread: toNumber(payload.unread),
-            byType: {
-              system: toNumber(payload.byType?.system),
-              social: toNumber(payload.byType?.social),
-              order: toNumber(payload.byType?.order),
-              promotion: toNumber(payload.byType?.promotion),
-              message: toNumber(payload.byType?.message),
-            },
-          },
-        };
+    const fallbackData: NotificationStats = {
+      total: 0,
+      unread: 0,
+      byType: {
+        system: 0,
+        social: 0,
+        order: 0,
+        promotion: 0,
+        message: 0,
       },
-      () => {
-        const byType: Record<NotificationType, number> = {
-          system: 0,
-          social: 0,
-          order: 0,
-          promotion: 0,
-          message: 0,
-        };
+    };
 
-        this.fallbackNotifications.forEach((item) => {
-          byType[item.type] += 1;
-        });
+    const response = await getAppSdkClientWithSession().notification.listNotifications({
+      page: 1,
+      pageSize: 200,
+    });
+    const result = toResult<unknown>(response, fallbackData);
+    if (!result.success) {
+      return { ...result, data: fallbackData };
+    }
 
-        return {
-          success: true,
-          data: {
-            total: this.fallbackNotifications.length,
-            unread: this.fallbackNotifications.filter((item) => !item.isRead).length,
-            byType,
-          },
-        };
+    const list = Array.isArray(result.data)
+      ? result.data.map((item) => normalizeNotification(item as Partial<Notification>))
+      : [];
+    const unread = await this.getUnreadCount();
+    const payload: Partial<NotificationStats> = {
+      total: list.length,
+      unread,
+      byType: list.reduce<Record<NotificationType, number>>(
+        (acc, item) => {
+          acc[item.type] += 1;
+          return acc;
+        },
+        { system: 0, social: 0, order: 0, promotion: 0, message: 0 },
+      ),
+    };
+    return {
+      ...result,
+      data: {
+        total: toNumber(payload.total),
+        unread: toNumber(payload.unread),
+        byType: {
+          system: toNumber(payload.byType?.system),
+          social: toNumber(payload.byType?.social),
+          order: toNumber(payload.byType?.order),
+          promotion: toNumber(payload.byType?.promotion),
+          message: toNumber(payload.byType?.message),
+        },
       },
-    );
+    };
   }
 
   async markAllRead(type?: NotificationType): Promise<Result<void>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.put<unknown>(`${NOTIFICATION_ENDPOINT}/read-all`, { type });
-        const result = toResult<unknown>(response, undefined);
-        if (result.success) {
-          this.fallbackNotifications = this.fallbackNotifications.map((item) => {
-            if (type && item.type !== type) {
-              return item;
-            }
-            return { ...item, isRead: true, updateTime: Date.now() };
-          });
-          this.persistNotifications();
+    const response = await getAppSdkClientWithSession().notification.markAllAsRead({ type });
+    const result = toResult<unknown>(response, undefined);
+    if (result.success) {
+      this.fallbackNotifications = this.fallbackNotifications.map((item) => {
+        if (type && item.type !== type) {
+          return item;
         }
-        return result.success
-          ? { success: true, message: result.message }
-          : { success: false, message: result.message || result.error };
-      },
-      () => {
-        this.fallbackNotifications = this.fallbackNotifications.map((item) => {
-          if (type && item.type !== type) {
-            return item;
-          }
-          return { ...item, isRead: true, updateTime: Date.now() };
-        });
-        this.persistNotifications();
-        return { success: true };
-      },
-    );
+        return { ...item, isRead: true, updateTime: Date.now() };
+      });
+      this.persistNotifications();
+    }
+    return result.success
+      ? { success: true, message: result.message }
+      : { success: false, message: result.message || result.error };
   }
 
   async markRead(id: string): Promise<Result<void>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.put<unknown>(`${NOTIFICATION_ENDPOINT}/${id}/read`);
-        const result = toResult<unknown>(response, undefined);
-        if (result.success) {
-          this.fallbackNotifications = this.fallbackNotifications.map((item) =>
-            item.id === id ? { ...item, isRead: true, updateTime: Date.now() } : item,
-          );
-          this.persistNotifications();
-        }
-        return result.success
-          ? { success: true, message: result.message }
-          : { success: false, message: result.message || result.error };
-      },
-      () => {
-        this.fallbackNotifications = this.fallbackNotifications.map((item) =>
-          item.id === id ? { ...item, isRead: true, updateTime: Date.now() } : item,
-        );
-        this.persistNotifications();
-        return { success: true };
-      },
-    );
+    const response = await getAppSdkClientWithSession().notification.markAsRead(id);
+    const result = toResult<unknown>(response, undefined);
+    if (result.success) {
+      this.fallbackNotifications = this.fallbackNotifications.map((item) =>
+        item.id === id ? { ...item, isRead: true, updateTime: Date.now() } : item,
+      );
+      this.persistNotifications();
+    }
+    return result.success
+      ? { success: true, message: result.message }
+      : { success: false, message: result.message || result.error };
   }
 
   async markUnread(id: string): Promise<Result<void>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.put<unknown>(`${NOTIFICATION_ENDPOINT}/${id}/unread`);
-        const result = toResult<unknown>(response, undefined);
-        if (result.success) {
-          this.fallbackNotifications = this.fallbackNotifications.map((item) =>
-            item.id === id ? { ...item, isRead: false, updateTime: Date.now() } : item,
-          );
-          this.persistNotifications();
-        }
-        return result.success
-          ? { success: true, message: result.message }
-          : { success: false, message: result.message || result.error };
-      },
-      () => {
-        this.fallbackNotifications = this.fallbackNotifications.map((item) =>
-          item.id === id ? { ...item, isRead: false, updateTime: Date.now() } : item,
-        );
-        this.persistNotifications();
-        return { success: true };
-      },
-    );
+    const response = await getAppSdkClientWithSession().notification.markAsUnread(id);
+    const result = toResult<unknown>(response, undefined);
+    if (result.success) {
+      this.fallbackNotifications = this.fallbackNotifications.map((item) =>
+        item.id === id ? { ...item, isRead: false, updateTime: Date.now() } : item,
+      );
+      this.persistNotifications();
+    }
+    return result.success
+      ? { success: true, message: result.message }
+      : { success: false, message: result.message || result.error };
   }
 
   async deleteNotification(id: string): Promise<Result<void>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.delete<unknown>(`${NOTIFICATION_ENDPOINT}/${id}`);
-        const result = toResult<unknown>(response, undefined);
-        if (result.success) {
-          this.fallbackNotifications = this.fallbackNotifications.filter((item) => item.id !== id);
-          this.persistNotifications();
-        }
-        return result.success
-          ? { success: true, message: result.message }
-          : { success: false, message: result.message || result.error };
-      },
-      () => {
-        this.fallbackNotifications = this.fallbackNotifications.filter((item) => item.id !== id);
-        this.persistNotifications();
-        return { success: true };
-      },
-    );
+    const response = await getAppSdkClientWithSession().notification.deleteNotification(id);
+    const result = toResult<unknown>(response, undefined);
+    if (result.success) {
+      this.fallbackNotifications = this.fallbackNotifications.filter((item) => item.id !== id);
+      this.persistNotifications();
+    }
+    return result.success
+      ? { success: true, message: result.message }
+      : { success: false, message: result.message || result.error };
   }
 
   async clearRead(type?: NotificationType): Promise<Result<void>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(`${NOTIFICATION_ENDPOINT}/clear-read`, {
-          type,
-        });
-        const result = toResult<unknown>(response, undefined);
-        if (result.success) {
-          this.fallbackNotifications = this.fallbackNotifications.filter((item) => {
-            if (type && item.type !== type) {
-              return true;
-            }
-            return !item.isRead;
-          });
-          this.persistNotifications();
+    const response = await getAppSdkClientWithSession().notification.clearAllNotifications({
+      type,
+      read: true,
+    });
+    const result = toResult<unknown>(response, undefined);
+    if (result.success) {
+      this.fallbackNotifications = this.fallbackNotifications.filter((item) => {
+        if (type && item.type !== type) {
+          return true;
         }
-        return result.success
-          ? { success: true, message: result.message }
-          : { success: false, message: result.message || result.error };
-      },
-      () => {
-        this.fallbackNotifications = this.fallbackNotifications.filter((item) => {
-          if (type && item.type !== type) {
-            return true;
-          }
-          return !item.isRead;
-        });
-        this.persistNotifications();
-        return { success: true };
-      },
-    );
+        return !item.isRead;
+      });
+      this.persistNotifications();
+    }
+    return result.success
+      ? { success: true, message: result.message }
+      : { success: false, message: result.message || result.error };
   }
 
   async pushNotification(
@@ -550,101 +413,65 @@ class NotificationServiceImpl {
     type: NotificationType = "system",
     meta?: Notification["meta"],
   ): Promise<Result<Notification>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(NOTIFICATION_ENDPOINT, {
-          title,
-          content,
-          type,
-          meta,
-        });
-        const result = toResult<unknown>(response, undefined);
-        if (!result.success) {
-          return { success: false, message: result.message || result.error };
-        }
+    const response = await getAppSdkClientWithSession().notification.sendTest({
+      title,
+      content,
+      type,
+    });
+    const result = toResult<unknown>(response, undefined);
+    if (!result.success) {
+      return { success: false, message: result.message || result.error };
+    }
 
-        const iconMap: Record<NotificationType, string> = {
-          system: "SYS",
-          social: "SOC",
-          order: "ORD",
-          promotion: "PRM",
-          message: "MSG",
-        };
+    const iconMap: Record<NotificationType, string> = {
+      system: "SYS",
+      social: "SOC",
+      order: "ORD",
+      promotion: "PRM",
+      message: "MSG",
+    };
 
-        const notification = normalizeNotification(
-          ((result.data as Partial<Notification> | undefined) ?? {
-            title,
-            content,
-            type,
-            icon: iconMap[type],
-            isRead: false,
-            meta,
-          }) as Partial<Notification>,
-        );
-
-        this.fallbackNotifications = [notification, ...this.fallbackNotifications];
-        this.persistNotifications();
-        return { success: true, data: notification, message: result.message };
-      },
-      () => {
-        const iconMap: Record<NotificationType, string> = {
-          system: "SYS",
-          social: "SOC",
-          order: "ORD",
-          promotion: "PRM",
-          message: "MSG",
-        };
-
-        const notification = normalizeNotification({
-          id: createId("notification"),
-          title,
-          content,
-          type,
-          icon: iconMap[type],
-          isRead: false,
-          meta,
-          createTime: Date.now(),
-          updateTime: Date.now(),
-        });
-
-        this.fallbackNotifications = [notification, ...this.fallbackNotifications];
-        this.persistNotifications();
-        return { success: true, data: notification };
-      },
+    const notification = normalizeNotification(
+      ((result.data as Partial<Notification> | undefined) ?? {
+        title,
+        content,
+        type,
+        icon: iconMap[type],
+        isRead: false,
+        meta,
+      }) as Partial<Notification>,
     );
+
+    this.fallbackNotifications = [notification, ...this.fallbackNotifications];
+    this.persistNotifications();
+    return { success: true, data: notification, message: result.message };
   }
 
   async getSettings(): Promise<Result<NotificationSettings>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${NOTIFICATION_ENDPOINT}/settings`);
-        const result = toResult<unknown>(response, this.fallbackSettings);
-        if (!result.success) {
-          return { ...result, data: this.fallbackSettings };
-        }
-        return {
-          ...result,
-          data: normalizeSettings((result.data || this.fallbackSettings) as Partial<NotificationSettings>),
-        };
-      },
-      () => ({ success: true, data: this.fallbackSettings }),
-    );
+    const response = await getAppSdkClientWithSession().notification.getNotificationSettings();
+    const result = toResult<unknown>(response, this.fallbackSettings);
+    if (!result.success) {
+      return { ...result, data: this.fallbackSettings };
+    }
+    const settings = normalizeSettings((result.data || this.fallbackSettings) as Partial<NotificationSettings>);
+    this.persistSettings(settings);
+    return { ...result, data: settings };
   }
 
   async saveSettings(settings: NotificationSettings): Promise<Result<void>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.put<unknown>(`${NOTIFICATION_ENDPOINT}/settings`, settings);
-        const result = toResult<unknown>(response, undefined);
-        return result.success
-          ? { success: true, message: result.message }
-          : { success: false, message: result.message || result.error };
-      },
-      () => {
-        this.persistSettings(normalizeSettings(settings));
-        return { success: true };
-      },
-    );
+    const response = await getAppSdkClientWithSession().notification.updateNotificationSettings({
+      enablePush: settings.pushEnabled,
+      enableEmail: settings.emailEnabled,
+      enableInApp: settings.desktopEnabled,
+      notificationSound: settings.soundEnabled ? "default" : "silent",
+      vibrationEnabled: settings.soundEnabled,
+    });
+    const result = toResult<unknown>(response, undefined);
+    if (result.success) {
+      this.persistSettings(normalizeSettings(settings));
+      return { success: true, message: result.message };
+    }
+    return { success: false, message: result.message || result.error };
   }
 
   resetWorkspaceState(): void {
@@ -659,3 +486,4 @@ class NotificationServiceImpl {
 }
 
 export const NotificationService = new NotificationServiceImpl();
+

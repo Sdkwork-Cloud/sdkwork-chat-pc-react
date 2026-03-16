@@ -1,4 +1,4 @@
-﻿import { apiClient, IS_DEV, type Page, type Result } from "@sdkwork/openchat-pc-kernel";
+﻿import { getAppSdkClientWithSession, type Page, type Result } from "@sdkwork/openchat-pc-kernel";
 import type {
   PaymentMethod,
   RedPacket,
@@ -8,7 +8,6 @@ import type {
   WalletStats,
 } from "../types";
 
-const WALLET_ENDPOINT = "/wallet";
 const paymentMethodsStorageKey = "openchat.wallet.paymentMethods";
 const favoriteTransactionsStorageKey = "openchat.wallet.favoriteTransactions";
 const recentTransactionsStorageKey = "openchat.wallet.recentTransactions";
@@ -63,12 +62,12 @@ const seedTransactions: Transaction[] = [
 ];
 
 const defaultPaymentMethods: PaymentMethod[] = [
-  { id: "pm-1", type: "alipay", name: "Alipay", icon: "ALP", isDefault: true, isEnabled: true },
-  { id: "pm-2", type: "wechat", name: "WeChat Pay", icon: "WCP", isDefault: false, isEnabled: true },
-  { id: "pm-3", type: "card", name: "Bank Card", icon: "CRD", last4: "8888", isDefault: false, isEnabled: true },
+  { id: "WECHAT_PAY", type: "wechat", name: "WeChat Pay", icon: "WCP", isDefault: true, isEnabled: true },
+  { id: "ALIPAY", type: "alipay", name: "Alipay", icon: "ALP", isDefault: false, isEnabled: true },
+  { id: "UNION_PAY", type: "bank", name: "Union Pay", icon: "UNP", isDefault: false, isEnabled: true },
 ];
 
-const fallbackCategories = ["Salary", "Subscription", "Food", "Transfer", "Gift", "General"];
+const fallbackCategories = ["Salary", "Subscription", "Food", "Transfer", "Gift", "Recharge", "Withdraw", "General"];
 
 type PartialPage<T> = Partial<Page<T>> & { list?: T[]; pageSize?: number };
 
@@ -81,7 +80,65 @@ function toNumber(value: unknown, fallback = 0): number {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
+function toText(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function normalizeResultCode(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : undefined;
+  }
+  return undefined;
+}
+
+function resolveSuccessByCode(value: unknown): boolean | undefined {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+    return trimmed.startsWith("2");
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.floor(value / 1000) === 2;
+  }
+  return undefined;
+}
+
 function toResult<T>(response: unknown, defaultData: T): Result<T> {
+  if (response && typeof response === "object") {
+    const result = response as Partial<Result<T>> & {
+      code?: unknown;
+      msg?: unknown;
+      errorName?: unknown;
+    };
+    if ("success" in result || "code" in result || "msg" in result || "message" in result || "errorName" in result) {
+      const successByCode = resolveSuccessByCode(result.code);
+      const success = "success" in result ? Boolean(result.success) : successByCode ?? true;
+      return {
+        success,
+        data: (result.data as T | undefined) ?? defaultData,
+        message:
+          (typeof result.message === "string" && result.message) ||
+          (typeof result.msg === "string" && result.msg) ||
+          undefined,
+        error:
+          (typeof result.error === "string" && result.error) ||
+          (typeof result.errorName === "string" && result.errorName) ||
+          undefined,
+        code: normalizeResultCode(result.code),
+      };
+    }
+  }
+
   if (response && typeof response === "object" && "success" in response) {
     const result = response as Partial<Result<T>>;
     return {
@@ -132,20 +189,55 @@ function normalizeTransaction(input: Partial<Transaction>): Transaction {
   };
 }
 
-function normalizePaymentMethod(input: Partial<PaymentMethod>): PaymentMethod {
+function resolvePaymentType(rawType: unknown): PaymentMethod["type"] {
+  const normalized = toText(rawType)?.toUpperCase();
+  if (!normalized) {
+    return "card";
+  }
+  if (normalized === "ALIPAY") {
+    return "alipay";
+  }
+  if (normalized === "WECHAT" || normalized === "WECHAT_PAY") {
+    return "wechat";
+  }
+  if (normalized === "UNION_PAY" || normalized === "UNIONPAY" || normalized === "BANK") {
+    return "bank";
+  }
+  if (normalized === "CARD") {
+    return "card";
+  }
+  return "card";
+}
+
+function normalizePaymentMethod(input: Partial<PaymentMethod> & Record<string, unknown>): PaymentMethod {
+  const code = toText(input.code)?.toUpperCase();
+  const methodId = toText(input.methodId);
+  const methodName = toText(input.methodName);
+  const methodIcon = toText(input.methodIcon);
   const type =
     input.type === "card" || input.type === "alipay" || input.type === "wechat" || input.type === "bank"
       ? input.type
-      : "card";
+      : resolvePaymentType(input.type ?? code);
+
+  const nameByType =
+    type === "alipay"
+      ? "Alipay"
+      : type === "wechat"
+        ? "WeChat Pay"
+        : type === "bank"
+          ? "Bank"
+          : "Card";
+
+  const enabledRaw = input.isEnabled ?? input.enabled ?? input.available;
 
   return {
-    id: input.id || createId("pm"),
+    id: input.id || methodId || code || createId("pm"),
     type,
-    name: input.name || "Payment Method",
-    icon: input.icon || "PM",
-    last4: input.last4,
+    name: input.name || methodName || nameByType,
+    icon: input.icon || methodIcon || code?.slice(0, 3) || "PM",
+    last4: input.last4 || toText(input.accountTail),
     isDefault: Boolean(input.isDefault),
-    isEnabled: input.isEnabled === undefined ? true : Boolean(input.isEnabled),
+    isEnabled: enabledRaw === undefined ? true : Boolean(enabledRaw),
   };
 }
 
@@ -208,20 +300,6 @@ class WalletServiceImpl {
     this.recentTransactionIds = this.readRecentTransactionsFromStorage();
   }
 
-  private async withFallback<T>(
-    apiTask: () => Promise<Result<T>>,
-    fallbackTask: () => Result<T> | Promise<Result<T>>,
-  ): Promise<Result<T>> {
-    try {
-      return await apiTask();
-    } catch (error) {
-      if (IS_DEV) {
-        return fallbackTask();
-      }
-      throw error;
-    }
-  }
-
   private readPaymentMethodsFromStorage(): PaymentMethod[] {
     if (typeof localStorage === "undefined") {
       return [];
@@ -234,7 +312,7 @@ class WalletServiceImpl {
       }
       const parsed = JSON.parse(raw) as unknown;
       return Array.isArray(parsed)
-        ? parsed.map((item) => normalizePaymentMethod(item as Partial<PaymentMethod>))
+        ? parsed.map((item) => normalizePaymentMethod(item as Partial<PaymentMethod> & Record<string, unknown>))
         : [];
     } catch {
       return [];
@@ -358,15 +436,40 @@ class WalletServiceImpl {
     };
   }
 
-  private filterTransactions(transactions: Transaction[], filter: TransactionFilter): Transaction[] {
-    return transactions
-      .filter((item) => (filter.type ? item.type === filter.type : true))
-      .filter((item) => (filter.category ? item.category === filter.category : true))
-      .filter((item) => (filter.startTime !== undefined ? (item.createTime || 0) >= filter.startTime : true))
-      .filter((item) => (filter.endTime !== undefined ? (item.createTime || 0) <= filter.endTime : true))
-      .filter((item) => (filter.minAmount !== undefined ? Math.abs(item.amount) >= filter.minAmount : true))
-      .filter((item) => (filter.maxAmount !== undefined ? Math.abs(item.amount) <= filter.maxAmount : true))
-      .sort((a, b) => (b.createTime || 0) - (a.createTime || 0));
+  private async loadRemotePaymentMethods(): Promise<Result<PaymentMethod[]>> {
+    const response = await getAppSdkClientWithSession().payment.listPaymentMethods();
+    const result = toResult<unknown>(response, []);
+    if (!result.success) {
+      return { success: false, data: [], message: result.message || result.error, code: result.code };
+    }
+
+    const remoteList = Array.isArray(result.data)
+      ? result.data.map((item) => normalizePaymentMethod(item as Partial<PaymentMethod> & Record<string, unknown>))
+      : [];
+
+    let merged =
+      remoteList.length > 0
+        ? remoteList.map((remoteItem) => {
+            const localItem = this.fallbackPaymentMethods.find((item) => item.id === remoteItem.id);
+            return normalizePaymentMethod({
+              ...remoteItem,
+              ...(localItem ?? {}),
+              isDefault: localItem?.isDefault ?? remoteItem.isDefault,
+              isEnabled: localItem?.isEnabled ?? remoteItem.isEnabled,
+              last4: localItem?.last4 ?? remoteItem.last4,
+            } as Partial<PaymentMethod> & Record<string, unknown>);
+          })
+        : this.fallbackPaymentMethods.map((item) => ({ ...item }));
+
+    if (merged.length > 0) {
+      const preferredDefaultId = this.fallbackPaymentMethods.find((item) => item.isDefault)?.id;
+      const activeDefaultId =
+        merged.find((item) => item.isDefault)?.id ?? preferredDefaultId ?? merged[0].id;
+      merged = merged.map((item) => ({ ...item, isDefault: item.id === activeDefaultId }));
+    }
+
+    this.persistPaymentMethods(merged);
+    return { success: true, data: merged, message: result.message, code: result.code };
   }
 
   getFavoriteTransactionIds(): string[] {
@@ -411,21 +514,16 @@ class WalletServiceImpl {
   }
 
   async getWalletData(): Promise<Result<WalletData>> {
-    return this.withFallback(
-      async () => {
-        const fallbackData = this.buildWalletData(this.fallbackTransactions);
-        const response = await apiClient.get<unknown>(`${WALLET_ENDPOINT}/summary`);
-        const result = toResult<unknown>(response, fallbackData);
-        if (!result.success) {
-          return { ...result, data: fallbackData };
-        }
-        return {
-          ...result,
-          data: normalizeWalletData((result.data || fallbackData) as Partial<WalletData>),
-        };
-      },
-      () => ({ success: true, data: this.buildWalletData(this.fallbackTransactions) }),
-    );
+    const fallbackData = this.buildWalletData(this.fallbackTransactions);
+    const response = await getAppSdkClientWithSession().account.getCash();
+    const result = toResult<unknown>(response, fallbackData);
+    if (!result.success) {
+      return { ...result, data: fallbackData };
+    }
+    return {
+      ...result,
+      data: normalizeWalletData((result.data || fallbackData) as Partial<WalletData>),
+    };
   }
 
   async getTransactions(
@@ -433,263 +531,189 @@ class WalletServiceImpl {
     page: number = 1,
     size: number = 20,
   ): Promise<Result<Page<Transaction>>> {
-    return this.withFallback(
-      async () => {
-        const fallbackData = normalizePage({ content: [], total: 0, page, size }, page, size);
-        const response = await apiClient.get<unknown>(`${WALLET_ENDPOINT}/transactions`, {
-          params: {
-            type: filter.type,
-            category: filter.category,
-            startTime: filter.startTime,
-            endTime: filter.endTime,
-            minAmount: filter.minAmount,
-            maxAmount: filter.maxAmount,
-            page,
-            size,
-          },
-        });
-        const result = toResult<unknown>(response, fallbackData);
-        if (!result.success) {
-          return { ...result, data: fallbackData };
-        }
-        return { ...result, data: normalizePage(result.data, page, size) };
-      },
-      () => {
-        const filtered = this.filterTransactions(this.fallbackTransactions, filter);
-        const start = (page - 1) * size;
-        const content = filtered.slice(start, start + size).map((item) => ({ ...item }));
-        return {
-          success: true,
-          data: {
-            content,
-            total: filtered.length,
-            page,
-            size,
-            totalPages: Math.max(1, Math.ceil(filtered.length / size)),
-          },
-        };
-      },
-    );
+    const fallbackData = normalizePage({ content: [], total: 0, page, size }, page, size);
+    const response = await getAppSdkClientWithSession().account.getHistoryCash({
+      type: filter.type,
+      category: filter.category,
+      startTime: filter.startTime,
+      endTime: filter.endTime,
+      minAmount: filter.minAmount,
+      maxAmount: filter.maxAmount,
+      page,
+      size,
+    });
+    const result = toResult<unknown>(response, fallbackData);
+    if (!result.success) {
+      return { ...result, data: fallbackData };
+    }
+    const normalizedPage = normalizePage(result.data, page, size);
+    this.fallbackTransactions = normalizedPage.content.map((item) => ({ ...item }));
+    return { ...result, data: normalizedPage };
   }
 
   async addTransaction(data: Partial<Transaction>): Promise<Result<Transaction>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(`${WALLET_ENDPOINT}/transactions`, data);
-        const result = toResult<unknown>(response, data);
-        if (!result.success) {
-          return { success: false, message: result.message || result.error };
-        }
-        return { ...result, data: normalizeTransaction((result.data || data) as Partial<Transaction>) };
-      },
-      () => {
-        const paymentMethod = this.fallbackPaymentMethods.find((item) => item.isDefault)?.id;
-        const created = normalizeTransaction({
-          ...data,
-          paymentMethod: data.paymentMethod || paymentMethod,
-          createTime: Date.now(),
-          updateTime: Date.now(),
-        });
-        this.fallbackTransactions = [created, ...this.fallbackTransactions];
-        return { success: true, data: created };
-      },
-    );
+    const amountValue = Math.abs(toNumber(data.amount));
+    if (amountValue <= 0) {
+      return { success: false, message: "Transaction amount must be greater than 0." };
+    }
+
+    const paymentMethod = data.paymentMethod || this.fallbackPaymentMethods.find((item) => item.isDefault)?.id || "ALIPAY";
+    const isExpense = data.type === "expense" || toNumber(data.amount) < 0;
+    const response = isExpense
+      ? await getAppSdkClientWithSession().account.withdraw({
+          amount: amountValue,
+          withdrawMethod: paymentMethod,
+          remarks: data.description,
+        } as any)
+      : await getAppSdkClientWithSession().account.recharge({
+          amount: amountValue,
+          paymentMethod,
+          remarks: data.description,
+        } as any);
+
+    const result = toResult<unknown>(response, undefined);
+    if (!result.success) {
+      return { success: false, message: result.message || result.error, code: result.code };
+    }
+
+    const payload = (result.data || {}) as Record<string, unknown>;
+    const remoteStatus = toText(payload.status)?.toUpperCase();
+    const transactionStatus =
+      remoteStatus === "FAILED" ? "failed" : remoteStatus === "PENDING" ? "pending" : "completed";
+
+    const transaction = normalizeTransaction({
+      id: toText(payload.transactionId) || createId("tx"),
+      title: data.title || (isExpense ? "Withdraw" : "Recharge"),
+      amount: isExpense ? -amountValue : amountValue,
+      category: data.category || (isExpense ? "Withdraw" : "Recharge"),
+      type: isExpense ? "expense" : "income",
+      status: transactionStatus,
+      description: data.description,
+      paymentMethod,
+      createTime: Date.now(),
+      updateTime: Date.now(),
+    });
+
+    this.fallbackTransactions = [transaction, ...this.fallbackTransactions];
+    return { success: true, data: transaction, message: result.message, code: result.code };
   }
 
   async getStats(): Promise<Result<WalletStats>> {
-    return this.withFallback(
-      async () => {
-        const fallbackData = this.buildStats(this.fallbackTransactions);
-        const response = await apiClient.get<unknown>(`${WALLET_ENDPOINT}/stats`);
-        const result = toResult<unknown>(response, fallbackData);
-        if (!result.success) {
-          return { ...result, data: fallbackData };
-        }
-        return {
-          ...result,
-          data: normalizeStats((result.data || fallbackData) as Partial<WalletStats>),
-        };
-      },
-      () => ({ success: true, data: this.buildStats(this.fallbackTransactions) }),
-    );
+    const fallbackData = this.buildStats(this.fallbackTransactions);
+    const response = await getAppSdkClientWithSession().account.getHistoryCash({ page: 1, size: 200 });
+    const result = toResult<unknown>(response, normalizePage({ content: [], page: 1, size: 200 }, 1, 200));
+    if (!result.success) {
+      return { ...result, data: fallbackData };
+    }
+    const list = normalizePage(result.data, 1, 200).content;
+    const source = list.length > 0 ? list : this.fallbackTransactions;
+    return { ...result, data: normalizeStats(this.buildStats(source)) };
   }
 
   async getPaymentMethods(): Promise<Result<PaymentMethod[]>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${WALLET_ENDPOINT}/payment-methods`);
-        const result = toResult<unknown>(response, []);
-        if (!result.success) {
-          return { ...result, data: [] };
-        }
-        const list = Array.isArray(result.data)
-          ? result.data.map((item) => normalizePaymentMethod(item as Partial<PaymentMethod>))
-          : [];
-        return { ...result, data: list };
-      },
-      () => ({ success: true, data: this.fallbackPaymentMethods.map((item) => ({ ...item })) }),
-    );
+    return this.loadRemotePaymentMethods();
   }
 
   async savePaymentMethod(method: PaymentMethod): Promise<Result<void>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.put<unknown>(`${WALLET_ENDPOINT}/payment-methods/${method.id}`, method);
-        const result = toResult<unknown>(response, undefined);
-        return result.success
-          ? { success: true, message: result.message }
-          : { success: false, message: result.message || result.error };
-      },
-      () => {
-        const normalized = normalizePaymentMethod(method);
-        const next = [...this.fallbackPaymentMethods];
-        const index = next.findIndex((item) => item.id === normalized.id);
-        if (index >= 0) {
-          next[index] = normalized;
-        } else {
-          next.push(normalized);
-        }
-        this.persistPaymentMethods(next);
-        return { success: true };
-      },
-    );
+    const methodsResult = await this.loadRemotePaymentMethods();
+    if (!methodsResult.success) {
+      return { success: false, message: methodsResult.message, code: methodsResult.code };
+    }
+
+    const normalized = normalizePaymentMethod(method as Partial<PaymentMethod> & Record<string, unknown>);
+    const next = methodsResult.data ? methodsResult.data.map((item) => ({ ...item })) : [];
+    const index = next.findIndex((item) => item.id === normalized.id);
+    if (index >= 0) {
+      next[index] = normalizePaymentMethod({
+        ...next[index],
+        ...normalized,
+      } as Partial<PaymentMethod> & Record<string, unknown>);
+    } else {
+      next.push(normalized);
+    }
+
+    if (!next.some((item) => item.isDefault) && next.length > 0) {
+      next[0] = { ...next[0], isDefault: true };
+    }
+    this.persistPaymentMethods(next);
+    return { success: true };
   }
 
   async setDefaultPaymentMethod(id: string): Promise<Result<void>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.put<unknown>(`${WALLET_ENDPOINT}/payment-methods/default`, { id });
-        const result = toResult<unknown>(response, undefined);
-        return result.success
-          ? { success: true, message: result.message }
-          : { success: false, message: result.message || result.error };
-      },
-      () => {
-        const next = this.fallbackPaymentMethods.map((item) => ({ ...item, isDefault: item.id === id }));
-        this.persistPaymentMethods(next);
-        return { success: true };
-      },
-    );
+    const methodsResult = await this.loadRemotePaymentMethods();
+    if (!methodsResult.success) {
+      return { success: false, message: methodsResult.message, code: methodsResult.code };
+    }
+
+    const methods = methodsResult.data || [];
+    if (!methods.some((item) => item.id === id)) {
+      return { success: false, message: `Payment method not found: ${id}` };
+    }
+
+    const next = methods.map((item) => ({ ...item, isDefault: item.id === id }));
+    this.persistPaymentMethods(next);
+    return { success: true };
   }
 
   async transfer(toUserId: string, amount: number, message?: string): Promise<Result<Transaction>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(`${WALLET_ENDPOINT}/transfer`, {
-          toUserId,
-          amount,
-          message,
-        });
-        const result = toResult<unknown>(response, undefined);
-        if (!result.success) {
-          return { success: false, message: result.message || result.error };
-        }
-        const transaction = normalizeTransaction(
-          ((result.data as Partial<Transaction> | undefined) ?? {
-            title: `Transfer to ${toUserId}`,
-            amount: -Math.abs(amount),
-            category: "Transfer",
-            type: "expense",
-            description: message,
-          }) as Partial<Transaction>,
-        );
-        return { success: true, data: transaction, message: result.message };
-      },
-      async () => {
-        if (amount <= 0) {
-          return { success: false, message: "Transfer amount must be greater than 0." };
-        }
-        const wallet = this.buildWalletData(this.fallbackTransactions);
-        if (wallet.balance < amount) {
-          return { success: false, message: "Insufficient balance." };
-        }
-        return this.addTransaction({
-          title: `Transfer to ${toUserId}`,
-          amount: -Math.abs(amount),
-          category: "Transfer",
-          type: "expense",
-          description: message,
-        });
-      },
+    if (amount <= 0) {
+      return { success: false, message: "Transfer amount must be greater than 0." };
+    }
+
+    const response = await getAppSdkClientWithSession().account.createTransfer({
+      toUserId,
+      amount,
+      remarks: message,
+    } as any);
+    const result = toResult<unknown>(response, undefined);
+    if (!result.success) {
+      return { success: false, message: result.message || result.error };
+    }
+    const transaction = normalizeTransaction(
+      ((result.data as Partial<Transaction> | undefined) ?? {
+        title: `Transfer to ${toUserId}`,
+        amount: -Math.abs(amount),
+        category: "Transfer",
+        type: "expense",
+        description: message,
+      }) as Partial<Transaction>,
     );
+    this.fallbackTransactions = [transaction, ...this.fallbackTransactions];
+    return { success: true, data: transaction, message: result.message };
   }
 
   async createRedPacket(amount: number, count: number, message: string): Promise<Result<RedPacket>> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(`${WALLET_ENDPOINT}/red-packets`, {
-          amount,
-          count,
-          message,
-        });
-        const fallbackData: RedPacket = {
-          id: createId("red-packet"),
-          amount,
-          count,
-          remainingCount: count,
-          message,
-          senderId: "current_user",
-          senderName: "Current User",
-          senderAvatar: undefined,
-          expireTime: Date.now() + 24 * 60 * 60 * 1000,
-          isReceived: false,
-        };
-        const result = toResult<unknown>(response, fallbackData);
-        if (!result.success) {
-          return { success: false, message: result.message || result.error };
-        }
-        const data = result.data as Partial<RedPacket>;
-        return {
-          success: true,
-          message: result.message,
-          data: {
-            id: data.id || fallbackData.id,
-            amount: toNumber(data.amount, amount),
-            count: toNumber(data.count, count),
-            remainingCount: toNumber(data.remainingCount, count),
-            message: data.message || message,
-            senderId: data.senderId || "current_user",
-            senderName: data.senderName || "Current User",
-            senderAvatar: data.senderAvatar,
-            expireTime: toNumber(data.expireTime, fallbackData.expireTime),
-            isReceived: Boolean(data.isReceived),
-          },
-        };
-      },
-      async () => {
-        if (amount <= 0 || count <= 0) {
-          return { success: false, message: "Amount and count must be greater than 0." };
-        }
-        const wallet = this.buildWalletData(this.fallbackTransactions);
-        if (wallet.balance < amount) {
-          return { success: false, message: "Insufficient balance." };
-        }
+    if (amount <= 0 || count <= 0) {
+      return { success: false, message: "Amount and count must be greater than 0." };
+    }
 
-        await this.addTransaction({
-          title: "Red packet sent",
-          amount: -Math.abs(amount),
-          category: "Gift",
-          type: "expense",
-          description: message,
-        });
+    const transactionResult = await this.addTransaction({
+      title: "Red packet sent",
+      amount: -Math.abs(amount),
+      category: "Gift",
+      type: "expense",
+      description: message,
+    });
+    if (!transactionResult.success) {
+      return { success: false, message: transactionResult.message || "Failed to create red packet." };
+    }
 
-        return {
-          success: true,
-          data: {
-            id: createId("red-packet"),
-            amount,
-            count,
-            remainingCount: count,
-            message,
-            senderId: "current_user",
-            senderName: "Current User",
-            senderAvatar: undefined,
-            expireTime: Date.now() + 24 * 60 * 60 * 1000,
-            isReceived: false,
-          },
-        };
+    const senderId = toText((transactionResult.data as unknown as Record<string, unknown>)?.relatedId) || "current_user";
+    return {
+      success: true,
+      data: {
+        id: createId("red-packet"),
+        amount,
+        count,
+        remainingCount: count,
+        message,
+        senderId,
+        senderName: "Current User",
+        senderAvatar: undefined,
+        expireTime: Date.now() + 24 * 60 * 60 * 1000,
+        isReceived: false,
       },
-    );
+    };
   }
 
   getCategories(): string[] {
@@ -698,3 +722,4 @@ class WalletServiceImpl {
 }
 
 export const WalletService = new WalletServiceImpl();
+

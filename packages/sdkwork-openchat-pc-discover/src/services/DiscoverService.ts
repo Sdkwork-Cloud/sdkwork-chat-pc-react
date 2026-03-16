@@ -1,4 +1,4 @@
-﻿import { apiClient, IS_DEV, type Page, type Result } from "@sdkwork/openchat-pc-kernel";
+﻿import { getAppSdkClientWithSession, type Page, type Result } from "@sdkwork/openchat-pc-kernel";
 import type {
   DiscoverBanner,
   DiscoverCategory,
@@ -6,7 +6,6 @@ import type {
   DiscoverItem,
 } from "../types";
 
-const DISCOVER_ENDPOINT = "/discover";
 const FAVORITE_DISCOVER_STORAGE_KEY = "openchat.discover.favorite";
 const RECENT_DISCOVER_STORAGE_KEY = "openchat.discover.recent";
 const MAX_RECENT_DISCOVER_COUNT = 16;
@@ -195,38 +194,6 @@ function normalizePage<T>(input: unknown, page: number, size: number): Page<T> {
   };
 }
 
-function withFallback<T>(apiTask: () => Promise<Result<T>>, fallbackTask: () => Result<T>): Promise<Result<T>> {
-  return apiTask().catch((error) => {
-    if (IS_DEV) {
-      return fallbackTask();
-    }
-    throw error;
-  });
-}
-
-function filterFallbackItems(filter: DiscoverFilter): DiscoverItem[] {
-  let list = [...fallbackItems];
-  if (filter.type) {
-    list = list.filter((item) => item.type === filter.type);
-  }
-  if (filter.category && filter.category !== "all") {
-    const keyword = filter.category.toLowerCase();
-    list = list.filter((item) => item.tags.some((tag) => tag.toLowerCase().includes(keyword)));
-  }
-
-  switch (filter.sortBy) {
-    case "hot":
-      list.sort((a, b) => b.reads + b.likes * 10 - (a.reads + a.likes * 10));
-      break;
-    case "new":
-      list.sort((a, b) => (b.createTime || 0) - (a.createTime || 0));
-      break;
-    default:
-      list.sort((a, b) => b.likes - a.likes);
-  }
-  return list;
-}
-
 class DiscoverServiceImpl {
   getFavoriteItemIds(): string[] {
     return Array.from(favoriteItemIds);
@@ -270,34 +237,31 @@ class DiscoverServiceImpl {
   }
 
   async getBanners(): Promise<Result<DiscoverBanner[]>> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${DISCOVER_ENDPOINT}/banners`);
-        return asResult<DiscoverBanner[]>(response);
-      },
-      () => ({ success: true, data: fallbackBanners }),
-    );
+    const response = await getAppSdkClientWithSession().advert.getBannerAdverts();
+    const result = asResult<DiscoverBanner[]>(response);
+    if (!result.success) {
+      return { ...result, data: fallbackBanners };
+    }
+    const list = Array.isArray(result.data) ? result.data : [];
+    return { ...result, data: list.length > 0 ? list : fallbackBanners };
   }
 
   async getCategories(): Promise<Result<DiscoverCategory[]>> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${DISCOVER_ENDPOINT}/categories`);
-        return asResult<DiscoverCategory[]>(response);
-      },
-      () => {
-        const data = fallbackCategories.map((category) => ({
-          ...category,
-          count:
-            category.id === "all"
-              ? fallbackItems.length
-              : fallbackItems.filter((item) =>
-                  item.tags.some((tag) => tag.toLowerCase().includes(category.id.toLowerCase())),
-                ).length,
-        }));
-        return { success: true, data };
-      },
-    );
+    const response = await getAppSdkClientWithSession().category.listCategories();
+    const result = asResult<DiscoverCategory[]>(response);
+    if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+      return result;
+    }
+    const data = fallbackCategories.map((category) => ({
+      ...category,
+      count:
+        category.id === "all"
+          ? fallbackItems.length
+          : fallbackItems.filter((item) =>
+              item.tags.some((tag) => tag.toLowerCase().includes(category.id.toLowerCase())),
+            ).length,
+    }));
+    return { success: result.success, data, message: result.message, error: result.error, code: result.code };
   }
 
   async getFeed(
@@ -305,82 +269,47 @@ class DiscoverServiceImpl {
     page: number = 1,
     size: number = 12,
   ): Promise<Result<Page<DiscoverItem>>> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${DISCOVER_ENDPOINT}/feed`, {
-          params: { ...filter, page, size },
-        });
-        const payload =
-          response && typeof response === "object" && "data" in response
-            ? (response as { data: unknown }).data
-            : response;
-        if (payload && typeof payload === "object" && "success" in payload) {
-          const result = payload as Result<unknown>;
-          return {
-            ...result,
-            data: normalizePage<DiscoverItem>(result.data, page, size),
-          };
-        }
-        return { success: true, data: normalizePage<DiscoverItem>(payload, page, size) };
-      },
-      () => {
-        const filtered = filterFallbackItems(filter);
-        const start = (page - 1) * size;
-        const content = filtered.slice(start, start + size);
-        return {
-          success: true,
-          data: {
-            content,
-            total: filtered.length,
-            page,
-            size,
-            totalPages: Math.max(1, Math.ceil(filtered.length / size)),
-          },
-        };
-      },
-    );
+    const response = await getAppSdkClientWithSession().feed.getFeedList({
+      ...filter,
+      page,
+      size,
+    });
+    const payload =
+      response && typeof response === "object" && "data" in response
+        ? (response as { data: unknown }).data
+        : response;
+    if (payload && typeof payload === "object" && "success" in payload) {
+      const result = payload as Result<unknown>;
+      return {
+        ...result,
+        data: normalizePage<DiscoverItem>(result.data, page, size),
+      };
+    }
+    return { success: true, data: normalizePage<DiscoverItem>(payload, page, size) };
   }
 
   async search(query: string): Promise<Result<DiscoverItem[]>> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${DISCOVER_ENDPOINT}/search`, {
-          params: { keyword: query },
-        });
-        return asResult<DiscoverItem[]>(response);
-      },
-      () => {
-        const keyword = query.trim().toLowerCase();
-        if (!keyword) {
-          return { success: true, data: [] };
-        }
-        const data = fallbackItems.filter((item) => {
-          const source = `${item.title} ${item.summary} ${item.tags.join(" ")}`.toLowerCase();
-          return source.includes(keyword);
-        });
-        return { success: true, data };
-      },
-    );
+    const response = await getAppSdkClientWithSession().feed.searchFeeds({
+      keyword: query,
+    });
+    const result = asResult<DiscoverItem[]>(response);
+    if (!result.success) {
+      return { ...result, data: [] };
+    }
+    return { ...result, data: Array.isArray(result.data) ? result.data : [] };
   }
 
   async getTrending(): Promise<Result<DiscoverItem[]>> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${DISCOVER_ENDPOINT}/trending`, {
-          params: { limit: 5 },
-        });
-        return asResult<DiscoverItem[]>(response);
-      },
-      () => {
-        const data = [...fallbackItems]
-          .sort((a, b) => b.reads + b.likes * 10 - (a.reads + a.likes * 10))
-          .slice(0, 5);
-        return { success: true, data };
-      },
-    );
+    const response = await getAppSdkClientWithSession().feed.getHotFeeds({ limit: 5 });
+    const result = asResult<DiscoverItem[]>(response);
+    if (!result.success) {
+      return { ...result, data: [] };
+    }
+    return { ...result, data: Array.isArray(result.data) ? result.data : [] };
   }
 }
 
 export const DiscoverService = new DiscoverServiceImpl();
 export default DiscoverService;
+
 

@@ -9,26 +9,42 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 const modulePackageNames = [
+  'agents',
   'agent',
+  'app',
   'appstore',
+  'appointments',
   'auth',
+  'chat',
   'commerce',
+  'communication',
   'contacts',
+  'content',
+  'core',
   'creation',
   'device',
   'discover',
   'drive',
   'im',
+  'look',
+  'media',
+  'moments',
+  'nearby',
   'notification',
+  'order-center',
   'rtc',
   'search',
   'settings',
+  'shopping',
+  'skills',
   'skill',
   'social',
   'terminal',
   'tool',
   'tools',
+  'user',
   'video',
+  'vip',
   'wallet',
   'commons',
   'ui',
@@ -71,6 +87,14 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@sdkwork/app-sdk': path.resolve(
+        __dirname,
+        '../../spring-ai-plus-app-api/sdkwork-sdk-app/sdkwork-app-sdk-typescript/src/index.ts'
+      ),
+      '@sdkwork/sdk-common': path.resolve(
+        __dirname,
+        '../../sdk/sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts'
+      ),
       ...workspacePackageAlias,
     },
   },

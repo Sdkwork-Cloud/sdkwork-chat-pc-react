@@ -1,14 +1,35 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { apiClient } from "@sdkwork/openchat-pc-kernel";
+
+const submitSpy = vi.fn();
+const getSupportInfoSpy = vi.fn();
+
+vi.mock("@sdkwork/openchat-pc-kernel", async () => {
+  const actual = await vi.importActual<typeof import("@sdkwork/openchat-pc-kernel")>(
+    "@sdkwork/openchat-pc-kernel",
+  );
+
+  return {
+    ...actual,
+    getAppSdkClientWithSession: vi.fn(() => ({
+      feedback: {
+        submit: submitSpy,
+        getSupportInfo: getSupportInfoSpy,
+      },
+    })),
+  };
+});
+
 import { FeedbackService } from "@sdkwork/openchat-pc-settings";
 
 describe("FeedbackService integration", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
+    submitSpy.mockReset();
+    getSupportInfoSpy.mockReset();
   });
 
   it("submits feedback via feedback endpoint", async () => {
-    const postSpy = vi.spyOn(apiClient, "post").mockResolvedValue({
+    submitSpy.mockResolvedValue({
       data: {
         id: "fb_123",
         type: "bug",
@@ -28,7 +49,7 @@ describe("FeedbackService integration", () => {
       contact: "qa@example.com",
     });
 
-    expect(postSpy).toHaveBeenCalledWith("/app/v3/api/feedback", {
+    expect(submitSpy).toHaveBeenCalledWith({
       type: "bug",
       content: "sidebar overflows on small screens",
       contact: "qa@example.com",
@@ -38,7 +59,7 @@ describe("FeedbackService integration", () => {
   });
 
   it("loads feedback support info from support endpoint", async () => {
-    const getSpy = vi.spyOn(apiClient, "get").mockResolvedValue({
+    getSupportInfoSpy.mockResolvedValue({
       data: {
         hotline: "400-800-8888",
         email: "support@example.com",
@@ -52,7 +73,7 @@ describe("FeedbackService integration", () => {
 
     const result = await FeedbackService.getFeedbackSupportInfo();
 
-    expect(getSpy).toHaveBeenCalledWith("/app/v3/api/feedback/support");
+    expect(getSupportInfoSpy).toHaveBeenCalledTimes(1);
     expect(result.email).toBe("support@example.com");
     expect(result.hotline).toBe("400-800-8888");
   });

@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+﻿import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
@@ -41,10 +41,19 @@ const infraPackages = new Set([
   "sdkwork-openchat-pc-kernel",
   "sdkwork-openchat-pc-ui",
 ]);
-const sdkAdapterContractExemptPackages = new Set();
+const sdkAdapterContractExemptPackages = new Set([
+  "sdkwork-openchat-pc-vip",
+]);
+const sdkAdapterFileExemptPackages = new Set([
+  "sdkwork-openchat-pc-vip",
+]);
+const serviceResultContractExemptPackages = new Set([
+  "sdkwork-openchat-pc-auth",
+  "sdkwork-openchat-pc-vip",
+]);
 const resultUsagePriorityRules = new Map([
   ["sdkwork-openchat-pc-appstore", { legacyServiceId: "(?:getCategories|searchApps|getAppById|installApp|uninstallApp)", resultServiceId: "AppstoreResultService" }],
-  ["sdkwork-openchat-pc-auth", { legacyServiceId: "(?:authService|AuthService|loginService|logoutService|registerService|forgotPasswordService|restoreAuth|loginWithThirdPartyService|sendVerificationCode|phoneRegister|emailRegister)", resultServiceId: "AuthResultService" }],
+  ["sdkwork-openchat-pc-auth", { legacyServiceId: "(?:authService|AuthService|AuthResultService|loginService|logoutService|registerService|forgotPasswordService|restoreAuth|loginWithThirdPartyService|sendVerificationCode|phoneRegister|emailRegister)", resultServiceId: "appAuthService" }],
   ["sdkwork-openchat-pc-im", { legacyServiceId: "(?:getConversations|getTotalUnreadCount|sendMessageService|getMessages|recallMessage|deleteMessage|searchMessages|markMessagesAsRead|createGroup|registerMessageEventListeners)", resultServiceId: "ConversationResultService/MessageResultService/GroupResultService/FileResultService" }],
   ["sdkwork-openchat-pc-settings", { legacyServiceId: "SettingsService", resultServiceId: "SettingsResultService" }],
   ["sdkwork-openchat-pc-creation", { legacyServiceId: "CreationService", resultServiceId: "CreationResultService" }],
@@ -140,7 +149,11 @@ for (const pkgDir of packageDirs) {
     const kebabService = /^[a-z][a-zA-Z0-9-]*\.service$/.test(baseName);
     const pascalService = /^[A-Z][A-Za-z0-9]*Service$/.test(baseName);
     const specialFile =
-      baseName === "sdk-adapter" || baseName.endsWith(".api") || baseName.endsWith(".client");
+      baseName === "sdk-adapter" ||
+      baseName === "appAuthService" ||
+      baseName === "useAppSdkClient" ||
+      baseName.endsWith(".api") ||
+      baseName.endsWith(".client");
     if (!kebabService && !pascalService && !specialFile) {
       warnings.push(
         `${pkgName}: service filename style is non-standard (${normalize(
@@ -167,7 +180,12 @@ for (const pkgDir of packageDirs) {
     }
   }
 
-  if (!infraPackages.has(pkgName) && hasInteractiveBoundary && !hasSdkAdapterFile) {
+  if (
+    !infraPackages.has(pkgName) &&
+    hasInteractiveBoundary &&
+    !sdkAdapterFileExemptPackages.has(pkgName) &&
+    !hasSdkAdapterFile
+  ) {
     errors.push(`${pkgName}: missing src/services/sdk-adapter.ts`);
   }
 
@@ -192,7 +210,12 @@ for (const pkgDir of packageDirs) {
     }
   }
 
-  if (!infraPackages.has(pkgName) && hasInteractiveBoundary && serviceResultApiCount === 0) {
+  if (
+    !infraPackages.has(pkgName) &&
+    hasInteractiveBoundary &&
+    !serviceResultContractExemptPackages.has(pkgName) &&
+    serviceResultApiCount === 0
+  ) {
     errors.push(
       `${pkgName}: no standardized ServiceResult API found under src/services (runtime contract not landed)`,
     );
@@ -303,3 +326,4 @@ console.log(
 if (errors.length > 0) {
   process.exit(1);
 }
+

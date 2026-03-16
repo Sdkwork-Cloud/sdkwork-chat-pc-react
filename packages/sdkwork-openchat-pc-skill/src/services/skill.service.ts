@@ -1,4 +1,4 @@
-import { IS_DEV, apiClient } from "@sdkwork/openchat-pc-kernel";
+import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
 import {
   SkillCategory,
   type SkillCategoryInfo,
@@ -6,110 +6,12 @@ import {
   type UserSkill,
 } from "../entities/skill.entity";
 
-const SKILL_ENDPOINT = "/skills";
 const ENABLED_STORAGE_KEY = "openchat.skill.enabled";
 const CONFIG_STORAGE_KEY = "openchat.skill.config";
 const CONFIGURED_AT_STORAGE_KEY = "openchat.skill.configured-at";
 const FAVORITE_STORAGE_KEY = "openchat.skill.favorite";
 const RECENT_STORAGE_KEY = "openchat.skill.recent";
 const MAX_RECENT_SKILL_COUNT = 12;
-
-const seedSkills: SkillMarketItem[] = [
-  {
-    id: "skill-image-generator",
-    name: "Image Generator",
-    description: "Generate high-quality images from prompts.",
-    icon: "IMG",
-    category: SkillCategory.CREATIVE,
-    version: "1.2.0",
-    provider: "OpenChat",
-    isPublic: true,
-    isBuiltin: true,
-    capabilities: ["text-to-image", "image-edit", "style-transfer"],
-    tags: ["image", "creative", "design"],
-    usageCount: 12500,
-    rating: 4.8,
-    createdAt: "2025-11-12T00:00:00.000Z",
-    updatedAt: "2026-01-03T00:00:00.000Z",
-  },
-  {
-    id: "skill-code-runner",
-    name: "Code Runner",
-    description: "Run and validate code snippets in sandbox mode.",
-    icon: "DEV",
-    category: SkillCategory.DEVELOPER,
-    version: "2.0.1",
-    provider: "OpenChat",
-    isPublic: true,
-    isBuiltin: true,
-    capabilities: ["run-code", "debug", "lint"],
-    tags: ["development", "code", "sandbox"],
-    usageCount: 9800,
-    rating: 4.7,
-    createdAt: "2025-12-01T00:00:00.000Z",
-    updatedAt: "2026-01-10T00:00:00.000Z",
-  },
-  {
-    id: "skill-web-search",
-    name: "Web Search",
-    description: "Search and aggregate real-time web information.",
-    icon: "WEB",
-    category: SkillCategory.UTILITY,
-    version: "1.4.3",
-    provider: "OpenChat",
-    isPublic: true,
-    isBuiltin: true,
-    capabilities: ["search", "crawl", "extract"],
-    tags: ["search", "realtime", "knowledge"],
-    usageCount: 15400,
-    rating: 4.9,
-    createdAt: "2025-12-10T00:00:00.000Z",
-    updatedAt: "2026-01-14T00:00:00.000Z",
-  },
-  {
-    id: "skill-charting",
-    name: "Data Charting",
-    description: "Generate charts and visual analytics quickly.",
-    icon: "DAT",
-    category: SkillCategory.DATA,
-    version: "1.1.0",
-    provider: "OpenChat",
-    isPublic: true,
-    isBuiltin: true,
-    capabilities: ["chart", "dashboard", "report"],
-    tags: ["data", "chart", "analytics"],
-    usageCount: 6400,
-    rating: 4.6,
-    createdAt: "2025-12-20T00:00:00.000Z",
-    updatedAt: "2026-01-08T00:00:00.000Z",
-  },
-  {
-    id: "skill-translation",
-    name: "Translation",
-    description: "Translate content across 100+ languages.",
-    icon: "TRN",
-    category: SkillCategory.UTILITY,
-    version: "1.3.4",
-    provider: "OpenChat",
-    isPublic: true,
-    isBuiltin: true,
-    capabilities: ["translate", "language-detect", "rewrite"],
-    tags: ["language", "translation", "productivity"],
-    usageCount: 11200,
-    rating: 4.8,
-    createdAt: "2026-01-01T00:00:00.000Z",
-    updatedAt: "2026-01-20T00:00:00.000Z",
-  },
-];
-
-const seedCategories: SkillCategoryInfo[] = [
-  { id: "all", name: "All", icon: "ALL" },
-  { id: SkillCategory.CREATIVE, name: "Creative", icon: "CR" },
-  { id: SkillCategory.UTILITY, name: "Utility", icon: "UT" },
-  { id: SkillCategory.DEVELOPER, name: "Developer", icon: "DV" },
-  { id: SkillCategory.DATA, name: "Data", icon: "DT" },
-  { id: SkillCategory.MEDIA, name: "Media", icon: "MD" },
-];
 
 type SkillSortType = "popular" | "rating" | "newest";
 type SkillConfigMap = Record<string, Record<string, unknown>>;
@@ -212,17 +114,6 @@ class SkillServiceImpl {
     this.recentSkills = this.readRecentSkills();
     this.skillConfigs = this.readSkillConfigs();
     this.configuredAtMap = this.readConfiguredAtMap();
-  }
-
-  private async withFallback<T>(apiTask: () => Promise<T>, fallbackTask: () => T | Promise<T>): Promise<T> {
-    try {
-      return await apiTask();
-    } catch (error) {
-      if (IS_DEV) {
-        return fallbackTask();
-      }
-      throw error;
-    }
   }
 
   private readEnabledSkills(): Set<string> {
@@ -395,25 +286,6 @@ class SkillServiceImpl {
     }));
   }
 
-  private queryFallbackSkills(
-    category?: string,
-    keyword?: string,
-    sortBy: SkillSortType = "popular",
-  ): SkillMarketItem[] {
-    const normalizedKeyword = keyword?.trim().toLowerCase() || "";
-    const filtered = seedSkills
-      .filter((item) => (category && category !== "all" ? item.category === category : true))
-      .filter((item) => {
-        if (!normalizedKeyword) {
-          return true;
-        }
-        const source = `${item.name} ${item.description} ${item.tags.join(" ")}`.toLowerCase();
-        return source.includes(normalizedKeyword);
-      })
-      .map((item) => ({ ...item }));
-    return sortSkills(this.applyWorkspaceState(filtered), sortBy);
-  }
-
   private buildUserSkill(skillId: string): UserSkill {
     return normalizeUserSkill({
       id: `user-skill-${skillId}`,
@@ -472,15 +344,10 @@ class SkillServiceImpl {
   }
 
   async getCategories(): Promise<SkillCategoryInfo[]> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${SKILL_ENDPOINT}/categories`);
-        const list = ensureArray<Partial<SkillCategoryInfo>>(extractData<unknown[]>(response, []))
-          .map((item) => normalizeCategoryInfo(item));
-        return list.length > 0 ? list : seedCategories;
-      },
-      () => seedCategories.map((item) => ({ ...item })),
-    );
+    const response = await getAppSdkClientWithSession().skill.listCategories();
+    const list = ensureArray<Partial<SkillCategoryInfo>>(extractData<unknown[]>(response, []))
+      .map((item) => normalizeCategoryInfo(item));
+    return list;
   }
 
   async getSkills(
@@ -488,21 +355,14 @@ class SkillServiceImpl {
     keyword?: string,
     sortBy: SkillSortType = "popular",
   ): Promise<SkillMarketItem[]> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(SKILL_ENDPOINT, {
-          params: {
-            category: category && category !== "all" ? category : undefined,
-            keyword: keyword?.trim() || undefined,
-            sortBy,
-          },
-        });
-        const list = ensureArray<Partial<SkillMarketItem>>(extractData<unknown[]>(response, []))
-          .map((item) => normalizeSkill(item));
-        return sortSkills(this.applyWorkspaceState(list), sortBy);
-      },
-      () => this.queryFallbackSkills(category, keyword, sortBy),
-    );
+    const response = await getAppSdkClientWithSession().skill.list({
+      category: category && category !== "all" ? category : undefined,
+      keyword: keyword?.trim() || undefined,
+      sortBy,
+    });
+    const list = ensureArray<Partial<SkillMarketItem>>(extractData<unknown[]>(response, []))
+      .map((item) => normalizeSkill(item));
+    return sortSkills(this.applyWorkspaceState(list), sortBy);
   }
 
   async getSkillById(skillId: string): Promise<SkillMarketItem | null> {
@@ -510,105 +370,76 @@ class SkillServiceImpl {
       return null;
     }
 
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${SKILL_ENDPOINT}/${skillId}`);
-        const data = extractData<unknown>(response, null);
-        if (!data) {
-          return null;
-        }
-        const skill = normalizeSkill(data as Partial<SkillMarketItem>);
-        return {
-          ...skill,
-          isEnabled: this.enabledSkills.has(skill.id),
-          isConfigured: this.isSkillConfigured(skill.id),
-          configuredAt: this.configuredAtMap[skill.id],
-        };
-      },
-      () => {
-        const matched = seedSkills.find((item) => item.id === skillId);
-        if (!matched) {
-          return null;
-        }
-        return {
-          ...matched,
-          isEnabled: this.enabledSkills.has(matched.id),
-          isConfigured: this.isSkillConfigured(matched.id),
-          configuredAt: this.configuredAtMap[matched.id],
-        };
-      },
-    );
+    const skillApi = getAppSdkClientWithSession().skill as {
+      get?: (id: string) => Promise<unknown>;
+      getById?: (id: string) => Promise<unknown>;
+    };
+    const response = skillApi.get
+      ? await skillApi.get(skillId)
+      : skillApi.getById
+        ? await skillApi.getById(skillId)
+        : null;
+    const data = extractData<unknown>(response, null);
+    if (!data) {
+      return null;
+    }
+    const skill = normalizeSkill(data as Partial<SkillMarketItem>);
+    return {
+      ...skill,
+      isEnabled: this.enabledSkills.has(skill.id),
+      isConfigured: this.isSkillConfigured(skill.id),
+      configuredAt: this.configuredAtMap[skill.id],
+    };
   }
 
   async getMySkills(): Promise<UserSkill[]> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${SKILL_ENDPOINT}/my`);
-        const list = ensureArray<Partial<UserSkill>>(extractData<unknown[]>(response, []))
-          .map((item) => normalizeUserSkill(item))
-          .filter((item) => item.enabled);
-        return list;
-      },
-      () => Array.from(this.enabledSkills).map((skillId) => this.buildUserSkill(skillId)),
-    );
+    const response = await getAppSdkClientWithSession().skill.listMine();
+    const list = ensureArray<Partial<UserSkill>>(extractData<unknown[]>(response, []))
+      .map((item) => normalizeUserSkill(item))
+      .filter((item) => item.enabled);
+    this.enabledSkills = new Set<string>(list.map((item) => item.skillId));
+    this.persistEnabledSkills();
+    return list;
   }
 
   async enableSkill(skillId: string): Promise<UserSkill> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(`${SKILL_ENDPOINT}/${skillId}/enable`);
-        this.enabledSkills.add(skillId);
-        this.persistEnabledSkills();
-        const data = extractData<unknown>(response, undefined);
-        if (!data) {
-          return this.buildUserSkill(skillId);
-        }
-        return normalizeUserSkill(data as Partial<UserSkill>);
-      },
-      () => {
-        this.enabledSkills.add(skillId);
-        this.persistEnabledSkills();
-        return this.buildUserSkill(skillId);
-      },
-    );
+    const response = await getAppSdkClientWithSession().skill.enable(skillId);
+    this.enabledSkills.add(skillId);
+    this.persistEnabledSkills();
+    const data = extractData<unknown>(response, undefined);
+    if (!data) {
+      return this.buildUserSkill(skillId);
+    }
+    const normalized = normalizeUserSkill(data as Partial<UserSkill>);
+    return {
+      ...normalized,
+      skillId: normalized.skillId || skillId,
+      enabled: true,
+    };
   }
 
   async disableSkill(skillId: string): Promise<void> {
-    await this.withFallback(
-      async () => {
-        await apiClient.post<unknown>(`${SKILL_ENDPOINT}/${skillId}/disable`);
-        this.enabledSkills.delete(skillId);
-        this.persistEnabledSkills();
-      },
-      () => {
-        this.enabledSkills.delete(skillId);
-        this.persistEnabledSkills();
-      },
-    );
+    await getAppSdkClientWithSession().skill.disable(skillId);
+    this.enabledSkills.delete(skillId);
+    this.persistEnabledSkills();
   }
 
   async updateSkillConfig(skillId: string, config: Record<string, unknown>): Promise<UserSkill> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.put<unknown>(`${SKILL_ENDPOINT}/${skillId}/config`, { config });
-        this.skillConfigs[skillId] = config;
-        this.configuredAtMap[skillId] = new Date().toISOString();
-        this.persistSkillConfigs();
-        this.persistConfiguredAtMap();
-        const data = extractData<unknown>(response, undefined);
-        if (!data) {
-          return this.buildUserSkill(skillId);
-        }
-        return normalizeUserSkill(data as Partial<UserSkill>);
-      },
-      () => {
-        this.skillConfigs[skillId] = config;
-        this.configuredAtMap[skillId] = new Date().toISOString();
-        this.persistSkillConfigs();
-        this.persistConfiguredAtMap();
-        return this.buildUserSkill(skillId);
-      },
-    );
+    const response = await getAppSdkClientWithSession().skill.updateConfig(skillId, { config } as any);
+    this.skillConfigs[skillId] = config;
+    this.configuredAtMap[skillId] = new Date().toISOString();
+    this.persistSkillConfigs();
+    this.persistConfiguredAtMap();
+    const data = extractData<unknown>(response, undefined);
+    if (!data) {
+      return this.buildUserSkill(skillId);
+    }
+    const normalized = normalizeUserSkill(data as Partial<UserSkill>);
+    return {
+      ...normalized,
+      skillId: normalized.skillId || skillId,
+      config,
+    };
   }
 }
 

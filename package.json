@@ -30,12 +30,16 @@
     "verify:packages": "node scripts/verify-packages.mjs",
     "audit:services": "node scripts/audit-service-standards.mjs",
     "report:services": "node scripts/report-service-conformance.mjs",
+    "report:modules": "node scripts/report-module-readiness.mjs",
+    "check:sdk-standard": "node ../scripts/check-sdk-compliance.mjs --strict && node ../scripts/check-auth-standard.mjs && node ../scripts/check-user-center-standard.mjs && node ../scripts/check-vip-standard.mjs && node ../scripts/check-contacts-standard.mjs && node ../scripts/check-product-standard.mjs && node ../scripts/check-drive-standard.mjs && node ../scripts/check-notification-standard.mjs && node ../scripts/check-trade-standard.mjs",
+    "check:sdk-standard:quick": "node ../scripts/check-auth-standard.mjs && node ../scripts/check-user-center-standard.mjs && node ../scripts/check-vip-standard.mjs && node ../scripts/check-contacts-standard.mjs && node ../scripts/check-product-standard.mjs && node ../scripts/check-drive-standard.mjs && node ../scripts/check-notification-standard.mjs && node ../scripts/check-trade-standard.mjs",
     "scaffold:package": "node scripts/scaffold-package.mjs",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write .",
     "tauri": "tauri"
   },
   "dependencies": {
+    "@sdkwork/app-sdk": "workspace:*",
     "@openchat/typescript-sdk": "file:./vendor/openchat-typescript-sdk",
     "@tanstack/react-query": "^5.90.20",
     "@tanstack/react-virtual": "^3.13.18",

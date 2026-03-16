@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+﻿import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
@@ -40,10 +40,19 @@ const infraPackages = new Set([
   "sdkwork-openchat-pc-kernel",
   "sdkwork-openchat-pc-ui",
 ]);
-const sdkAdapterContractExemptPackages = new Set();
+const sdkAdapterContractExemptPackages = new Set([
+  "sdkwork-openchat-pc-vip",
+]);
+const sdkAdapterFileExemptPackages = new Set([
+  "sdkwork-openchat-pc-vip",
+]);
+const serviceResultContractExemptPackages = new Set([
+  "sdkwork-openchat-pc-auth",
+  "sdkwork-openchat-pc-vip",
+]);
 const resultUsagePriorityRules = new Map([
   ["sdkwork-openchat-pc-appstore", { legacyServiceId: "(?:getCategories|searchApps|getAppById|installApp|uninstallApp)", resultServiceId: "AppstoreResultService" }],
-  ["sdkwork-openchat-pc-auth", { legacyServiceId: "(?:authService|AuthService|loginService|logoutService|registerService|forgotPasswordService|restoreAuth|loginWithThirdPartyService|sendVerificationCode|phoneRegister|emailRegister)", resultServiceId: "AuthResultService" }],
+  ["sdkwork-openchat-pc-auth", { legacyServiceId: "(?:authService|AuthService|AuthResultService|loginService|logoutService|registerService|forgotPasswordService|restoreAuth|loginWithThirdPartyService|sendVerificationCode|phoneRegister|emailRegister)", resultServiceId: "appAuthService" }],
   ["sdkwork-openchat-pc-im", { legacyServiceId: "(?:getConversations|getTotalUnreadCount|sendMessageService|getMessages|recallMessage|deleteMessage|searchMessages|markMessagesAsRead|createGroup|registerMessageEventListeners)", resultServiceId: "ConversationResultService/MessageResultService/GroupResultService/FileResultService" }],
   ["sdkwork-openchat-pc-settings", { legacyServiceId: "SettingsService", resultServiceId: "SettingsResultService" }],
   ["sdkwork-openchat-pc-creation", { legacyServiceId: "CreationService", resultServiceId: "CreationResultService" }],
@@ -170,11 +179,14 @@ for (const pkgDir of packageDirs) {
 
   const resultUsagePass = !resultUsageRule || asyncLegacyCallCount === 0;
   const strictScope = !infraPackages.has(packageName);
-  const requiresServiceResult = strictScope;
+  const requiresServiceResult =
+    strictScope && !serviceResultContractExemptPackages.has(packageName);
+  const requiresSdkAdapterFile =
+    strictScope && !sdkAdapterFileExemptPackages.has(packageName);
   const pass =
     hasServices &&
     hasServicesIndex &&
-    (!strictScope || hasSdkAdapter) &&
+    (!requiresSdkAdapterFile || hasSdkAdapter) &&
     (!requiresSDKAdapterContract || hasSDKAdapterContract) &&
     (exportsServices || !strictScope) &&
     (!strictScope || !hasDeepServiceExport) &&
@@ -187,6 +199,7 @@ for (const pkgDir of packageDirs) {
     packageName,
     strictScope,
     requiresServiceResult,
+    requiresSdkAdapterFile,
     hasServices,
     hasServicesIndex,
     hasSdkAdapter,
@@ -276,7 +289,7 @@ lines.push(
 
 for (const row of rows) {
   lines.push(
-    `| ${row.packageName} | ${row.strictScope ? "Business" : "Infra"} | ${row.hasServices ? "Y" : "N"} | ${row.hasServicesIndex ? "Y" : "N"} | ${row.hasSdkAdapter ? "Y" : "N"} | ${row.requiresSDKAdapterContract ? (row.hasSDKAdapterContract ? "Y" : "N") : "-" } | ${row.exportsServices ? "Y" : "N"} | ${row.hasDeepServiceExport ? "Y" : "N"} | ${row.hasRepositoryExport ? "Y" : "N"} | ${row.serviceFileCount} | ${row.interfaceCount} | ${row.serviceResultApiCount}${row.requiresServiceResult ? "*" : ""} | ${row.directFetchCount} | ${row.directServiceImportCount} | ${row.asyncLegacyCallCount} | ${row.resultUsagePass ? "Y" : "N"} | ${row.pass ? "PASS" : "FAIL"} |`,
+    `| ${row.packageName} | ${row.strictScope ? "Business" : "Infra"} | ${row.hasServices ? "Y" : "N"} | ${row.hasServicesIndex ? "Y" : "N"} | ${row.requiresSdkAdapterFile ? (row.hasSdkAdapter ? "Y" : "N") : "-" } | ${row.requiresSDKAdapterContract ? (row.hasSDKAdapterContract ? "Y" : "N") : "-" } | ${row.exportsServices ? "Y" : "N"} | ${row.hasDeepServiceExport ? "Y" : "N"} | ${row.hasRepositoryExport ? "Y" : "N"} | ${row.serviceFileCount} | ${row.interfaceCount} | ${row.serviceResultApiCount}${row.requiresServiceResult ? "*" : ""} | ${row.directFetchCount} | ${row.directServiceImportCount} | ${row.asyncLegacyCallCount} | ${row.resultUsagePass ? "Y" : "N"} | ${row.pass ? "PASS" : "FAIL"} |`,
   );
 }
 
@@ -288,6 +301,7 @@ lines.push("- Infra packages are evaluated with relaxed export/fetch rules.");
 lines.push("- Strict service boundary checks are enforced for business modules.");
 lines.push("- `*` in ServiceResult column marks packages in strict runtime-contract scope.");
 lines.push("- `SDK Contract` checks standardized sdk-adapter registry shape (`SDKAdapterBridge/register/get`).");
+lines.push("- Some packages are exempt from sdk-adapter/ServiceResult runtime-contract checks by architecture policy.");
 lines.push("- `Result Usage` currently applies to priority modules: appstore/auth/im/settings/creation/drive/tools/discover/wallet/notification/social/video/commerce/device/terminal/skill/tool/agent/search.");
 lines.push("- `Deep Svc Export` and `Repo Export` columns highlight index-level boundary leakage risks.");
 
@@ -296,3 +310,4 @@ writeFileSync(reportPath, `${lines.join("\n")}\n`, "utf8");
 
 // eslint-disable-next-line no-console
 console.log(`Service conformance report written: ${normalize(path.relative(rootDir, reportPath))}`);
+

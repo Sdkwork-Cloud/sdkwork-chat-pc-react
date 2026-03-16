@@ -8,7 +8,7 @@
  * 6. 鏂囦欢棰勮
  */
 
-import { API_BASE_URL } from '../config/env';
+import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
 import { errorService } from './error.service';
 
 // 娴忚鍣ㄥ吋瀹圭殑 EventEmitter 瀹炵幇
@@ -242,25 +242,13 @@ export class FileService extends EventEmitter {
    */
   private async createUploadSession(file: File, chunkSize: number): Promise<UploadSession> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/files/upload/session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileSize: file.size,
-          fileType: file.type,
-          chunkSize,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create upload session');
-      }
-
-      const data = await response.json();
+      const response = await getAppSdkClientWithSession().upload.initChunk({
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        chunkSize,
+      } as any);
+      const data = (response as { data?: any }).data ?? response;
       return {
         id: data.sessionId,
         fileId: data.fileId,
@@ -351,17 +339,7 @@ export class FileService extends EventEmitter {
         formData.append('totalChunks', session.totalChunks.toString());
         formData.append('file', chunk.data, session.fileName);
 
-        const response = await fetch(`${API_BASE_URL}/api/files/upload/chunk`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          },
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to upload chunk');
-        }
+        await getAppSdkClientWithSession().upload.chunk(formData as any);
 
         return;
       } catch (error) {
@@ -379,23 +357,11 @@ export class FileService extends EventEmitter {
    */
   private async completeUpload(session: UploadSession): Promise<string> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/files/upload/complete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-        body: JSON.stringify({
-          sessionId: session.id,
-          fileId: session.fileId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to complete upload');
-      }
-
-      const data = await response.json();
+      const response = await getAppSdkClientWithSession().upload.mergeChunks({
+        sessionId: session.id,
+        fileId: session.fileId,
+      } as any);
+      const data = (response as { data?: any }).data ?? response;
       return data.fileUrl;
     } catch (error) {
       throw new Error('Failed to complete upload');
@@ -479,22 +445,8 @@ export class FileService extends EventEmitter {
    */
   private async getUploadedChunks(sessionId: string): Promise<number[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/files/upload/chunks`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-        body: JSON.stringify({
-          sessionId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get uploaded chunks');
-      }
-
-      const data = await response.json();
+      const response = await getAppSdkClientWithSession().upload.getChunkStatus({ sessionId } as any);
+      const data = (response as { data?: any }).data ?? response;
       return data.chunks || [];
     } catch (error) {
       return [];
@@ -506,12 +458,7 @@ export class FileService extends EventEmitter {
    */
   async downloadFile(fileUrl: string, fileName: string): Promise<void> {
     try {
-      const response = await fetch(fileUrl, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
+      const response = await fetch(fileUrl, { method: 'GET' });
 
       if (!response.ok) {
         throw new Error('Failed to download file');
@@ -544,19 +491,8 @@ export class FileService extends EventEmitter {
    */
   async getFileInfo(fileId: string): Promise<FileInfo> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/files/${fileId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get file info');
-      }
-
-      const data = await response.json();
+      const response = await getAppSdkClientWithSession().upload.getFileDetail(fileId);
+      const data = (response as { data?: any }).data ?? response;
       return {
         id: data.id,
         name: data.name,
@@ -583,17 +519,7 @@ export class FileService extends EventEmitter {
    */
   async deleteFile(fileId: string): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/files/${fileId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete file');
-      }
+      await getAppSdkClientWithSession().upload.deleteFile(fileId);
 
       this.emit('fileDeleted', fileId);
     } catch (error: any) {
@@ -617,27 +543,14 @@ export class FileService extends EventEmitter {
     sortOrder?: 'asc' | 'desc';
   }): Promise<{ files: FileInfo[]; total: number }> {
     try {
-      const params = new URLSearchParams({
-        page: (options?.page || 1).toString(),
-        pageSize: (options?.pageSize || 20).toString(),
-        ...(options?.type && { type: options.type }),
-        ...(options?.sortBy && { sortBy: options.sortBy }),
-        ...(options?.sortOrder && { sortOrder: options.sortOrder }),
-      });
-
-      const response = await fetch(`${API_BASE_URL}/api/files?${params}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get file list');
-      }
-
-      const data = await response.json();
+      const response = await getAppSdkClientWithSession().upload.listFiles({
+        page: options?.page || 1,
+        pageSize: options?.pageSize || 20,
+        type: options?.type,
+        sortBy: options?.sortBy,
+        sortOrder: options?.sortOrder,
+      } as Record<string, string | number | boolean>);
+      const data = (response as { data?: any }).data ?? response;
       return {
         files: data.files.map((file: any) => ({
           id: file.id,

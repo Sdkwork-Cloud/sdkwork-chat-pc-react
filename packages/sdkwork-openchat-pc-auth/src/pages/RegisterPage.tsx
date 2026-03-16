@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { AuthResultService } from "../services";
+import { appAuthService } from "../services";
 import type { UseAuthReturn } from "../hooks/useAuth";
 
 interface RegisterPageProps {
@@ -117,19 +117,15 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
 
     setSubmitting(true);
     try {
-      const result = await AuthResultService.sendVerificationCode(
-        isPhoneTarget(normalizedTarget) ? undefined : normalizedTarget,
-        isPhoneTarget(normalizedTarget) ? normalizedTarget : undefined,
-        "register",
-      );
-
-      if (!result.success) {
-        setError(result.error || "Failed to send verification code.");
-        return;
-      }
-
+      await appAuthService.sendVerifyCode({
+        target: normalizedTarget,
+        scene: "REGISTER",
+        verifyType: isPhoneTarget(normalizedTarget) ? "PHONE" : "EMAIL",
+      });
       startCountdown();
-      setSuccessMessage(result.message || "Verification code sent.");
+      setSuccessMessage("Verification code sent.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to send verification code.");
     } finally {
       setSubmitting(false);
     }
@@ -159,26 +155,15 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
 
     setSubmitting(true);
     try {
-      const registerResult = isPhoneTarget(normalizedTarget)
-        ? await AuthResultService.phoneRegister({
-            phone: normalizedTarget,
-            code: code.trim(),
-            username,
-            password: password.trim(),
-            nickname,
-          })
-        : await AuthResultService.emailRegister({
-            email: normalizedTarget,
-            code: code.trim(),
-            username,
-            password: password.trim(),
-            nickname,
-          });
-
-      if (!registerResult.success) {
-        setError(registerResult.error || "Registration failed.");
-        return;
-      }
+      await appAuthService.register({
+        username,
+        password: password.trim(),
+        confirmPassword: confirmPassword.trim(),
+        phone: isPhoneTarget(normalizedTarget) ? normalizedTarget : undefined,
+        email: isPhoneTarget(normalizedTarget) ? undefined : normalizedTarget,
+        name: nickname,
+        verificationCode: code.trim(),
+      });
 
       const loginOk = await auth.login(username, password.trim());
       if (!loginOk) {
@@ -187,6 +172,8 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
       }
 
       setSuccessMessage("Registration successful.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Registration failed.");
     } finally {
       setSubmitting(false);
     }

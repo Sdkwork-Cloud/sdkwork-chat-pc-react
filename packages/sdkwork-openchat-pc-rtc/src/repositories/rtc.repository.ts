@@ -14,71 +14,138 @@ import type {
   CreateRoomResponse,
   CallRecord 
 } from '../entities/rtc.entity';
-import { generateUUID } from '@sdkwork/openchat-pc-kernel';
-
-// API 鍩虹璺緞
-const API_BASE = '/api/rtc';
+import { generateUUID, getAppSdkClientWithSession, IS_DEV } from '@sdkwork/openchat-pc-kernel';
 
 // 妯℃嫙妯″紡锛堢敤浜庢祴璇曪級
-const MOCK_MODE = true;
+const MOCK_MODE = IS_DEV;
 
 // 鐗堟湰鏍囪鐢ㄤ簬寮哄埗鍒锋柊缂撳瓨 - 姣忔淇敼鍚庢洿鏂版鐗堟湰鍙?
 const RTC_REPO_VERSION = '1.0.6';
 
+function unwrapData<T>(payload: unknown, fallback: T): T {
+  if (payload && typeof payload === 'object' && 'data' in payload) {
+    const wrapped = payload as { data?: T };
+    return wrapped.data ?? fallback;
+  }
+  if (payload === undefined || payload === null) {
+    return fallback;
+  }
+  return payload as T;
+}
+
+async function withRtcFallback<T>(apiTask: () => Promise<T>, fallbackTask: () => T | Promise<T>): Promise<T> {
+  try {
+    return await apiTask();
+  } catch (error) {
+    if (MOCK_MODE) {
+      return fallbackTask();
+    }
+    throw error;
+  }
+}
+
+function normalizeRoom(input: Partial<RTCRoom>, request?: CreateRoomRequest): RTCRoom {
+  const now = new Date().toISOString();
+  const roomId = input.id || generateUUID();
+  return {
+    id: roomId,
+    uuid: input.uuid || roomId,
+    name: input.name ?? request?.name,
+    type: (input.type as RTCRoom['type']) || request?.type || 'p2p',
+    creatorId: input.creatorId || 'current-user',
+    participants: Array.isArray(input.participants) ? input.participants : request?.participants || ['current-user'],
+    status: (input.status as RTCRoom['status']) || 'active',
+    startedAt: input.startedAt || now,
+    endedAt: input.endedAt,
+  };
+}
+
+function normalizeToken(input: Partial<RTCToken>, roomId: string): RTCToken {
+  const now = new Date().toISOString();
+  return {
+    id: input.id || generateUUID(),
+    uuid: input.uuid || generateUUID(),
+    roomId: input.roomId || roomId,
+    userId: input.userId || 'current-user',
+    token: input.token || `rtc-token-${Date.now()}`,
+    expiresAt: input.expiresAt || new Date(Date.now() + 3600000).toISOString(),
+    createdAt: input.createdAt || now,
+  };
+}
+
+function normalizeCallRecord(input: Partial<CallRecord>, index: number): CallRecord {
+  return {
+    id: input.id || `${Date.now()}-${index}`,
+    callType: (input.callType as CallRecord['callType']) || 'audio',
+    direction: (input.direction as CallRecord['direction']) || 'outgoing',
+    remoteUserId: input.remoteUserId || 'unknown',
+    remoteUserName: input.remoteUserName || 'Unknown',
+    remoteUserAvatar: input.remoteUserAvatar,
+    status: (input.status as CallRecord['status']) || 'completed',
+    duration: input.duration,
+    timestamp: input.timestamp || new Date().toISOString(),
+  };
+}
 
 
 /**
  * 鍒涘缓閫氳瘽鎴块棿
  */
 export async function createRoom(request: CreateRoomRequest): Promise<CreateRoomResponse> {
-  if (MOCK_MODE) {
-    // 妯℃嫙鍒涘缓鎴块棿
-    const roomId = generateUUID();
-    const tokenId = generateUUID();
-    
-    const room: RTCRoom = {
-      id: roomId,
-      uuid: roomId,
-      type: request.type,
-      creatorId: 'current-user',
-      participants: request.participants,
-      status: 'active',
-      startedAt: new Date().toISOString(),
-    };
-    
-    const token: RTCToken = {
-      id: tokenId,
-      uuid: tokenId,
-      roomId: roomId,
-      userId: 'current-user',
-      token: `mock-token-${Date.now()}`,
-      expiresAt: new Date(Date.now() + 3600000).toISOString(),
-      createdAt: new Date().toISOString(),
-    };
-    
-    console.log('[RTC] Mock room created:', roomId);
-    return { room, token };
-  }
-
-  const response = await fetch(`${API_BASE}/rooms`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to create room');
-  }
-  
-  return response.json();
+  return withRtcFallback(
+    async () => {
+      const response = await getAppSdkClientWithSession().rtc.createRoom(request as any);
+      const payload = unwrapData<Record<string, unknown>>(response, {});
+      const room = normalizeRoom((payload.room as Partial<RTCRoom>) || (payload as Partial<RTCRoom>), request);
+      const token = normalizeToken((payload.token as Partial<RTCToken>) || {}, room.id);
+      return { room, token };
+    },
+    () => {
+      const roomId = generateUUID();
+      const room = normalizeRoom(
+        {
+          id: roomId,
+          uuid: roomId,
+          type: request.type,
+          creatorId: 'current-user',
+          participants: request.participants,
+          status: 'active',
+          startedAt: new Date().toISOString(),
+        },
+        request,
+      );
+      const token = normalizeToken(
+        {
+          id: generateUUID(),
+          uuid: generateUUID(),
+          roomId,
+          userId: 'current-user',
+          token: `mock-token-${Date.now()}`,
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+          createdAt: new Date().toISOString(),
+        },
+        roomId,
+      );
+      console.log('[RTC] Mock room created:', roomId);
+      return { room, token };
+    },
+  );
 }
 
 /**
  * 鑾峰彇鎴块棿淇℃伅
  */
 export async function getRoom(roomId: string): Promise<RTCRoom | null> {
-  if (MOCK_MODE) {
-    return {
+  return withRtcFallback(
+    async () => {
+      const response = await getAppSdkClientWithSession().rtc.getRoom(roomId);
+      const payload = unwrapData<Record<string, unknown> | null>(response, null);
+      if (!payload) {
+        return null;
+      }
+      return normalizeRoom(payload as Partial<RTCRoom>);
+    },
+    () => ({
       id: roomId,
       uuid: roomId,
       type: 'p2p',
@@ -86,74 +153,70 @@ export async function getRoom(roomId: string): Promise<RTCRoom | null> {
       participants: ['current-user', 'remote-user'],
       status: 'active',
       startedAt: new Date().toISOString(),
-    };
-  }
-
-  const response = await fetch(`${API_BASE}/rooms/${roomId}`);
-  
-  if (!response.ok) {
-    return null;
-  }
-  
-  return response.json();
+    }),
+  );
 }
 
 /**
  * 缁撴潫閫氳瘽鎴块棿
  */
 export async function endRoom(roomId: string): Promise<boolean> {
-  if (MOCK_MODE) {
-    console.log('[RTC] Mock room ended:', roomId);
-    return true;
-  }
-
-  const response = await fetch(`${API_BASE}/rooms/${roomId}/end`, {
-    method: 'POST',
-  });
-  
-  return response.ok;
+  return withRtcFallback(
+    async () => {
+      await getAppSdkClientWithSession().rtc.endRoom(roomId);
+      return true;
+    },
+    () => {
+      console.log('[RTC] Mock room ended:', roomId);
+      return true;
+    },
+  );
 }
 
 /**
  * 鑾峰彇浠ょ墝
  */
 export async function getToken(roomId: string): Promise<RTCToken> {
-  if (MOCK_MODE) {
-    const tokenId = generateUUID();
-    return {
-      id: tokenId,
-      uuid: tokenId,
-      roomId: roomId,
-      userId: 'current-user',
-      token: `mock-token-${Date.now()}`,
-      expiresAt: new Date(Date.now() + 3600000).toISOString(),
-      createdAt: new Date().toISOString(),
-    };
-  }
-
-  const response = await fetch(`${API_BASE}/rooms/${roomId}/token`, {
-    method: 'POST',
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to get token');
-  }
-  
-  return response.json();
+  return withRtcFallback(
+    async () => {
+      const response = await getAppSdkClientWithSession().rtc.createRoomToken(roomId);
+      const payload = unwrapData<Record<string, unknown>>(response, {});
+      return normalizeToken(payload as Partial<RTCToken>, roomId);
+    },
+    () =>
+      normalizeToken(
+        {
+          id: generateUUID(),
+          uuid: generateUUID(),
+          roomId,
+          userId: 'current-user',
+          token: `mock-token-${Date.now()}`,
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+          createdAt: new Date().toISOString(),
+        },
+        roomId,
+      ),
+  );
 }
 
 /**
  * 鑾峰彇閫氳瘽璁板綍
  */
 export async function getCallRecords(): Promise<CallRecord[]> {
-  if (MOCK_MODE) {
-    return [
+  return withRtcFallback(
+    async () => {
+      const response = await getAppSdkClientWithSession().rtc.listRecords({ page: 1, size: 50 });
+      const payload = unwrapData<unknown[]>(response, []);
+      const list = Array.isArray(payload) ? payload : [];
+      return list.map((item, index) => normalizeCallRecord(item as Partial<CallRecord>, index));
+    },
+    () => [
       {
         id: '1',
         callType: 'audio',
         direction: 'outgoing',
         remoteUserId: 'user1',
-        remoteUserName: '寮犱笁',
+        remoteUserName: '?????????',
         status: 'completed',
         duration: 120,
         timestamp: new Date(Date.now() - 86400000).toISOString(),
@@ -163,20 +226,12 @@ export async function getCallRecords(): Promise<CallRecord[]> {
         callType: 'video',
         direction: 'incoming',
         remoteUserId: 'user2',
-        remoteUserName: '鏉庡洓',
+        remoteUserName: '?????????',
         status: 'missed',
         timestamp: new Date(Date.now() - 172800000).toISOString(),
       },
-    ];
-  }
-
-  const response = await fetch(`${API_BASE}/records`);
-  
-  if (!response.ok) {
-    return [];
-  }
-  
-  return response.json();
+    ],
+  );
 }
 
 /**

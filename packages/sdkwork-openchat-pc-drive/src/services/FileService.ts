@@ -5,6 +5,7 @@ import type {
   FileType,
   StorageStats,
 } from "../types";
+import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
 import { getSDKAdapter } from "./sdk-adapter";
 
 export interface ServiceResponse<T> {
@@ -303,6 +304,140 @@ function hasSdkReservation(): boolean {
   return Boolean(adapter && adapter.isAvailable());
 }
 
+const SUCCESS_CODES = new Set(["0", "200", "2000", "SUCCESS"]);
+
+function unwrapResponseData<T>(response: unknown, operation: string): T {
+  const result = response as {
+    code?: string | number;
+    msg?: string;
+    data?: T;
+  };
+  const code = result.code === undefined || result.code === null ? "2000" : String(result.code).toUpperCase();
+  if (!SUCCESS_CODES.has(code)) {
+    throw new Error(`[${operation}] ${result.msg || "SDK request failed"} (code=${code})`);
+  }
+  if (result.data === undefined || result.data === null) {
+    throw new Error(`[${operation}] response data is empty`);
+  }
+  return result.data;
+}
+
+function toStringId(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return null;
+}
+
+function toTimestamp(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Date.parse(value.trim());
+    if (!Number.isNaN(parsed)) return parsed;
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) return numeric;
+  }
+  return Date.now();
+}
+
+function toNumber(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function mapAssetTypeToFileType(assetType: unknown, fileType: unknown, mimeType: unknown): FileType {
+  const rawAsset = typeof assetType === "string" ? assetType.toUpperCase() : "";
+  const rawFileType = typeof fileType === "string" ? fileType.toUpperCase() : "";
+  const rawMime = typeof mimeType === "string" ? mimeType.toLowerCase() : "";
+
+  if (rawFileType === "DIRECTORY") return "folder";
+  if (rawAsset === "IMAGE" || rawMime.startsWith("image/")) return "image";
+  if (rawAsset === "VIDEO" || rawMime.startsWith("video/")) return "video";
+  if (rawAsset === "AUDIO" || rawMime.startsWith("audio/")) return "audio";
+  if (rawAsset === "CODE") return "code";
+  if (rawAsset === "ARCHIVE") return "zip";
+  if (rawAsset === "DOCUMENT") {
+    if (rawMime.includes("pdf")) return "pdf";
+    if (rawMime.includes("sheet") || rawMime.includes("excel") || rawMime.includes("csv")) return "xls";
+    if (rawMime.includes("presentation") || rawMime.includes("powerpoint")) return "ppt";
+    return "doc";
+  }
+  return "unknown";
+}
+
+function mapRemoteNodeToFileNode(
+  input: Record<string, unknown>,
+  fallback: Partial<FileNode> = {},
+): FileNode | null {
+  const id =
+    toStringId(input.itemId)
+    || toStringId(input.nodeId)
+    || toStringId(input.itemUuid)
+    || toStringId(input.nodeUuid)
+    || fallback.id
+    || null;
+  const name =
+    (typeof input.itemName === "string" && input.itemName.trim())
+    || (typeof input.name === "string" && input.name.trim())
+    || fallback.name
+    || "";
+
+  if (!id || !name) return null;
+
+  const parentId =
+    toStringId(input.parentId)
+    ?? (fallback.parentId === undefined ? null : fallback.parentId);
+  const fileType = mapAssetTypeToFileType(input.assetType, input.fileType || input.type, input.mimeType);
+
+  return {
+    id,
+    parentId,
+    name,
+    type: normalizeFileType(fallback.type || fileType),
+    size: toNumber(input.size, fallback.size || 0),
+    url:
+      (typeof (input.resource as { url?: unknown } | undefined)?.url === "string"
+        ? (input.resource as { url?: string }).url
+        : undefined)
+      || (typeof input.url === "string" ? input.url : fallback.url),
+    thumbnail:
+      (typeof (input.coverImage as { imageUrl?: unknown } | undefined)?.imageUrl === "string"
+        ? (input.coverImage as { imageUrl?: string }).imageUrl
+        : undefined)
+      || fallback.thumbnail,
+    mimeType: (typeof input.mimeType === "string" ? input.mimeType : fallback.mimeType),
+    isStarred: typeof input.favorited === "boolean" ? input.favorited : fallback.isStarred,
+    isShared: fallback.isShared,
+    createTime: toTimestamp(input.createdAt ?? fallback.createTime),
+    updateTime: toTimestamp(input.updatedAt ?? fallback.updateTime),
+  };
+}
+
+function guessMimeType(type: FileType): string | undefined {
+  if (type === "image") return "image/*";
+  if (type === "video") return "video/*";
+  if (type === "audio") return "audio/*";
+  if (type === "pdf") return "application/pdf";
+  if (type === "xls") return "application/vnd.ms-excel";
+  if (type === "ppt") return "application/vnd.ms-powerpoint";
+  if (type === "code") return "text/plain";
+  if (type === "doc") return "application/octet-stream";
+  return undefined;
+}
+
+function toAssetType(type: FileType): string | undefined {
+  if (type === "image") return "IMAGE";
+  if (type === "video") return "VIDEO";
+  if (type === "audio") return "AUDIO";
+  if (type === "code") return "CODE";
+  if (type === "zip") return "ARCHIVE";
+  if (type === "folder") return undefined;
+  return "DOCUMENT";
+}
+
 export const FileService = {
   getFavoriteFileIds(): string[] {
     return loadFavoriteFileIds();
@@ -341,6 +476,29 @@ export const FileService = {
   },
 
   async getFilesByParent(parentId: string | null, filter: FileFilter = {}): Promise<ServiceResponse<FileNode[]>> {
+    try {
+      const response = await getAppSdkClientWithSession().drive.listItems({
+        parentId: parentId || undefined,
+        page: 1,
+        pageNo: 1,
+        size: 200,
+        pageSize: 200,
+      } as any);
+      const page = unwrapResponseData<{ content?: Record<string, unknown>[] }>(response, "drive.listItems");
+      const files = (Array.isArray(page.content) ? page.content : [])
+        .map((item) => mapRemoteNodeToFileNode(item, { parentId }))
+        .filter((item): item is FileNode => item !== null)
+        .filter((item) => (filter.type ? item.type === filter.type : true))
+        .filter((item) => (filter.search ? item.name.toLowerCase().includes(filter.search.toLowerCase()) : true))
+        .filter((item) => (filter.isStarred !== undefined ? item.isStarred === filter.isStarred : true))
+        .sort(compareFiles)
+        .map(cloneNode);
+
+      return ok(files);
+    } catch {
+      // Fallback to local data when SDK is unavailable.
+    }
+
     const files = loadFiles()
       .filter((item) => item.parentId === parentId)
       .filter((item) => (filter.type ? item.type === filter.type : true))
@@ -355,6 +513,26 @@ export const FileService = {
   async getBreadcrumbs(folderId: string | null): Promise<BreadcrumbItem[]> {
     if (!folderId) {
       return [];
+    }
+
+    try {
+      const breadcrumbs: BreadcrumbItem[] = [];
+      let currentId: string | null = folderId;
+      let guard = 0;
+      while (currentId && guard < 32) {
+        const response = await getAppSdkClientWithSession().drive.getItemDetail(currentId);
+        const detail = unwrapResponseData<Record<string, unknown>>(response, "drive.getItemDetail");
+        const current = mapRemoteNodeToFileNode(detail, { id: currentId, name: "Folder", type: "folder" });
+        if (!current) break;
+        breadcrumbs.unshift({ id: current.id, name: current.name });
+        currentId = current.parentId || null;
+        guard += 1;
+      }
+      if (breadcrumbs.length > 0) {
+        return breadcrumbs;
+      }
+    } catch {
+      // Fallback to local data when SDK is unavailable.
     }
 
     const files = loadFiles();
@@ -378,6 +556,24 @@ export const FileService = {
     const normalizedName = name.trim();
     if (!normalizedName) {
       return fail("Folder name is required.");
+    }
+
+    try {
+      const response = await getAppSdkClientWithSession().drive.createFolder({
+        name: normalizedName,
+        parentId: parentId || undefined,
+      } as any);
+      const created = unwrapResponseData<Record<string, unknown>>(response, "drive.createFolder");
+      const node = mapRemoteNodeToFileNode(created, {
+        parentId,
+        name: normalizedName,
+        type: "folder",
+      });
+      if (node) {
+        return ok(node);
+      }
+    } catch {
+      // Fallback to local data when SDK is unavailable.
     }
 
     const files = loadFiles();
@@ -406,6 +602,28 @@ export const FileService = {
       return fail("File name is required.");
     }
 
+    try {
+      const response = await getAppSdkClientWithSession().filesystem.createFile({
+        name: normalizedName,
+        parentId: parentId || undefined,
+        mimeType: guessMimeType(file.type),
+        assetType: toAssetType(file.type),
+      } as any);
+      const created = unwrapResponseData<Record<string, unknown>>(response, "fileSystem.createFile");
+      const node = mapRemoteNodeToFileNode(created, {
+        parentId,
+        name: normalizedName,
+        type: normalizeFileType(file.type),
+        size: Math.max(0, Number(file.size || 0)),
+        url: file.url,
+      });
+      if (node) {
+        return ok(node);
+      }
+    } catch {
+      // Fallback to local data when SDK is unavailable.
+    }
+
     const now = Date.now();
     const node: FileNode = {
       id: buildFileId("file"),
@@ -425,15 +643,22 @@ export const FileService = {
   },
 
   async renameFile(id: string, newName: string): Promise<ServiceResponse<void>> {
+    const normalizedName = newName.trim();
+    if (!normalizedName) {
+      return fail("File name cannot be empty.");
+    }
+
+    try {
+      await getAppSdkClientWithSession().drive.renameItem(id, { name: normalizedName } as any);
+      return ok(undefined);
+    } catch {
+      // Fallback to local data when SDK is unavailable.
+    }
+
     const files = loadFiles();
     const target = files.find((item) => item.id === id);
     if (!target) {
       return fail("File not found.");
-    }
-
-    const normalizedName = newName.trim();
-    if (!normalizedName) {
-      return fail("File name cannot be empty.");
     }
 
     target.name = normalizedName;
@@ -446,6 +671,15 @@ export const FileService = {
     const idSet = new Set(ids);
     if (idSet.size === 0) {
       return ok(undefined);
+    }
+
+    try {
+      await getAppSdkClientWithSession().drive.batchDeleteItems({
+        itemIds: Array.from(idSet),
+      } as any);
+      return ok(undefined);
+    } catch {
+      // Fallback to local data when SDK is unavailable.
     }
 
     const files = loadFiles();
@@ -471,6 +705,19 @@ export const FileService = {
     const idSet = new Set(ids);
     if (idSet.size === 0) {
       return ok(undefined);
+    }
+
+    try {
+      await Promise.all(
+        Array.from(idSet).map((id) =>
+          getAppSdkClientWithSession().drive.moveItem(id, {
+            targetFolderId: targetParentId || undefined,
+          } as any),
+        ),
+      );
+      return ok(undefined);
+    } catch {
+      // Fallback to local data when SDK is unavailable.
     }
 
     for (const item of files) {
@@ -499,6 +746,20 @@ export const FileService = {
   },
 
   async toggleStar(id: string): Promise<ServiceResponse<void>> {
+    try {
+      const detailResponse = await getAppSdkClientWithSession().drive.getItemDetail(id);
+      const detail = unwrapResponseData<Record<string, unknown>>(detailResponse, "drive.getItemDetail");
+      const favorited = detail.favorited === true;
+      if (favorited) {
+        await getAppSdkClientWithSession().drive.unfavoriteItem(id);
+      } else {
+        await getAppSdkClientWithSession().drive.favoriteItem(id);
+      }
+      return ok(undefined);
+    } catch {
+      // Fallback to local data when SDK is unavailable.
+    }
+
     const files = loadFiles();
     const target = files.find((item) => item.id === id);
     if (!target) {
@@ -512,6 +773,34 @@ export const FileService = {
   },
 
   async getStorageStats(): Promise<ServiceResponse<StorageStats>> {
+    try {
+      const response = await getAppSdkClientWithSession().filesystem.getPrimaryDisk();
+      const disk = unwrapResponseData<Record<string, unknown>>(response, "fileSystem.getPrimaryDisk");
+      const total = toNumber(disk.totalSize, TOTAL_STORAGE_BYTES);
+      const used = toNumber(disk.usedSize, 0);
+      const byType: Record<FileType, number> = {
+        folder: 0,
+        image: 0,
+        video: 0,
+        audio: 0,
+        doc: 0,
+        pdf: 0,
+        xls: 0,
+        ppt: 0,
+        zip: 0,
+        code: 0,
+        unknown: 0,
+      };
+      return ok({
+        total,
+        used,
+        available: Math.max(total - used, 0),
+        byType,
+      });
+    } catch {
+      // Fallback to local data when SDK is unavailable.
+    }
+
     const files = loadFiles();
     const byType: Record<FileType, number> = {
       folder: 0,

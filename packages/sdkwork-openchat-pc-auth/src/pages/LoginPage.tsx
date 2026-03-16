@@ -196,6 +196,7 @@ export function LoginPage({ auth, onSwitchToRegister, onSwitchToForgotPassword }
                 <span className="ml-2 text-sm text-[var(--text-secondary)]">记住我</span>
               </label>
               <button
+                type="button"
                 onClick={onSwitchToForgotPassword}
                 className="text-sm text-[var(--ai-primary)] hover:underline focus:outline-none"
               >

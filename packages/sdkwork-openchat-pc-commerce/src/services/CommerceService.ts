@@ -1,4 +1,4 @@
-﻿import { apiClient } from "@sdkwork/openchat-pc-kernel";
+﻿import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
 import type { Product, ProductCategory } from "../types";
 
 function responseData<T>(response: unknown): T {
@@ -22,10 +22,8 @@ export interface ProductListResponse {
 }
 
 class CommerceServiceImpl {
-  private readonly baseUrl = "/commerce";
-
   async getCategories(): Promise<ProductCategory[]> {
-    const response = await apiClient.get(`${this.baseUrl}/categories`);
+    const response = await getAppSdkClientWithSession().category.listCategories();
     return responseData<ProductCategory[]>(response);
   }
 
@@ -38,35 +36,30 @@ class CommerceServiceImpl {
     if (params.search) queryParams.search = params.search;
     if (params.sort) queryParams.sort = params.sort;
 
-    const response = await apiClient.get(`${this.baseUrl}/products`, {
-      params: queryParams,
-    });
+    const response = await getAppSdkClientWithSession().product.getProducts(queryParams);
     return responseData<ProductListResponse>(response);
   }
 
   async getProductDetail(productId: string): Promise<Product> {
-    const response = await apiClient.get(`${this.baseUrl}/products/${productId}`);
+    const response = await getAppSdkClientWithSession().product.getProductDetail(productId);
     return responseData<Product>(response);
   }
 
   async getRecommendedProducts(productId: string, limit: number = 8): Promise<Product[]> {
-    const response = await apiClient.get(`${this.baseUrl}/products/${productId}/recommended`, {
-      params: { limit },
+    const response = await getAppSdkClientWithSession().product.searchProducts({
+      relatedProductId: productId,
+      pageSize: limit,
     });
     return responseData<Product[]>(response);
   }
 
   async getHotProducts(limit: number = 10): Promise<Product[]> {
-    const response = await apiClient.get(`${this.baseUrl}/products/hot`, {
-      params: { limit },
-    });
+    const response = await getAppSdkClientWithSession().product.getHotProducts({ limit });
     return responseData<Product[]>(response);
   }
 
   async getNewArrivals(limit: number = 10): Promise<Product[]> {
-    const response = await apiClient.get(`${this.baseUrl}/products/new`, {
-      params: { limit },
-    });
+    const response = await getAppSdkClientWithSession().product.getLatestProducts({ limit });
     return responseData<Product[]>(response);
   }
 }

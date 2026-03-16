@@ -1,5 +1,4 @@
 import {
-  IS_DEV,
   contactsApi,
   type AddFriendParams,
   type ContactGroup,
@@ -20,8 +19,6 @@ export type {
   FriendStats,
 };
 
-const FRIENDS_STORAGE_KEY = "openchat.contacts.friends";
-const REQUESTS_STORAGE_KEY = "openchat.contacts.requests";
 const GROUPS_STORAGE_KEY = "openchat.contacts.groups";
 const GROUP_RUNTIME_STORAGE_KEY = "openchat.contacts.group-runtime";
 
@@ -52,68 +49,6 @@ export interface ContactGroupRuntimeState {
 
 export type ContactGroupRuntimeMap = Record<string, ContactGroupRuntimeState>;
 
-const seedFriends: Friend[] = [
-  {
-    id: "friend-alex",
-    name: "Alex",
-    nickname: "Alex",
-    avatar: "A",
-    status: "online",
-    isOnline: true,
-    remark: "Product manager",
-    signature: "Stay focused, ship often.",
-    region: "Beijing",
-    initial: "A",
-  },
-  {
-    id: "friend-bella",
-    name: "Bella",
-    nickname: "Bella",
-    avatar: "B",
-    status: "offline",
-    isOnline: false,
-    remark: "UI designer",
-    signature: "Design is communication.",
-    region: "Shanghai",
-    initial: "B",
-  },
-  {
-    id: "friend-chen",
-    name: "Chen",
-    nickname: "Chen",
-    avatar: "C",
-    status: "busy",
-    isOnline: true,
-    remark: "Backend engineer",
-    signature: "Reliability first.",
-    region: "Shenzhen",
-    initial: "C",
-  },
-];
-
-const seedRequests: FriendRequest[] = [
-  {
-    id: "request-mia",
-    fromId: "mia",
-    fromName: "Mia",
-    fromAvatar: "M",
-    toId: "current-user",
-    status: "pending",
-    message: "Let's connect for product sync.",
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "request-noah",
-    fromId: "noah",
-    fromName: "Noah",
-    fromAvatar: "N",
-    toId: "current-user",
-    status: "pending",
-    message: "We are in the same project group.",
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
 const seedGroups: ContactGroup[] = [
   {
     id: "group-product",
@@ -127,8 +62,6 @@ const seedGroups: ContactGroup[] = [
   },
 ];
 
-let fallbackFriends: Friend[] = readArrayFromStorage<Friend>(FRIENDS_STORAGE_KEY, seedFriends);
-let fallbackRequests: FriendRequest[] = readArrayFromStorage<FriendRequest>(REQUESTS_STORAGE_KEY, seedRequests);
 let fallbackGroups: ContactGroup[] = readArrayFromStorage<ContactGroup>(GROUPS_STORAGE_KEY, seedGroups);
 let fallbackGroupRuntime: ContactGroupRuntimeMap = readRecordFromStorage<ContactGroupRuntimeMap>(
   GROUP_RUNTIME_STORAGE_KEY,
@@ -176,8 +109,6 @@ function persistFallback(): void {
   if (typeof localStorage === "undefined") {
     return;
   }
-  localStorage.setItem(FRIENDS_STORAGE_KEY, JSON.stringify(fallbackFriends));
-  localStorage.setItem(REQUESTS_STORAGE_KEY, JSON.stringify(fallbackRequests));
   localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(fallbackGroups));
   localStorage.setItem(GROUP_RUNTIME_STORAGE_KEY, JSON.stringify(fallbackGroupRuntime));
 }
@@ -247,14 +178,6 @@ function getCurrentUserId(): string {
   return localStorage.getItem("uid") || "current-user";
 }
 
-function getDisplayNameForUser(userId: string): string {
-  const friend = fallbackFriends.find((item) => item.id === userId);
-  if (!friend) {
-    return userId;
-  }
-  return friend.remark || friend.nickname || friend.name || friend.username || userId;
-}
-
 function ensureGroupRuntime(groupId: string): ContactGroupRuntimeState {
   const current = fallbackGroupRuntime[groupId];
   const group = fallbackGroups.find((item) => item.id === groupId);
@@ -302,342 +225,142 @@ function removeGroupRuntime(groupId: string): void {
   }
 }
 
-async function invokeContactsApiMethod<T>(
-  methodName: string,
-  args: unknown[],
-  fallbackTask: () => T | Promise<T>,
-  parseResponse?: (payload: unknown) => T,
-): Promise<T> {
-  const runtimeApi = contactsApi as unknown as Record<string, (...params: unknown[]) => Promise<unknown>>;
-  const method = runtimeApi[methodName];
-  if (typeof method !== "function") {
-    return fallbackTask();
-  }
-
-  try {
-    const response = await method(...args);
-    if (parseResponse) {
-      return parseResponse(response);
-    }
-    return response as T;
-  } catch (error) {
-    if (IS_DEV) {
-      return fallbackTask();
-    }
-    throw error;
-  }
-}
-
-async function withFallback<T>(apiTask: () => Promise<T>, fallbackTask: () => T | Promise<T>): Promise<T> {
-  try {
-    return await apiTask();
-  } catch (error) {
-    if (IS_DEV) {
-      return fallbackTask();
-    }
-    throw error;
-  }
-}
-
 export async function searchContacts(params: SearchContactsParams): Promise<Friend[]> {
-  return withFallback(
-    async () => {
-      const response = await contactsApi.searchContacts(params);
-      const list = ensureArray<Partial<Friend>>(extractData<unknown[]>(response, []))
-        .map((item) => normalizeFriend(item));
-      return list;
-    },
-    () => {
-      const keyword = params.keyword?.trim().toLowerCase() || "";
-      return fallbackFriends
-        .filter((item) => (params.isOnline !== undefined ? item.isOnline === params.isOnline : true))
-        .filter((item) => (params.region ? item.region === params.region : true))
-        .filter((item) => {
-          if (!keyword) {
-            return true;
-          }
-          const source = `${item.name || ""} ${item.nickname || ""} ${item.remark || ""} ${item.signature || ""}`.toLowerCase();
-          return source.includes(keyword);
-        })
-        .map((item) => ({ ...item }));
-    },
-  );
+  const response = await contactsApi.searchContacts(params);
+  return ensureArray<Partial<Friend>>(extractData<unknown[]>(response, []))
+    .map((item) => normalizeFriend(item));
 }
 
 export async function getFriends(): Promise<Friend[]> {
-  return withFallback(
-    async () => {
-      const response = await contactsApi.getFriends();
-      const list = ensureArray<Partial<Friend>>(extractData<unknown[]>(response, []))
-        .map((item) => normalizeFriend(item));
-      return list;
-    },
-    () => fallbackFriends.map((item) => ({ ...item })),
-  );
+  const response = await contactsApi.getFriends();
+  return ensureArray<Partial<Friend>>(extractData<unknown[]>(response, []))
+    .map((item) => normalizeFriend(item));
 }
 
 export async function getFriendDetail(friendId: string): Promise<Friend | null> {
-  return withFallback(
-    async () => {
-      const response = await contactsApi.getFriendDetail(friendId);
-      if (!response) {
-        return null;
-      }
-      const data = extractData<unknown>(response, response);
-      if (!data) {
-        return null;
-      }
-      return normalizeFriend(data as Partial<Friend>);
-    },
-    () => {
-      const found = fallbackFriends.find((item) => item.id === friendId);
-      return found ? { ...found } : null;
-    },
-  );
+  const response = await contactsApi.getFriendDetail(friendId);
+  if (!response) {
+    return null;
+  }
+  const data = extractData<unknown>(response, response);
+  if (!data) {
+    return null;
+  }
+  return normalizeFriend(data as Partial<Friend>);
 }
 
 export async function addFriend(params: AddFriendParams): Promise<{ success: boolean; error?: string }> {
-  return withFallback(
-    async () => {
-      const response = await contactsApi.addFriend(params);
-      const payload = extractData<{ success?: boolean; error?: string }>(response, response);
-      return payload.success === false
-        ? { success: false, error: payload.error || "Failed to send request." }
-        : { success: true };
-    },
-    () => {
-      if (!params.userId) {
-        return { success: false, error: "User id is required." };
-      }
-
-      if (fallbackFriends.some((item) => item.id === params.userId)) {
-        return { success: false, error: "Already in your contacts." };
-      }
-
-      fallbackRequests = [
-        normalizeRequest({
-          fromId: params.userId,
-          fromName: params.userId,
-          fromAvatar: params.userId.slice(0, 1).toUpperCase(),
-          toId: "current-user",
-          status: "pending",
-          message: params.message || "Add me as a friend.",
-        }),
-        ...fallbackRequests,
-      ];
-      persistFallback();
-      return { success: true };
-    },
-  );
+  const response = await contactsApi.addFriend(params);
+  const payload = extractData<{ success?: boolean; error?: string }>(response, response);
+  return payload.success === false
+    ? { success: false, error: payload.error || "Failed to send request." }
+    : { success: true };
 }
 
 export async function deleteFriend(friendId: string): Promise<{ success: boolean; error?: string }> {
-  return withFallback(
-    async () => {
-      const response = await contactsApi.deleteFriend(friendId);
-      const payload = extractData<{ success?: boolean; error?: string }>(response, response);
-      return payload.success === false
-        ? { success: false, error: payload.error || "Failed to delete friend." }
-        : { success: true };
-    },
-    () => {
-      const before = fallbackFriends.length;
-      fallbackFriends = fallbackFriends.filter((item) => item.id !== friendId);
-      persistFallback();
-      return fallbackFriends.length < before
-        ? { success: true }
-        : { success: false, error: "Friend not found." };
-    },
-  );
+  const response = await contactsApi.deleteFriend(friendId);
+  const payload = extractData<{ success?: boolean; error?: string }>(response, response);
+  return payload.success === false
+    ? { success: false, error: payload.error || "Failed to delete friend." }
+    : { success: true };
 }
 
 export async function getFriendRequests(): Promise<FriendRequest[]> {
-  return withFallback(
-    async () => {
-      const response = await contactsApi.getFriendRequests();
-      const list = ensureArray<Partial<FriendRequest>>(extractData<unknown[]>(response, []))
-        .map((item) => normalizeRequest(item))
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      return list;
-    },
-    () =>
-      fallbackRequests
-        .map((item) => ({ ...item }))
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-  );
+  const response = await contactsApi.getFriendRequests();
+  return ensureArray<Partial<FriendRequest>>(extractData<unknown[]>(response, []))
+    .map((item) => normalizeRequest(item))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function processFriendRequest(
   params: ProcessFriendRequestParams,
 ): Promise<{ success: boolean; error?: string }> {
-  return withFallback(
-    async () => {
-      const response = await contactsApi.processFriendRequest(params);
-      const payload = extractData<{ success?: boolean; error?: string }>(response, response);
-      return payload.success === false
-        ? { success: false, error: payload.error || "Failed to process request." }
-        : { success: true };
-    },
-    () => {
-      const request = fallbackRequests.find((item) => item.id === params.requestId);
-      if (!request) {
-        return { success: false, error: "Request not found." };
-      }
-
-      fallbackRequests = fallbackRequests.map((item) =>
-        item.id === params.requestId
-          ? {
-              ...item,
-              status: params.action === "accept" ? "accepted" : "rejected",
-            }
-          : item,
-      );
-
-      if (params.action === "accept" && !fallbackFriends.some((item) => item.id === request.fromId)) {
-        fallbackFriends = [
-          normalizeFriend({
-            id: request.fromId,
-            name: request.fromName,
-            nickname: request.fromName,
-            avatar: request.fromAvatar || request.fromName.slice(0, 1).toUpperCase(),
-            status: "offline",
-            isOnline: false,
-          }),
-          ...fallbackFriends,
-        ];
-      }
-
-      persistFallback();
-      return { success: true };
-    },
-  );
+  const response = await contactsApi.processFriendRequest(params);
+  const payload = extractData<{ success?: boolean; error?: string }>(response, response);
+  return payload.success === false
+    ? { success: false, error: payload.error || "Failed to process request." }
+    : { success: true };
 }
 
 export async function getContactGroups(): Promise<ContactGroup[]> {
-  return withFallback(
-    async () => {
-      const response = await contactsApi.getContactGroups();
-      const list = ensureArray<Partial<ContactGroup>>(extractData<unknown[]>(response, []))
-        .map((item) => normalizeGroup(item));
-      return list;
-    },
-    () => fallbackGroups.map((item) => ({ ...item })),
-  );
+  const response = await contactsApi.getContactGroups();
+  const list = ensureArray<Partial<ContactGroup>>(extractData<unknown[]>(response, []))
+    .map((item) => normalizeGroup(item));
+  fallbackGroups = list.map((item) => ({ ...item }));
+  persistFallback();
+  return list;
 }
 
 export async function createContactGroup(name: string): Promise<ContactGroup> {
-  return withFallback(
-    async () => {
-      const response = await contactsApi.createContactGroup(name);
-      const group = normalizeGroup(extractData<Partial<ContactGroup>>(response, response));
-      ensureGroupRuntime(group.id);
-      persistFallback();
-      return group;
-    },
-    () => {
-      const currentUserId = getCurrentUserId();
-      const group = normalizeGroup({
-        id: `group-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-        name: name || "Untitled Group",
-        memberIds: [currentUserId],
-      });
-      fallbackGroups = [...fallbackGroups, group];
-      ensureGroupRuntime(group.id);
-      persistFallback();
-      return group;
-    },
-  );
+  const response = await contactsApi.createContactGroup(name);
+  const group = normalizeGroup(extractData<Partial<ContactGroup>>(response, response));
+  fallbackGroups = fallbackGroups.some((item) => item.id === group.id)
+    ? fallbackGroups.map((item) => (item.id === group.id ? group : item))
+    : [...fallbackGroups, group];
+  ensureGroupRuntime(group.id);
+  persistFallback();
+  return group;
 }
 
 export async function updateContactGroup(
   groupId: string,
   updates: { name?: string; memberIds?: string[] },
 ): Promise<ContactGroup> {
-  return withFallback(
-    async () => {
-      const response = await contactsApi.updateContactGroup(groupId, updates);
-      const group = normalizeGroup(extractData<Partial<ContactGroup>>(response, response));
-      ensureGroupRuntime(group.id);
-      persistFallback();
-      return group;
-    },
-    () => {
-      const current = fallbackGroups.find((item) => item.id === groupId) || normalizeGroup({ id: groupId });
-      const next = normalizeGroup({
-        ...current,
-        ...updates,
-      });
-      fallbackGroups = fallbackGroups.map((item) => (item.id === groupId ? next : item));
-      ensureGroupRuntime(next.id);
-      persistFallback();
-      return next;
-    },
-  );
+  const response = await contactsApi.updateContactGroup(groupId, updates);
+  const group = normalizeGroup(extractData<Partial<ContactGroup>>(response, response));
+  fallbackGroups = fallbackGroups.map((item) => (item.id === groupId ? group : item));
+  if (!fallbackGroups.some((item) => item.id === group.id)) {
+    fallbackGroups = [...fallbackGroups, group];
+  }
+  ensureGroupRuntime(group.id);
+  persistFallback();
+  return group;
 }
 
 export async function deleteContactGroup(groupId: string): Promise<{ success: boolean }> {
-  return withFallback(
-    async () => {
-      const response = await contactsApi.deleteContactGroup(groupId);
-      const payload = extractData<{ success?: boolean }>(response, response);
-      return { success: payload.success !== false };
-    },
-    () => {
-      const before = fallbackGroups.length;
-      fallbackGroups = fallbackGroups.filter((item) => item.id !== groupId);
-      removeGroupRuntime(groupId);
-      persistFallback();
-      return { success: fallbackGroups.length < before };
-    },
-  );
+  const response = await contactsApi.deleteContactGroup(groupId);
+  const payload = extractData<{ success?: boolean }>(response, response);
+  const success = payload.success !== false;
+  if (success) {
+    fallbackGroups = fallbackGroups.filter((item) => item.id !== groupId);
+    removeGroupRuntime(groupId);
+    persistFallback();
+  }
+  return { success };
 }
 
 export async function getContactGroupRuntimeState(groupId: string): Promise<ContactGroupRuntimeState> {
-  return invokeContactsApiMethod<ContactGroupRuntimeState>(
-    "getContactGroupRuntimeState",
-    [groupId],
-    () => {
-      const runtime = ensureGroupRuntime(groupId);
-      persistFallback();
-      return {
-        ...runtime,
-        notices: runtime.notices.map((item) => ({ ...item })),
-        memberStates: runtime.memberStates.map((item) => ({ ...item })),
-      };
-    },
-    (payload) => {
-      const data = extractData<Partial<ContactGroupRuntimeState>>(payload, payload as Partial<ContactGroupRuntimeState>);
-      const runtime = ensureGroupRuntime(groupId);
-      const merged: ContactGroupRuntimeState = {
-        groupId,
-        ownerId: data.ownerId || runtime.ownerId,
-        notices: Array.isArray(data.notices)
-          ? data.notices.map((item) => ({
-              id: item.id || `notice-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-              groupId,
-              content: item.content || "",
-              publisherId: item.publisherId || "current-user",
-              publisherName: item.publisherName || "Current User",
-              publishTime: item.publishTime || new Date().toISOString(),
-              isPinned: Boolean(item.isPinned),
-            }))
-          : runtime.notices,
-        memberStates: Array.isArray(data.memberStates)
-          ? data.memberStates.map((item) => ({
-              memberId: item.memberId || "",
-              role:
-                item.role === "owner" || item.role === "admin" || item.role === "member"
-                  ? item.role
-                  : "member",
-              muteEndTime: item.muteEndTime,
-            }))
-          : runtime.memberStates,
-      };
-      upsertGroupRuntime(merged);
-      persistFallback();
-      return merged;
-    },
-  );
+  const payload = await contactsApi.getContactGroupRuntimeState(groupId);
+  const data = extractData<Partial<ContactGroupRuntimeState>>(payload, payload as Partial<ContactGroupRuntimeState>);
+  const runtime = ensureGroupRuntime(groupId);
+  const merged: ContactGroupRuntimeState = {
+    groupId,
+    ownerId: data.ownerId || runtime.ownerId,
+    notices: Array.isArray(data.notices)
+      ? data.notices.map((item) => ({
+          id: item.id || `notice-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+          groupId,
+          content: item.content || "",
+          publisherId: item.publisherId || "current-user",
+          publisherName: item.publisherName || "Current User",
+          publishTime: item.publishTime || new Date().toISOString(),
+          isPinned: Boolean(item.isPinned),
+        }))
+      : runtime.notices,
+    memberStates: Array.isArray(data.memberStates)
+      ? data.memberStates.map((item) => ({
+          memberId: item.memberId || "",
+          role:
+            item.role === "owner" || item.role === "admin" || item.role === "member"
+              ? item.role
+              : "member",
+          muteEndTime: item.muteEndTime,
+        }))
+      : runtime.memberStates,
+  };
+  upsertGroupRuntime(merged);
+  persistFallback();
+  return merged;
 }
 
 export async function setContactGroupMemberRole(
@@ -652,29 +375,9 @@ export async function setContactGroupMemberRole(
     return { success: false, error: "Member id is required." };
   }
 
-  return invokeContactsApiMethod<{ success: boolean; error?: string }>(
-    "setContactGroupMemberRole",
-    [groupId, memberId, role],
-    () => {
-      const runtime = ensureGroupRuntime(groupId);
-      const existing = runtime.memberStates.find((item) => item.memberId === memberId);
-      if (existing) {
-        existing.role = role;
-      } else {
-        runtime.memberStates.push({ memberId, role });
-      }
-      if (role === "owner") {
-        runtime.ownerId = memberId;
-      }
-      upsertGroupRuntime(runtime);
-      persistFallback();
-      return { success: true };
-    },
-    (payload) => {
-      const data = extractData<{ success?: boolean; error?: string }>(payload, payload as { success?: boolean; error?: string });
-      return data.success === false ? { success: false, error: data.error || "Failed to update member role." } : { success: true };
-    },
-  );
+  const payload = await contactsApi.setContactGroupMemberRole(groupId, memberId, role);
+  const data = extractData<{ success?: boolean; error?: string }>(payload, payload as { success?: boolean; error?: string });
+  return data.success === false ? { success: false, error: data.error || "Failed to update member role." } : { success: true };
 }
 
 export async function muteContactGroupMember(
@@ -692,28 +395,9 @@ export async function muteContactGroupMember(
     return { success: false, error: "Duration must be non-negative." };
   }
 
-  return invokeContactsApiMethod<{ success: boolean; error?: string }>(
-    "muteContactGroupMember",
-    [groupId, memberId, durationMinutes],
-    () => {
-      const runtime = ensureGroupRuntime(groupId);
-      const existing = runtime.memberStates.find((item) => item.memberId === memberId);
-      const muteEndTime =
-        durationMinutes === 0 ? undefined : new Date(Date.now() + durationMinutes * 60 * 1000).toISOString();
-      if (existing) {
-        existing.muteEndTime = muteEndTime;
-      } else {
-        runtime.memberStates.push({ memberId, role: "member", muteEndTime });
-      }
-      upsertGroupRuntime(runtime);
-      persistFallback();
-      return { success: true };
-    },
-    (payload) => {
-      const data = extractData<{ success?: boolean; error?: string }>(payload, payload as { success?: boolean; error?: string });
-      return data.success === false ? { success: false, error: data.error || "Failed to mute member." } : { success: true };
-    },
-  );
+  const payload = await contactsApi.muteContactGroupMember(groupId, memberId, durationMinutes);
+  const data = extractData<{ success?: boolean; error?: string }>(payload, payload as { success?: boolean; error?: string });
+  return data.success === false ? { success: false, error: data.error || "Failed to mute member." } : { success: true };
 }
 
 export async function publishContactGroupNotice(
@@ -729,41 +413,15 @@ export async function publishContactGroupNotice(
     return { success: false, error: "Notice content is required." };
   }
 
-  return invokeContactsApiMethod<{ success: boolean; notice?: ContactGroupNotice; error?: string }>(
-    "publishContactGroupNotice",
-    [groupId, normalized, isPinned],
-    () => {
-      const runtime = ensureGroupRuntime(groupId);
-      const publisherId = getCurrentUserId();
-      const notice: ContactGroupNotice = {
-        id: `notice-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-        groupId,
-        content: normalized,
-        publisherId,
-        publisherName: getDisplayNameForUser(publisherId),
-        publishTime: new Date().toISOString(),
-        isPinned,
-      };
-      runtime.notices = [notice, ...runtime.notices].sort((left, right) => {
-        if (left.isPinned && !right.isPinned) return -1;
-        if (!left.isPinned && right.isPinned) return 1;
-        return new Date(right.publishTime).getTime() - new Date(left.publishTime).getTime();
-      });
-      upsertGroupRuntime(runtime);
-      persistFallback();
-      return { success: true, notice };
-    },
-    (payload) => {
-      const data = extractData<{ success?: boolean; notice?: ContactGroupNotice; error?: string }>(
-        payload,
-        payload as { success?: boolean; notice?: ContactGroupNotice; error?: string },
-      );
-      if (data.success === false) {
-        return { success: false, error: data.error || "Failed to publish notice." };
-      }
-      return { success: true, notice: data.notice };
-    },
+  const payload = await contactsApi.publishContactGroupNotice(groupId, normalized, isPinned);
+  const data = extractData<{ success?: boolean; notice?: ContactGroupNotice; error?: string }>(
+    payload,
+    payload as { success?: boolean; notice?: ContactGroupNotice; error?: string },
   );
+  if (data.success === false) {
+    return { success: false, error: data.error || "Failed to publish notice." };
+  }
+  return { success: true, notice: data.notice };
 }
 
 export async function deleteContactGroupNotice(
@@ -777,21 +435,9 @@ export async function deleteContactGroupNotice(
     return { success: false, error: "Notice id is required." };
   }
 
-  return invokeContactsApiMethod<{ success: boolean; error?: string }>(
-    "deleteContactGroupNotice",
-    [groupId, noticeId],
-    () => {
-      const runtime = ensureGroupRuntime(groupId);
-      runtime.notices = runtime.notices.filter((item) => item.id !== noticeId);
-      upsertGroupRuntime(runtime);
-      persistFallback();
-      return { success: true };
-    },
-    (payload) => {
-      const data = extractData<{ success?: boolean; error?: string }>(payload, payload as { success?: boolean; error?: string });
-      return data.success === false ? { success: false, error: data.error || "Failed to delete notice." } : { success: true };
-    },
-  );
+  const payload = await contactsApi.deleteContactGroupNotice(groupId, noticeId);
+  const data = extractData<{ success?: boolean; error?: string }>(payload, payload as { success?: boolean; error?: string });
+  return data.success === false ? { success: false, error: data.error || "Failed to delete notice." } : { success: true };
 }
 
 export async function transferContactGroupOwnership(
@@ -805,39 +451,11 @@ export async function transferContactGroupOwnership(
     return { success: false, error: "New owner id is required." };
   }
 
-  return invokeContactsApiMethod<{ success: boolean; error?: string }>(
-    "transferContactGroupOwnership",
-    [groupId, newOwnerId],
-    () => {
-      const runtime = ensureGroupRuntime(groupId);
-      const previousOwnerId = runtime.ownerId;
-      runtime.ownerId = newOwnerId;
-
-      runtime.memberStates = runtime.memberStates.map((item) => {
-        if (item.memberId === newOwnerId) {
-          return { ...item, role: "owner" };
-        }
-        if (item.memberId === previousOwnerId && item.role === "owner") {
-          return { ...item, role: "admin" };
-        }
-        return item;
-      });
-
-      if (!runtime.memberStates.some((item) => item.memberId === newOwnerId)) {
-        runtime.memberStates.push({ memberId: newOwnerId, role: "owner" });
-      }
-
-      upsertGroupRuntime(runtime);
-      persistFallback();
-      return { success: true };
-    },
-    (payload) => {
-      const data = extractData<{ success?: boolean; error?: string }>(payload, payload as { success?: boolean; error?: string });
-      return data.success === false
-        ? { success: false, error: data.error || "Failed to transfer ownership." }
-        : { success: true };
-    },
-  );
+  const payload = await contactsApi.transferContactGroupOwnership(groupId, newOwnerId);
+  const data = extractData<{ success?: boolean; error?: string }>(payload, payload as { success?: boolean; error?: string });
+  return data.success === false
+    ? { success: false, error: data.error || "Failed to transfer ownership." }
+    : { success: true };
 }
 
 export async function leaveContactGroup(
@@ -851,101 +469,36 @@ export async function leaveContactGroup(
     return { success: false, removedGroup: false, error: "Member id is required." };
   }
 
-  return invokeContactsApiMethod<{ success: boolean; removedGroup: boolean; error?: string }>(
-    "leaveContactGroup",
-    [groupId, memberId],
-    () => {
-      const group = fallbackGroups.find((item) => item.id === groupId);
-      if (!group) {
-        return { success: false, removedGroup: false, error: "Group not found." };
-      }
-
-      const nextMemberIds = (group.memberIds || []).filter((id) => id !== memberId);
-      if (nextMemberIds.length === 0) {
-        fallbackGroups = fallbackGroups.filter((item) => item.id !== groupId);
-        removeGroupRuntime(groupId);
-        persistFallback();
-        return { success: true, removedGroup: true };
-      }
-
-      fallbackGroups = fallbackGroups.map((item) =>
-        item.id === groupId
-          ? {
-              ...item,
-              memberIds: nextMemberIds,
-            }
-          : item,
-      );
-
-      const runtime = ensureGroupRuntime(groupId);
-      runtime.memberStates = runtime.memberStates.filter((item) => item.memberId !== memberId);
-      if (runtime.ownerId === memberId) {
-        runtime.ownerId = nextMemberIds[0];
-        runtime.memberStates = runtime.memberStates.map((item) =>
-          item.memberId === runtime.ownerId ? { ...item, role: "owner" } : item,
-        );
-      }
-      upsertGroupRuntime(runtime);
-      persistFallback();
-      return { success: true, removedGroup: false };
-    },
-    (payload) => {
-      const data = extractData<{ success?: boolean; removedGroup?: boolean; error?: string }>(
-        payload,
-        payload as { success?: boolean; removedGroup?: boolean; error?: string },
-      );
-      if (data.success === false) {
-        return { success: false, removedGroup: false, error: data.error || "Failed to leave group." };
-      }
-      return { success: true, removedGroup: Boolean(data.removedGroup) };
-    },
+  const payload = await contactsApi.leaveContactGroup(groupId, memberId);
+  const data = extractData<{ success?: boolean; removedGroup?: boolean; error?: string }>(
+    payload,
+    payload as { success?: boolean; removedGroup?: boolean; error?: string },
   );
+  if (data.success === false) {
+    return { success: false, removedGroup: false, error: data.error || "Failed to leave group." };
+  }
+  return { success: true, removedGroup: Boolean(data.removedGroup) };
 }
 
 export async function updateFriendRemark(
   friendId: string,
   remark: string,
 ): Promise<{ success: boolean; error?: string }> {
-  return withFallback(
-    async () => {
-      const response = await contactsApi.updateFriendRemark(friendId, remark);
-      const payload = extractData<{ success?: boolean; error?: string }>(response, response);
-      return payload.success === false
-        ? { success: false, error: payload.error || "Failed to update remark." }
-        : { success: true };
-    },
-    () => {
-      const found = fallbackFriends.find((item) => item.id === friendId);
-      if (!found) {
-        return { success: false, error: "Friend not found." };
-      }
-      fallbackFriends = fallbackFriends.map((item) => (item.id === friendId ? { ...item, remark } : item));
-      persistFallback();
-      return { success: true };
-    },
-  );
+  const response = await contactsApi.updateFriendRemark(friendId, remark);
+  const payload = extractData<{ success?: boolean; error?: string }>(response, response);
+  return payload.success === false
+    ? { success: false, error: payload.error || "Failed to update remark." }
+    : { success: true };
 }
 
 export async function getFriendStats(): Promise<FriendStats> {
-  return withFallback(
-    async () => {
-      const response = await contactsApi.getFriendStats();
-      const data = extractData<Partial<FriendStats>>(response, response);
-      return {
-        total: Number.isFinite(Number(data.total)) ? Number(data.total) : 0,
-        online: Number.isFinite(Number(data.online)) ? Number(data.online) : 0,
-        newToday: Number.isFinite(Number(data.newToday)) ? Number(data.newToday) : 0,
-      };
-    },
-    () => ({
-      total: fallbackFriends.length,
-      online: fallbackFriends.filter((item) => item.isOnline).length,
-      newToday: fallbackRequests.filter((item) => {
-        const created = new Date(item.createdAt);
-        return created.toDateString() === new Date().toDateString();
-      }).length,
-    }),
-  );
+  const response = await contactsApi.getFriendStats();
+  const data = extractData<Partial<FriendStats>>(response, response);
+  return {
+    total: Number.isFinite(Number(data.total)) ? Number(data.total) : 0,
+    online: Number.isFinite(Number(data.online)) ? Number(data.online) : 0,
+    newToday: Number.isFinite(Number(data.newToday)) ? Number(data.newToday) : 0,
+  };
 }
 
 export default {

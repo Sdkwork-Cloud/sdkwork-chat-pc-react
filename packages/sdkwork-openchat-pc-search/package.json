@@ -20,6 +20,7 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
+    "@sdkwork/openchat-pc-contracts": "workspace:*",
     "@sdkwork/openchat-pc-kernel": "workspace:*",
     "lucide-react": "^0.575.0",
     "react": "^18.2.0",

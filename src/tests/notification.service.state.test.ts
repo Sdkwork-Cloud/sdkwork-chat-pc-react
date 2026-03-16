@@ -1,8 +1,101 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+type MockNotificationItem = {
+  id: string;
+  type: string;
+  title: string;
+  content: string;
+  isRead: boolean;
+  createTime: number;
+  updateTime: number;
+};
+
+let mockNotifications: MockNotificationItem[] = [];
+
+const notificationApiMock = {
+  listNotifications: vi.fn(async () => ({
+    success: true,
+    data: mockNotifications.map((item) => ({ ...item })),
+  })),
+  getUnreadCount: vi.fn(async () => ({
+    success: true,
+    data: mockNotifications.filter((item) => !item.isRead).length,
+  })),
+  markAllAsRead: vi.fn(async (params?: { type?: string }) => {
+    mockNotifications = mockNotifications.map((item) => {
+      if (params?.type && item.type !== params.type) {
+        return item;
+      }
+      return { ...item, isRead: true, updateTime: Date.now() };
+    });
+    return { success: true };
+  }),
+  markAsRead: vi.fn(async (id: string) => {
+    mockNotifications = mockNotifications.map((item) =>
+      item.id === id ? { ...item, isRead: true, updateTime: Date.now() } : item,
+    );
+    return { success: true };
+  }),
+  markAsUnread: vi.fn(async (id: string) => {
+    mockNotifications = mockNotifications.map((item) =>
+      item.id === id ? { ...item, isRead: false, updateTime: Date.now() } : item,
+    );
+    return { success: true };
+  }),
+  deleteNotification: vi.fn(async (id: string) => {
+    mockNotifications = mockNotifications.filter((item) => item.id !== id);
+    return { success: true };
+  }),
+  clearAllNotifications: vi.fn(async (params?: { type?: string }) => {
+    mockNotifications = mockNotifications.filter((item) => {
+      if (params?.type && item.type !== params.type) {
+        return true;
+      }
+      return !item.isRead;
+    });
+    return { success: true };
+  }),
+  sendTest: vi.fn(async (payload: { title: string; content: string; type?: string }) => {
+    const now = Date.now();
+    const created: MockNotificationItem = {
+      id: `notification-${now}-${Math.random().toString(16).slice(2, 8)}`,
+      type: payload.type || "system",
+      title: payload.title,
+      content: payload.content,
+      isRead: false,
+      createTime: now,
+      updateTime: now,
+    };
+    mockNotifications = [created, ...mockNotifications];
+    return { success: true, data: created };
+  }),
+  getNotificationSettings: vi.fn(async () => ({ success: true, data: {} })),
+  updateNotificationSettings: vi.fn(async () => ({ success: true })),
+};
+
+vi.mock("@sdkwork/openchat-pc-kernel", async () => {
+  const actual = await vi.importActual<typeof import("@sdkwork/openchat-pc-kernel")>(
+    "@sdkwork/openchat-pc-kernel",
+  );
+
+  return {
+    ...actual,
+    getAppSdkClientWithSession: vi.fn(() => ({
+      notification: notificationApiMock,
+    })),
+  };
+});
+
 import { NotificationService } from "../../packages/sdkwork-openchat-pc-notification/src/services/NotificationService";
 
 describe("notification service state", () => {
   beforeEach(() => {
+    mockNotifications = [];
+    Object.values(notificationApiMock).forEach((mockFn) => {
+      if ("mockClear" in mockFn && typeof mockFn.mockClear === "function") {
+        mockFn.mockClear();
+      }
+    });
     NotificationService.resetWorkspaceState();
   });
 

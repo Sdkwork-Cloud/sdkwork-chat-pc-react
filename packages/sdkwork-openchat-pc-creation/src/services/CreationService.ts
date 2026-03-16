@@ -23,6 +23,12 @@ export interface ServicePage<T> {
   totalPages: number;
 }
 
+export interface CreationModelProvider {
+  id: string;
+  name: string;
+  models: string[];
+}
+
 const CREATIONS_STORAGE_KEY = "openchat.creation.items";
 const FAVORITE_CREATIONS_STORAGE_KEY = "openchat.creation.favorites";
 const RECENT_CREATIONS_STORAGE_KEY = "openchat.creation.recent";
@@ -364,6 +370,38 @@ function generateCreationId(): string {
   return `creation_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+const CREATION_MODEL_PROVIDERS: Record<CreationType, CreationModelProvider[]> = {
+  image: [
+    { id: "midjourney", name: "Midjourney", models: ["Midjourney V6"] },
+    { id: "stability", name: "Stability", models: ["Stable Diffusion XL"] },
+    { id: "openai", name: "OpenAI", models: ["DALL-E 3"] },
+    { id: "leonardo", name: "Leonardo", models: ["Leonardo AI"] },
+  ],
+  video: [
+    { id: "openai", name: "OpenAI", models: ["Sora"] },
+    { id: "runway", name: "Runway", models: ["Runway Gen-3"] },
+    { id: "pika", name: "Pika", models: ["Pika 2.1"] },
+    { id: "stability", name: "Stability", models: ["Stable Video"] },
+  ],
+  music: [
+    { id: "udio", name: "Udio", models: ["Udio"] },
+    { id: "suno", name: "Suno", models: ["Suno"] },
+    { id: "aiva", name: "AIVA", models: ["AIVA"] },
+    { id: "mubert", name: "Mubert", models: ["Mubert"] },
+  ],
+  text: [
+    { id: "openai", name: "OpenAI", models: ["GPT-4"] },
+    { id: "anthropic", name: "Anthropic", models: ["Claude 3.5"] },
+    { id: "google", name: "Google", models: ["Gemini Pro"] },
+  ],
+  "3d": [
+    { id: "meshy", name: "Meshy", models: ["Meshy"] },
+    { id: "blender", name: "Blender", models: ["Blender AI"] },
+    { id: "spline", name: "Spline", models: ["Spline AI"] },
+    { id: "luma", name: "Luma", models: ["Luma AI"] },
+  ],
+};
+
 function hasSdkReservation(): boolean {
   const adapter = getSDKAdapter();
   return Boolean(adapter && adapter.isAvailable());
@@ -620,16 +658,16 @@ export const CreationService = {
     ];
   },
 
-  getModels(type: CreationType): string[] {
-    const models: Record<CreationType, string[]> = {
-      image: ["Midjourney V6", "Stable Diffusion XL", "DALL-E 3", "Leonardo AI"],
-      video: ["Sora", "Runway Gen-3", "Pika 2.1", "Stable Video"],
-      music: ["Udio", "Suno", "AIVA", "Mubert"],
-      text: ["GPT-4", "Claude 3.5", "Gemini Pro"],
-      "3d": ["Meshy", "Blender AI", "Spline AI", "Luma AI"],
-    };
+  getModelProviders(type: CreationType): CreationModelProvider[] {
+    const providers = CREATION_MODEL_PROVIDERS[type] || [];
+    return providers.map((provider) => ({
+      ...provider,
+      models: [...provider.models],
+    }));
+  },
 
-    return models[type] ? [...models[type]] : [];
+  getModels(type: CreationType): string[] {
+    return this.getModelProviders(type).flatMap((provider) => provider.models);
   },
 };
 

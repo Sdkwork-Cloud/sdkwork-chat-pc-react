@@ -1,4 +1,4 @@
-﻿import { apiClient } from "@sdkwork/openchat-pc-kernel";
+﻿import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
 import type { CartItem } from "../types";
 
 function responseData<T>(response: unknown): T {
@@ -25,53 +25,63 @@ export interface CartSummary {
 }
 
 class CartServiceImpl {
-  private readonly baseUrl = "/commerce/cart";
+  private toNumberId(value: string | undefined, fieldName: string): number {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      throw new Error(`${fieldName} must be a positive number`);
+    }
+    return parsed;
+  }
 
   async getCart(): Promise<CartSummary> {
-    const response = await apiClient.get(this.baseUrl);
+    const response = await getAppSdkClientWithSession().cart.getMy();
     return responseData<CartSummary>(response);
   }
 
   async getCartItemCount(): Promise<number> {
     try {
-      const response = await apiClient.get(`${this.baseUrl}/count`);
-      const data = responseData<{ count?: number }>(response);
-      return data.count || 0;
+      const response = await getAppSdkClientWithSession().cart.getCartStatistics();
+      const data = responseData<{ count?: number; totalCount?: number }>(response);
+      return Number(data.count ?? data.totalCount ?? 0);
     } catch {
       return 0;
     }
   }
 
   async addToCart(params: AddToCartParams): Promise<CartItem> {
-    const response = await apiClient.post(`${this.baseUrl}/items`, params);
+    const response = await getAppSdkClientWithSession().cart.addItem({
+      productId: this.toNumberId(params.productId, "productId"),
+      skuId: this.toNumberId(params.skuId || params.productId, "skuId"),
+      quantity: params.quantity,
+    });
     return responseData<CartItem>(response);
   }
 
   async updateCartItem(params: UpdateCartItemParams): Promise<CartItem> {
-    const response = await apiClient.put(`${this.baseUrl}/items/${params.itemId}`, {
+    const response = await getAppSdkClientWithSession().cart.updateItemQuantity(params.itemId, {
       quantity: params.quantity,
     });
     return responseData<CartItem>(response);
   }
 
   async removeFromCart(itemId: string): Promise<void> {
-    await apiClient.delete(`${this.baseUrl}/items/${itemId}`);
+    await getAppSdkClientWithSession().cart.removeItem(itemId);
   }
 
   async selectItem(itemId: string, selected: boolean): Promise<void> {
-    await apiClient.put(`${this.baseUrl}/items/${itemId}/select`, { selected });
+    await getAppSdkClientWithSession().cart.updateItemSelection(itemId, { selected });
   }
 
   async selectAll(selected: boolean): Promise<void> {
-    await apiClient.put(`${this.baseUrl}/select-all`, { selected });
+    await getAppSdkClientWithSession().cart.batchUpdateSelection({ selected });
   }
 
   async clearCart(): Promise<void> {
-    await apiClient.delete(this.baseUrl);
+    await getAppSdkClientWithSession().cart.clear();
   }
 
   async clearSelected(): Promise<void> {
-    await apiClient.delete(`${this.baseUrl}/selected`);
+    await getAppSdkClientWithSession().cart.removeItems({ selected: true });
   }
 }
 

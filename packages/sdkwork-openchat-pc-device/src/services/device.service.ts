@@ -1,4 +1,4 @@
-import { apiClient, IS_DEV } from "@sdkwork/openchat-pc-kernel";
+import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
 import {
   DeviceMessageDirection,
   DeviceMessageType,
@@ -39,98 +39,6 @@ type DeviceStats = {
   offline: number;
   byType: { [key in DeviceType]: number };
 };
-
-const DEVICE_ENDPOINT = "/devices";
-
-const FALLBACK_DEVICES: Device[] = [
-  {
-    id: "device-1",
-    deviceId: "xiaozhi-001",
-    type: DeviceType.XIAOZHI,
-    name: "Living Room Assistant",
-    description: "Primary smart voice assistant",
-    status: DeviceStatus.ONLINE,
-    ipAddress: "192.168.1.100",
-    macAddress: "AA:BB:CC:DD:EE:01",
-    metadata: {
-      firmwareVersion: "1.0.0",
-      hardwareVersion: "ESP32",
-      capabilities: ["audio", "stt", "tts", "llm", "mcp"],
-    },
-    userId: "current-user",
-    createdAt: new Date("2024-01-01T08:00:00Z"),
-    updatedAt: new Date("2024-01-01T08:00:00Z"),
-  },
-  {
-    id: "device-2",
-    deviceId: "xiaozhi-002",
-    type: DeviceType.XIAOZHI,
-    name: "Bedroom Assistant",
-    description: "Secondary night-time assistant",
-    status: DeviceStatus.OFFLINE,
-    ipAddress: "192.168.1.101",
-    macAddress: "AA:BB:CC:DD:EE:02",
-    metadata: {
-      firmwareVersion: "1.0.1",
-      hardwareVersion: "ESP32",
-      capabilities: ["audio", "stt", "tts", "llm"],
-    },
-    userId: "current-user",
-    createdAt: new Date("2024-01-02T08:00:00Z"),
-    updatedAt: new Date("2024-01-02T08:00:00Z"),
-  },
-  {
-    id: "device-3",
-    deviceId: "light-001",
-    type: DeviceType.OTHER,
-    name: "Smart Light",
-    description: "Dimmable RGB light",
-    status: DeviceStatus.ONLINE,
-    ipAddress: "192.168.1.102",
-    macAddress: "AA:BB:CC:DD:EE:03",
-    metadata: {
-      firmwareVersion: "2.0.0",
-      hardwareVersion: "ESP8266",
-      capabilities: ["light", "dimmer", "color"],
-    },
-    userId: "current-user",
-    createdAt: new Date("2024-01-03T08:00:00Z"),
-    updatedAt: new Date("2024-01-03T08:00:00Z"),
-  },
-];
-
-const FALLBACK_MESSAGES: DeviceMessage[] = [
-  {
-    id: "message-1",
-    deviceId: "xiaozhi-001",
-    type: DeviceMessageType.STATUS,
-    direction: DeviceMessageDirection.FROM_DEVICE,
-    payload: { status: "online", battery: 85, signal: 4 },
-    topic: "status",
-    processed: true,
-    createdAt: new Date("2024-01-01T10:00:00Z"),
-  },
-  {
-    id: "message-2",
-    deviceId: "xiaozhi-001",
-    type: DeviceMessageType.COMMAND,
-    direction: DeviceMessageDirection.TO_DEVICE,
-    payload: { action: "play", params: { scene: "daily-briefing" } },
-    topic: "control",
-    processed: true,
-    createdAt: new Date("2024-01-01T10:05:00Z"),
-  },
-  {
-    id: "message-3",
-    deviceId: "xiaozhi-002",
-    type: DeviceMessageType.EVENT,
-    direction: DeviceMessageDirection.FROM_DEVICE,
-    payload: { event: "wakeup", keyword: "hello assistant" },
-    topic: "event",
-    processed: true,
-    createdAt: new Date("2024-01-01T11:00:00Z"),
-  },
-];
 
 function unwrapData<T>(response: unknown): T {
   if (response && typeof response === "object" && "data" in response) {
@@ -201,281 +109,94 @@ function toDeviceStats(devices: Device[]): DeviceStats {
 }
 
 class DeviceService {
-  private fallbackDevices: Device[] = FALLBACK_DEVICES.map((item) => ({ ...item }));
-  private fallbackMessages: DeviceMessage[] = FALLBACK_MESSAGES.map((item) => ({ ...item }));
-
-  private async withFallback<T>(
-    apiTask: () => Promise<T>,
-    fallbackTask: () => T | Promise<T>,
-  ): Promise<T> {
-    try {
-      return await apiTask();
-    } catch (error) {
-      if (IS_DEV) {
-        return fallbackTask();
-      }
-      throw error;
-    }
-  }
-
   async registerDevice(payload: DeviceWritePayload): Promise<Device> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(`${DEVICE_ENDPOINT}/register`, payload);
-        return normalizeDevice(unwrapData<DeviceApiPayload>(response));
-      },
-      () => {
-        const now = new Date();
-        const index = this.fallbackDevices.findIndex((item) => item.deviceId === payload.deviceId);
-
-        if (index >= 0) {
-          const updated: Device = {
-            ...this.fallbackDevices[index],
-            ...payload,
-            status: DeviceStatus.ONLINE,
-            updatedAt: now,
-          };
-          this.fallbackDevices[index] = updated;
-          return { ...updated };
-        }
-
-        const created: Device = {
-          id: createId("device"),
-          deviceId: payload.deviceId,
-          type: payload.type,
-          name: payload.name,
-          description: payload.description,
-          status: DeviceStatus.ONLINE,
-          ipAddress: payload.ipAddress,
-          macAddress: payload.macAddress,
-          metadata: payload.metadata || {},
-          userId: payload.userId,
-          createdAt: now,
-          updatedAt: now,
-        };
-
-        this.fallbackDevices.push(created);
-        return { ...created };
-      },
-    );
+    const response = await getAppSdkClientWithSession().notification.registerDevice(payload as any);
+    return normalizeDevice(unwrapData<DeviceApiPayload>(response));
   }
 
   async getDevices(filter?: DeviceFilter): Promise<Device[]> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(DEVICE_ENDPOINT, {
-          params: {
-            type: filter?.type,
-            status: filter?.status,
-            keyword: filter?.keyword,
-          },
-        });
-        const data = unwrapData<unknown>(response);
-        const list = Array.isArray(data)
-          ? data
-          : Array.isArray((data as { items?: unknown[] }).items)
-            ? ((data as { items: unknown[] }).items ?? [])
-            : [];
-        return list.map((item) => normalizeDevice(item as DeviceApiPayload));
-      },
-      () => {
-        const keyword = filter?.keyword?.trim().toLowerCase();
-        return this.fallbackDevices
-          .filter((item) => {
-            if (filter?.type && item.type !== filter.type) {
-              return false;
-            }
-            if (filter?.status && item.status !== filter.status) {
-              return false;
-            }
-            if (keyword) {
-              const haystack = `${item.name} ${item.description || ""} ${item.deviceId}`.toLowerCase();
-              return haystack.includes(keyword);
-            }
-            return true;
-          })
-          .map((item) => ({ ...item }));
-      },
-    );
+    const response = await getAppSdkClientWithSession().notification.listDevices();
+    const data = unwrapData<unknown>(response);
+    const list = Array.isArray(data)
+      ? data
+      : Array.isArray((data as { items?: unknown[] }).items)
+        ? ((data as { items: unknown[] }).items ?? [])
+        : [];
+    return list
+      .map((item) => normalizeDevice(item as DeviceApiPayload))
+      .filter((item) => {
+        if (filter?.type && item.type !== filter.type) {
+          return false;
+        }
+        if (filter?.status && item.status !== filter.status) {
+          return false;
+        }
+        if (filter?.keyword?.trim()) {
+          const keyword = filter.keyword.trim().toLowerCase();
+          const haystack = `${item.name} ${item.description || ""} ${item.deviceId}`.toLowerCase();
+          return haystack.includes(keyword);
+        }
+        return true;
+      });
   }
 
   async getDevice(deviceId: string): Promise<Device | null> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${DEVICE_ENDPOINT}/${deviceId}`);
-        return normalizeDevice(unwrapData<DeviceApiPayload>(response));
-      },
-      () => {
-        const target = this.fallbackDevices.find((item) => item.deviceId === deviceId);
-        return target ? { ...target } : null;
-      },
-    );
+    const devices = await this.getDevices();
+    const target = devices.find((item) => item.deviceId === deviceId);
+    return target ? { ...target } : null;
   }
 
   async updateDeviceStatus(deviceId: string, status: DeviceStatus): Promise<Device | null> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.put<unknown>(`${DEVICE_ENDPOINT}/${deviceId}/status`, {
-          status,
-        });
-        return normalizeDevice(unwrapData<DeviceApiPayload>(response));
-      },
-      () => {
-        const index = this.fallbackDevices.findIndex((item) => item.deviceId === deviceId);
-        if (index < 0) {
-          return null;
-        }
-        this.fallbackDevices[index] = {
-          ...this.fallbackDevices[index],
-          status,
-          updatedAt: new Date(),
-        };
-        return { ...this.fallbackDevices[index] };
-      },
+    const response = await getAppSdkClientWithSession().notification.updateDeviceStatus(
+      deviceId,
+      { status } as any,
     );
+    return normalizeDevice(unwrapData<DeviceApiPayload>(response));
   }
 
   async deleteDevice(deviceId: string): Promise<boolean> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.delete<unknown>(`${DEVICE_ENDPOINT}/${deviceId}`);
-        const data = unwrapData<unknown>(response);
-        if (typeof data === "boolean") {
-          return data;
-        }
-        if (data && typeof data === "object" && "success" in data) {
-          return Boolean((data as { success: unknown }).success);
-        }
-        return true;
-      },
-      () => {
-        const previousLength = this.fallbackDevices.length;
-        this.fallbackDevices = this.fallbackDevices.filter((item) => item.deviceId !== deviceId);
-        this.fallbackMessages = this.fallbackMessages.filter((item) => item.deviceId !== deviceId);
-        return this.fallbackDevices.length < previousLength;
-      },
-    );
+    await getAppSdkClientWithSession().notification.unregisterDevice(deviceId);
+    return true;
   }
 
   async sendMessageToDevice(deviceId: string, message: DeviceMessageWritePayload): Promise<DeviceMessage> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(
-          `${DEVICE_ENDPOINT}/${deviceId}/messages`,
-          message,
-        );
-        return normalizeMessage(unwrapData<DeviceMessageApiPayload>(response));
-      },
-      () => {
-        const target = this.fallbackDevices.find((item) => item.deviceId === deviceId);
-        if (!target) {
-          throw new Error("Device not found");
-        }
-
-        const record: DeviceMessage = {
-          id: createId("message"),
-          deviceId,
-          type: message.type,
-          direction: DeviceMessageDirection.TO_DEVICE,
-          payload: message.payload ?? {},
-          topic: message.topic,
-          processed: false,
-          createdAt: new Date(),
-        };
-
-        this.fallbackMessages.unshift(record);
-
-        setTimeout(() => {
-          const index = this.fallbackMessages.findIndex((item) => item.id === record.id);
-          if (index >= 0) {
-            this.fallbackMessages[index] = {
-              ...this.fallbackMessages[index],
-              processed: true,
-            };
-          }
-        }, 300);
-
-        return { ...record };
-      },
+    const response = await getAppSdkClientWithSession().notification.sendDeviceMessage(
+      deviceId,
+      message as any,
     );
+    return normalizeMessage(unwrapData<DeviceMessageApiPayload>(response));
   }
 
   async getDeviceMessages(deviceId: string, limit: number = 50, before?: Date): Promise<DeviceMessage[]> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${DEVICE_ENDPOINT}/${deviceId}/messages`, {
-          params: {
-            limit,
-            before: before?.toISOString(),
-          },
-        });
-        const data = unwrapData<unknown>(response);
-        const list = Array.isArray(data)
-          ? data
-          : Array.isArray((data as { items?: unknown[] }).items)
-            ? ((data as { items: unknown[] }).items ?? [])
-            : [];
-        return list
-          .map((item) => normalizeMessage(item as DeviceMessageApiPayload))
-          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-          .slice(0, limit);
-      },
-      () => {
-        return this.fallbackMessages
-          .filter((item) => item.deviceId === deviceId)
-          .filter((item) => (before ? item.createdAt.getTime() < before.getTime() : true))
-          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-          .slice(0, limit)
-          .map((item) => ({ ...item }));
-      },
+    const params: Record<string, unknown> = { limit };
+    if (before) {
+      params.before = before.toISOString();
+    }
+    const response = await getAppSdkClientWithSession().notification.listDeviceMessages(
+      deviceId,
+      params as any,
     );
+    const data = unwrapData<unknown>(response);
+    const list = Array.isArray(data)
+      ? data
+      : Array.isArray((data as { items?: unknown[] }).items)
+        ? ((data as { items: unknown[] }).items ?? [])
+        : [];
+    return list.map((item) => normalizeMessage(item as DeviceMessageApiPayload));
   }
 
   async controlDevice(deviceId: string, command: DeviceCommand): Promise<boolean> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.post<unknown>(`${DEVICE_ENDPOINT}/${deviceId}/control`, command);
-        const data = unwrapData<unknown>(response);
-        if (typeof data === "boolean") {
-          return data;
-        }
-        if (data && typeof data === "object" && "success" in data) {
-          return Boolean((data as { success: unknown }).success);
-        }
-        return true;
-      },
-      async () => {
-        await this.sendMessageToDevice(deviceId, {
-          type: DeviceMessageType.COMMAND,
-          payload: command,
-          topic: "control",
-        });
-        return true;
-      },
+    const response = await getAppSdkClientWithSession().notification.controlDevice(
+      deviceId,
+      command as any,
     );
+    const result = unwrapData<unknown>(response);
+    return typeof result === "boolean" ? result : true;
   }
 
   async getDeviceStats(): Promise<DeviceStats> {
-    return this.withFallback(
-      async () => {
-        const response = await apiClient.get<unknown>(`${DEVICE_ENDPOINT}/stats`);
-        const data = unwrapData<unknown>(response);
-        if (data && typeof data === "object") {
-          const stats = data as Partial<DeviceStats>;
-          return {
-            total: Number(stats.total ?? 0),
-            online: Number(stats.online ?? 0),
-            offline: Number(stats.offline ?? 0),
-            byType: {
-              [DeviceType.XIAOZHI]: Number(stats.byType?.[DeviceType.XIAOZHI] ?? 0),
-              [DeviceType.OTHER]: Number(stats.byType?.[DeviceType.OTHER] ?? 0),
-            },
-          };
-        }
-        return toDeviceStats(this.fallbackDevices);
-      },
-      () => toDeviceStats(this.fallbackDevices),
-    );
+    const devices = await this.getDevices();
+    return toDeviceStats(devices);
   }
 }
 

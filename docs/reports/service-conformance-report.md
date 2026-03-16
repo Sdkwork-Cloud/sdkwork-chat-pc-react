@@ -1,15 +1,15 @@
 # Service Conformance Report
 
-Generated at: 2026-03-03T04:21:20.590Z (local)
+Generated at: 2026-03-05T19:26:08.895Z (local)
 
 ## Summary
 
-- Modules in scope: 22
-- Passed: 22
+- Modules in scope: 23
+- Passed: 23
 - Failed: 0
-- Service files: 82
-- Interface declarations: 110
-- ServiceResult API files: 21
+- Service files: 88
+- Interface declarations: 131
+- ServiceResult API files: 22
 - SDK adapter contract violations: 0
 - Deep service export violations: 0
 - Repository export violations: 0
@@ -23,9 +23,9 @@ Generated at: 2026-03-03T04:21:20.590Z (local)
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
 | sdkwork-openchat-pc-agent | Business | Y | Y | Y | Y | Y | N | N | 4 | 3 | 1* | 0 | 0 | 0 | Y | PASS |
 | sdkwork-openchat-pc-appstore | Business | Y | Y | Y | Y | Y | N | N | 3 | 3 | 1* | 0 | 0 | 0 | Y | PASS |
-| sdkwork-openchat-pc-auth | Business | Y | Y | Y | Y | Y | N | N | 3 | 7 | 1* | 0 | 0 | 0 | Y | PASS |
+| sdkwork-openchat-pc-auth | Business | Y | Y | Y | Y | Y | N | N | 3 | 15 | 0 | 0 | 0 | 0 | Y | PASS |
 | sdkwork-openchat-pc-commerce | Business | Y | Y | Y | Y | Y | N | N | 4 | 6 | 1* | 0 | 0 | 0 | Y | PASS |
-| sdkwork-openchat-pc-commons | Infra | Y | Y | N | - | N | N | N | 14 | 43 | 0 | 1 | 0 | 0 | Y | PASS |
+| sdkwork-openchat-pc-commons | Infra | Y | Y | - | - | N | N | N | 14 | 43 | 0 | 1 | 0 | 0 | Y | PASS |
 | sdkwork-openchat-pc-contacts | Business | Y | Y | Y | Y | Y | N | N | 3 | 4 | 1* | 0 | 0 | 0 | Y | PASS |
 | sdkwork-openchat-pc-creation | Business | Y | Y | Y | Y | Y | N | N | 3 | 3 | 1* | 0 | 0 | 0 | Y | PASS |
 | sdkwork-openchat-pc-device | Business | Y | Y | Y | Y | Y | N | N | 3 | 1 | 1* | 0 | 0 | 0 | Y | PASS |
@@ -35,13 +35,14 @@ Generated at: 2026-03-03T04:21:20.590Z (local)
 | sdkwork-openchat-pc-notification | Business | Y | Y | Y | Y | Y | N | N | 3 | 1 | 1* | 0 | 0 | 0 | Y | PASS |
 | sdkwork-openchat-pc-rtc | Business | Y | Y | Y | Y | Y | N | N | 3 | 12 | 1* | 0 | 0 | 0 | Y | PASS |
 | sdkwork-openchat-pc-search | Business | Y | Y | Y | Y | Y | N | N | 3 | 1 | 1* | 0 | 0 | 0 | Y | PASS |
-| sdkwork-openchat-pc-settings | Business | Y | Y | Y | Y | Y | N | N | 3 | 1 | 1* | 0 | 0 | 0 | Y | PASS |
+| sdkwork-openchat-pc-settings | Business | Y | Y | Y | Y | Y | N | N | 8 | 12 | 3* | 0 | 0 | 0 | Y | PASS |
 | sdkwork-openchat-pc-skill | Business | Y | Y | Y | Y | Y | N | N | 3 | 1 | 1* | 0 | 0 | 0 | Y | PASS |
 | sdkwork-openchat-pc-social | Business | Y | Y | Y | Y | Y | N | N | 3 | 1 | 1* | 0 | 0 | 0 | Y | PASS |
 | sdkwork-openchat-pc-terminal | Business | Y | Y | Y | Y | Y | N | N | 3 | 1 | 1* | 0 | 0 | 0 | Y | PASS |
 | sdkwork-openchat-pc-tool | Business | Y | Y | Y | Y | Y | N | N | 3 | 1 | 1* | 0 | 0 | 0 | Y | PASS |
 | sdkwork-openchat-pc-tools | Business | Y | Y | Y | Y | Y | N | N | 3 | 2 | 1* | 0 | 0 | 0 | Y | PASS |
 | sdkwork-openchat-pc-video | Business | Y | Y | Y | Y | Y | N | N | 3 | 1 | 1* | 0 | 0 | 0 | Y | PASS |
+| sdkwork-openchat-pc-vip | Business | Y | Y | - | - | Y | N | N | 1 | 2 | 0 | 0 | 0 | 0 | Y | PASS |
 | sdkwork-openchat-pc-wallet | Business | Y | Y | Y | Y | Y | N | N | 3 | 1 | 1* | 0 | 0 | 0 | Y | PASS |
 
 ## Notes
@@ -51,5 +52,6 @@ Generated at: 2026-03-03T04:21:20.590Z (local)
 - Strict service boundary checks are enforced for business modules.
 - `*` in ServiceResult column marks packages in strict runtime-contract scope.
 - `SDK Contract` checks standardized sdk-adapter registry shape (`SDKAdapterBridge/register/get`).
+- Some packages are exempt from sdk-adapter/ServiceResult runtime-contract checks by architecture policy.
 - `Result Usage` currently applies to priority modules: appstore/auth/im/settings/creation/drive/tools/discover/wallet/notification/social/video/commerce/device/terminal/skill/tool/agent/search.
 - `Deep Svc Export` and `Repo Export` columns highlight index-level boundary leakage risks.
