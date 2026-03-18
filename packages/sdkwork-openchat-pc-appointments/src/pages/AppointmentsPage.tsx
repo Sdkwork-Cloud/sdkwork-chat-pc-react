@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 
 interface AppointmentItem {
   id: string;
@@ -59,10 +60,6 @@ const APPOINTMENTS: AppointmentItem[] = [
   },
 ];
 
-function formatTime(value: string): string {
-  return new Date(value).toLocaleString();
-}
-
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
     return false;
@@ -71,22 +68,33 @@ function isTypingTarget(target: EventTarget | null): boolean {
   return tagName === "input" || tagName === "textarea" || tagName === "select" || target.isContentEditable;
 }
 
-function formatStatus(status: AppointmentItem["status"]): string {
-  if (status === "in-progress") {
-    return "In Progress";
-  }
-  if (status === "done") {
-    return "Done";
-  }
-  return "Scheduled";
-}
-
 export function AppointmentsPage() {
+  const { tr, formatDateTime, formatTime, formatNumber } = useAppTranslation();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | AppointmentItem["status"]>("all");
   const [keyword, setKeyword] = useState("");
   const [selectedId, setSelectedId] = useState<string>(APPOINTMENTS[0]?.id || "");
-  const [actionMessage, setActionMessage] = useState("Tip: Use Ctrl/Cmd+K to focus search.");
+  const [actionMessage, setActionMessage] = useState(tr("Tip: Use Ctrl/Cmd+K to focus search."));
+
+  const getStatusLabel = useCallback(
+    (status: AppointmentItem["status"]): string => {
+      if (status === "in-progress") {
+        return tr("In Progress");
+      }
+      if (status === "done") {
+        return tr("Done");
+      }
+      return tr("Scheduled");
+    },
+    [tr],
+  );
+
+  const getChannelLabel = useCallback(
+    (channel: AppointmentItem["channel"]): string => {
+      return channel === "online" ? tr("Online") : tr("Offline");
+    },
+    [tr],
+  );
 
   const filtered = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
@@ -97,10 +105,10 @@ export function AppointmentsPage() {
       if (!normalizedKeyword) {
         return true;
       }
-      const searchableText = `${item.title} ${item.owner} ${item.location} ${item.notes}`.toLowerCase();
+      const searchableText = `${tr(item.title)} ${tr(item.owner)} ${tr(item.location)} ${tr(item.notes)}`.toLowerCase();
       return searchableText.includes(normalizedKeyword);
     });
-  }, [keyword, statusFilter]);
+  }, [keyword, statusFilter, tr]);
 
   useEffect(() => {
     if (!filtered.some((item) => item.id === selectedId)) {
@@ -126,23 +134,33 @@ export function AppointmentsPage() {
     [filtered],
   );
 
-  function notifyAction(message: string): void {
-    setActionMessage(`${new Date().toLocaleTimeString()} - ${message}`);
-  }
+  const notifyAction = useCallback(
+    (message: string): void => {
+      setActionMessage(
+        tr("{{time}} - {{message}}", {
+          time: formatTime(new Date()),
+          message,
+        }),
+      );
+    },
+    [formatTime, tr],
+  );
 
   async function copyLocation(): Promise<void> {
     if (!selected) {
       return;
     }
+    const locationLabel = tr(selected.location);
     if (typeof navigator === "undefined" || !navigator.clipboard) {
-      notifyAction("Clipboard is not available in current environment.");
+      notifyAction(tr("Clipboard is not available in current environment."));
       return;
     }
+
     try {
-      await navigator.clipboard.writeText(selected.location);
-      notifyAction(`Copied location: ${selected.location}`);
+      await navigator.clipboard.writeText(locationLabel);
+      notifyAction(tr("Copied location: {{location}}", { location: locationLabel }));
     } catch {
-      notifyAction("Failed to copy meeting location.");
+      notifyAction(tr("Failed to copy meeting location."));
     }
   }
 
@@ -182,7 +200,7 @@ export function AppointmentsPage() {
 
       if (event.key === "Enter" && selected) {
         event.preventDefault();
-        notifyAction(`Started desktop call for "${selected.title}".`);
+        notifyAction(tr('Started desktop call for "{{title}}".', { title: tr(selected.title) }));
       }
     }
 
@@ -190,14 +208,14 @@ export function AppointmentsPage() {
     return () => {
       window.removeEventListener("keydown", onWindowKeyDown);
     };
-  }, [filtered, selected, selectedId]);
+  }, [filtered, notifyAction, selected, selectedId, tr]);
 
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <h1 className="text-xl font-semibold text-text-primary">Appointments</h1>
+        <h1 className="text-xl font-semibold text-text-primary">{tr("Appointments")}</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Desktop schedule workspace with timeline control and meeting detail panel.
+          {tr("Desktop schedule workspace with timeline control and meeting detail panel.")}
         </p>
       </header>
 
@@ -207,48 +225,48 @@ export function AppointmentsPage() {
             <div className="border-b border-border p-4">
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-xs uppercase tracking-wide text-text-muted">
-                  Status Filter
+                  {tr("Status Filter")}
                   <select
                     value={statusFilter}
                     onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
                     className="mt-2 h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                   >
-                    <option value="all">All</option>
-                    <option value="scheduled">Scheduled</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="done">Done</option>
+                    <option value="all">{tr("All")}</option>
+                    <option value="scheduled">{tr("Scheduled")}</option>
+                    <option value="in-progress">{tr("In Progress")}</option>
+                    <option value="done">{tr("Done")}</option>
                   </select>
                 </label>
                 <label className="text-xs uppercase tracking-wide text-text-muted">
-                  Search
+                  {tr("Search")}
                   <input
                     ref={searchInputRef}
                     value={keyword}
                     onChange={(event) => setKeyword(event.target.value)}
-                    placeholder="Title / owner / location"
+                    placeholder={tr("Title / owner / location")}
                     className="mt-2 h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                   />
                 </label>
               </div>
-              <p className="mt-2 text-[11px] text-text-muted">Shortcuts: Ctrl/Cmd+K, Arrow Up/Down, Enter</p>
+              <p className="mt-2 text-[11px] text-text-muted">{tr("Shortcuts: Ctrl/Cmd+K, Arrow Up/Down, Enter")}</p>
             </div>
 
             <div className="grid grid-cols-4 gap-2 border-b border-border p-3 text-center">
               <div className="rounded-md border border-border bg-bg-primary px-1 py-2">
-                <p className="text-[11px] text-text-muted">Total</p>
-                <p className="text-sm font-semibold text-text-primary">{summary.total}</p>
+                <p className="text-[11px] text-text-muted">{tr("Total")}</p>
+                <p className="text-sm font-semibold text-text-primary">{formatNumber(summary.total)}</p>
               </div>
               <div className="rounded-md border border-border bg-bg-primary px-1 py-2">
-                <p className="text-[11px] text-text-muted">Scheduled</p>
-                <p className="text-sm font-semibold text-text-primary">{summary.scheduled}</p>
+                <p className="text-[11px] text-text-muted">{tr("Scheduled")}</p>
+                <p className="text-sm font-semibold text-text-primary">{formatNumber(summary.scheduled)}</p>
               </div>
               <div className="rounded-md border border-border bg-bg-primary px-1 py-2">
-                <p className="text-[11px] text-text-muted">Live</p>
-                <p className="text-sm font-semibold text-text-primary">{summary["in-progress"]}</p>
+                <p className="text-[11px] text-text-muted">{tr("Live")}</p>
+                <p className="text-sm font-semibold text-text-primary">{formatNumber(summary["in-progress"])}</p>
               </div>
               <div className="rounded-md border border-border bg-bg-primary px-1 py-2">
-                <p className="text-[11px] text-text-muted">Done</p>
-                <p className="text-sm font-semibold text-text-primary">{summary.done}</p>
+                <p className="text-[11px] text-text-muted">{tr("Done")}</p>
+                <p className="text-sm font-semibold text-text-primary">{formatNumber(summary.done)}</p>
               </div>
             </div>
 
@@ -259,6 +277,7 @@ export function AppointmentsPage() {
                   return (
                     <button
                       key={item.id}
+                      type="button"
                       onClick={() => setSelectedId(item.id)}
                       className={`w-full rounded-lg border px-3 py-2 text-left ${
                         active
@@ -266,15 +285,15 @@ export function AppointmentsPage() {
                           : "border-border bg-bg-primary hover:bg-bg-hover"
                       }`}
                     >
-                      <p className="line-clamp-1 text-sm font-semibold text-text-primary">{item.title}</p>
-                      <p className="mt-1 text-xs text-text-secondary">{item.owner}</p>
+                      <p className="line-clamp-1 text-sm font-semibold text-text-primary">{tr(item.title)}</p>
+                      <p className="mt-1 text-xs text-text-secondary">{tr(item.owner)}</p>
                       <p className="mt-1 text-[11px] text-text-muted">
-                        {formatTime(item.startAt)} - {formatStatus(item.status)}
+                        {formatDateTime(item.startAt)} - {getStatusLabel(item.status)}
                       </p>
                     </button>
                   );
                 })}
-                {filtered.length === 0 ? <p className="text-xs text-text-muted">No appointments.</p> : null}
+                {filtered.length === 0 ? <p className="text-xs text-text-muted">{tr("No appointments.")}</p> : null}
               </div>
             </div>
           </aside>
@@ -283,47 +302,59 @@ export function AppointmentsPage() {
             {selected ? (
               <>
                 <div className="border-b border-border px-5 py-4">
-                  <h2 className="text-lg font-semibold text-text-primary">{selected.title}</h2>
-                  <p className="mt-1 text-sm text-text-secondary">{selected.notes}</p>
+                  <h2 className="text-lg font-semibold text-text-primary">{tr(selected.title)}</h2>
+                  <p className="mt-1 text-sm text-text-secondary">{tr(selected.notes)}</p>
                 </div>
                 <div className="grid flex-1 grid-cols-1 gap-4 p-5 md:grid-cols-2">
                   <div className="rounded-lg border border-border bg-bg-primary p-4">
-                    <h3 className="text-sm font-semibold text-text-primary">Execution</h3>
+                    <h3 className="text-sm font-semibold text-text-primary">{tr("Execution")}</h3>
                     <div className="mt-3 space-y-1 text-sm text-text-secondary">
-                      <p>Owner: {selected.owner}</p>
-                      <p>Channel: {selected.channel}</p>
-                      <p>Status: {selected.status}</p>
-                      <p>Start: {formatTime(selected.startAt)}</p>
-                      <p>Duration: {selected.durationMinutes} min</p>
-                      <p>Location: {selected.location}</p>
+                      <p>{tr("Owner: {{owner}}", { owner: tr(selected.owner) })}</p>
+                      <p>{tr("Channel: {{channel}}", { channel: getChannelLabel(selected.channel) })}</p>
+                      <p>{tr("Status: {{status}}", { status: getStatusLabel(selected.status) })}</p>
+                      <p>{tr("Start: {{start}}", { start: formatDateTime(selected.startAt) })}</p>
+                      <p>{tr("Duration: {{duration}} min", { duration: formatNumber(selected.durationMinutes) })}</p>
+                      <p>{tr("Location: {{location}}", { location: tr(selected.location) })}</p>
                     </div>
                   </div>
                   <div className="rounded-lg border border-border bg-bg-primary p-4">
-                    <h3 className="text-sm font-semibold text-text-primary">Quick Actions</h3>
+                    <h3 className="text-sm font-semibold text-text-primary">{tr("Quick Actions")}</h3>
                     <div className="mt-3 grid gap-2">
                       <button
-                        onClick={() => notifyAction(`Started desktop call for "${selected.title}".`)}
+                        type="button"
+                        onClick={() =>
+                          notifyAction(tr('Started desktop call for "{{title}}".', { title: tr(selected.title) }))
+                        }
                         className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-hover"
                       >
-                        Start Desktop Call (Enter)
+                        {tr("Start Desktop Call (Enter)")}
                       </button>
                       <button
-                        onClick={() => notifyAction(`Opened shared notes for "${selected.title}".`)}
+                        type="button"
+                        onClick={() =>
+                          notifyAction(tr('Opened shared notes for "{{title}}".', { title: tr(selected.title) }))
+                        }
                         className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-hover"
                       >
-                        Open Shared Notes
+                        {tr("Open Shared Notes")}
                       </button>
                       <button
-                        onClick={() => notifyAction(`Created follow-up task for "${selected.title}".`)}
+                        type="button"
+                        onClick={() =>
+                          notifyAction(tr('Created follow-up task for "{{title}}".', { title: tr(selected.title) }))
+                        }
                         className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-hover"
                       >
-                        Add Follow-up Task
+                        {tr("Add Follow-up Task")}
                       </button>
                       <button
-                        onClick={() => void copyLocation()}
+                        type="button"
+                        onClick={() => {
+                          void copyLocation();
+                        }}
                         className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-hover"
                       >
-                        Copy Meeting Location
+                        {tr("Copy Meeting Location")}
                       </button>
                     </div>
                     <p className="mt-3 rounded-md border border-border bg-bg-tertiary px-3 py-2 text-xs text-text-secondary">
@@ -334,7 +365,7 @@ export function AppointmentsPage() {
               </>
             ) : (
               <div className="flex flex-1 items-center justify-center text-sm text-text-muted">
-                Select an appointment to inspect details.
+                {tr("Select an appointment to inspect details.")}
               </div>
             )}
           </section>

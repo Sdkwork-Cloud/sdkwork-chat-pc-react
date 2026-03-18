@@ -4,6 +4,7 @@ import {
   searchContacts,
   type Friend,
 } from "@sdkwork/openchat-pc-contacts";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { Button, Modal, ModalButtonGroup } from "@sdkwork/openchat-pc-ui";
 
 interface AddFriendModalProps {
@@ -12,16 +13,16 @@ interface AddFriendModalProps {
   onSuccess?: () => void;
 }
 
-const DEFAULT_MESSAGE = "Hi, let's connect on OpenChat.";
-
 function getDisplayName(user: Friend): string {
   return user.remark || user.nickname || user.name || user.username || user.id;
 }
 
 export function AddFriendModal({ isOpen, onClose, onSuccess }: AddFriendModalProps) {
+  const { tr } = useAppTranslation();
+  const defaultMessage = tr("Hi, let's connect on OpenChat.");
   const [keyword, setKeyword] = useState("");
   const [selectedUser, setSelectedUser] = useState<Friend | null>(null);
-  const [message, setMessage] = useState(DEFAULT_MESSAGE);
+  const [message, setMessage] = useState(defaultMessage);
   const [searchResults, setSearchResults] = useState<Friend[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -54,7 +55,7 @@ export function AddFriendModal({ isOpen, onClose, onSuccess }: AddFriendModalPro
         }
       } catch (error) {
         if (!cancelled) {
-          setSearchError(error instanceof Error ? error.message : "Failed to search contacts.");
+          setSearchError(error instanceof Error ? error.message : tr("Failed to search contacts."));
           setSearchResults([]);
         }
       } finally {
@@ -73,7 +74,7 @@ export function AddFriendModal({ isOpen, onClose, onSuccess }: AddFriendModalPro
   const handleClose = () => {
     setKeyword("");
     setSelectedUser(null);
-    setMessage(DEFAULT_MESSAGE);
+    setMessage(defaultMessage);
     setSearchResults([]);
     setIsSearching(false);
     setIsSending(false);
@@ -96,14 +97,14 @@ export function AddFriendModal({ isOpen, onClose, onSuccess }: AddFriendModalPro
       });
 
       if (!result.success) {
-        setSubmitError(result.error || "Failed to send friend request.");
+        setSubmitError(result.error || tr("Failed to send friend request."));
         return;
       }
 
       onSuccess?.();
       handleClose();
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Failed to send friend request.");
+      setSubmitError(error instanceof Error ? error.message : tr("Failed to send friend request."));
     } finally {
       setIsSending(false);
     }
@@ -113,21 +114,21 @@ export function AddFriendModal({ isOpen, onClose, onSuccess }: AddFriendModalPro
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Add Contact"
+      title={tr("Add Contact")}
       size="md"
       footer={
         selectedUser ? (
           <ModalButtonGroup
             onCancel={handleClose}
             onConfirm={handleSend}
-            confirmText="Send Request"
+            confirmText={tr("Send Request")}
             isLoading={isSending}
             disabled={!message.trim()}
           />
         ) : (
           <div className="flex justify-end">
             <Button variant="outline" onClick={handleClose}>
-              Close
+              {tr("Close")}
             </Button>
           </div>
         )
@@ -135,11 +136,11 @@ export function AddFriendModal({ isOpen, onClose, onSuccess }: AddFriendModalPro
     >
       <div className="space-y-4 p-5">
         <div className="space-y-2">
-          <label className="text-xs text-text-muted">Search by user id, nickname, or name</label>
+          <label className="text-xs text-text-muted">{tr("Search by user id, nickname, or name")}</label>
           <input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
-            placeholder="Type a keyword"
+            placeholder={tr("Type a keyword")}
             className="h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary outline-none focus:border-primary"
           />
         </div>
@@ -148,25 +149,25 @@ export function AddFriendModal({ isOpen, onClose, onSuccess }: AddFriendModalPro
           <div className="max-h-64 space-y-2 overflow-y-auto">
             {isSearching ? (
               <div className="rounded-lg border border-border p-6 text-center text-sm text-text-muted">
-                Searching...
+                {tr("Searching...")}
               </div>
             ) : null}
 
             {!isSearching && searchError ? (
               <div className="rounded-lg border border-error/40 bg-error/10 p-4 text-sm text-error">
-                {searchError}
+                {tr(searchError)}
               </div>
             ) : null}
 
             {!isSearching && !searchError && !hasSearchKeyword ? (
               <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-text-muted">
-                Enter a keyword to find contacts.
+                {tr("Enter a keyword to find contacts.")}
               </div>
             ) : null}
 
             {!isSearching && !searchError && hasSearchKeyword && searchResults.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-text-muted">
-                No matching contacts found.
+                {tr("No matching contacts found.")}
               </div>
             ) : null}
 
@@ -206,12 +207,12 @@ export function AddFriendModal({ isOpen, onClose, onSuccess }: AddFriendModalPro
                 <div className="truncate text-xs text-text-muted">{selectedUser.id}</div>
               </div>
               <Button variant="ghost" size="small" onClick={() => setSelectedUser(null)}>
-                Change
+                {tr("Change")}
               </Button>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs text-text-muted">Request message</label>
+              <label className="text-xs text-text-muted">{tr("Request message")}</label>
               <textarea
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
@@ -224,7 +225,7 @@ export function AddFriendModal({ isOpen, onClose, onSuccess }: AddFriendModalPro
 
             {submitError ? (
               <div className="rounded-lg border border-error/40 bg-error/10 p-3 text-sm text-error">
-                {submitError}
+                {tr(submitError)}
               </div>
             ) : null}
           </div>

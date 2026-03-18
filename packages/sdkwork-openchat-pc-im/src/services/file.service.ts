@@ -1,15 +1,4 @@
-/**
- * 文件上传服务
- *
- * 职责：
- * 1. 文件上传（图片、视频、文档等）
- * 2. 上传进度管理
- * 3. 文件类型验证
- * 4. 文件压缩（图片）
- * 5. 生成缩略图
- */
-
-import { generateUUID } from '@sdkwork/openchat-pc-kernel';
+import { translate } from "@sdkwork/openchat-pc-i18n";
 
 export interface UploadFileParams {
   file: File;
@@ -38,184 +27,227 @@ export interface FileValidationResult {
 
 const FILE_TYPE_CONFIG = {
   image: {
-    extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'],
+    extensions: ["jpg", "jpeg", "png", "gif", "webp", "bmp"],
     maxSize: 10 * 1024 * 1024,
-    mimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'],
-  },
-  video: {
-    extensions: ['mp4', 'mov', 'avi', 'mkv', 'webm'],
-    maxSize: 100 * 1024 * 1024,
-    mimeTypes: ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm'],
-  },
-  audio: {
-    extensions: ['mp3', 'wav', 'ogg', 'm4a', 'aac'],
-    maxSize: 50 * 1024 * 1024,
-    mimeTypes: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/aac'],
-  },
-  document: {
-    extensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar'],
-    maxSize: 50 * 1024 * 1024,
     mimeTypes: [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
-      'application/zip',
-      'application/x-rar-compressed',
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/bmp",
     ],
   },
-};
+  video: {
+    extensions: ["mp4", "mov", "avi", "mkv", "webm"],
+    maxSize: 100 * 1024 * 1024,
+    mimeTypes: [
+      "video/mp4",
+      "video/quicktime",
+      "video/x-msvideo",
+      "video/x-matroska",
+      "video/webm",
+    ],
+  },
+  audio: {
+    extensions: ["mp3", "wav", "ogg", "m4a", "aac"],
+    maxSize: 50 * 1024 * 1024,
+    mimeTypes: [
+      "audio/mpeg",
+      "audio/wav",
+      "audio/ogg",
+      "audio/mp4",
+      "audio/aac",
+    ],
+  },
+  document: {
+    extensions: [
+      "pdf",
+      "doc",
+      "docx",
+      "xls",
+      "xlsx",
+      "ppt",
+      "pptx",
+      "txt",
+      "zip",
+      "rar",
+    ],
+    maxSize: 50 * 1024 * 1024,
+    mimeTypes: [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "text/plain",
+      "application/zip",
+      "application/x-rar-compressed",
+    ],
+  },
+} as const;
 
-export function validateFile(file: File, type?: 'image' | 'video' | 'audio' | 'document'): FileValidationResult {
-  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+export function validateFile(
+  file: File,
+  type?: "image" | "video" | "audio" | "document",
+): FileValidationResult {
+  const extension = file.name.split(".").pop()?.toLowerCase() || "";
 
   if (type) {
     const config = FILE_TYPE_CONFIG[type];
-    if (!config.extensions.includes(ext)) {
+    if (!config.extensions.includes(extension as never)) {
       return {
         valid: false,
-        error: `不支持的文件格式，请上传 ${config.extensions.join(', ')} 格式的文件`,
+        error: translate(
+          "Unsupported file format. Please upload one of: {{types}}.",
+          {
+            types: config.extensions.join(", "),
+          },
+        ),
       };
     }
 
     if (file.size > config.maxSize) {
       return {
         valid: false,
-        error: `文件大小超过限制，最大支持 ${formatFileSize(config.maxSize)}`,
+        error: translate("File size exceeds the limit of {{size}}.", {
+          size: formatFileSize(config.maxSize),
+        }),
       };
     }
   }
 
   if (file.size === 0) {
-    return { valid: false, error: '文件不能为空' };
+    return {
+      valid: false,
+      error: translate("File cannot be empty."),
+    };
   }
 
   if (file.name.length > 200) {
-    return { valid: false, error: '文件名过长' };
+    return {
+      valid: false,
+      error: translate("File name is too long."),
+    };
   }
 
   return { valid: true };
 }
 
-export function getFileType(file: File): 'image' | 'video' | 'audio' | 'document' | 'unknown' {
-  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+export function getFileType(
+  file: File,
+): "image" | "video" | "audio" | "document" | "unknown" {
+  const extension = file.name.split(".").pop()?.toLowerCase() || "";
 
   for (const [type, config] of Object.entries(FILE_TYPE_CONFIG)) {
-    if (config.extensions.includes(ext)) {
-      return type as 'image' | 'video' | 'audio' | 'document';
+    if (config.extensions.includes(extension as never)) {
+      return type as "image" | "video" | "audio" | "document";
     }
   }
 
-  return 'unknown';
+  return "unknown";
 }
 
 export async function compressImage(
   file: File,
-  maxWidth: number = 1920,
-  maxHeight: number = 1920,
-  quality: number = 0.8
+  maxWidth = 1920,
+  maxHeight = 1920,
+  quality = 0.8,
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
+    const image = new Image();
     const url = URL.createObjectURL(file);
 
-    img.onload = () => {
+    image.onload = () => {
       URL.revokeObjectURL(url);
 
-      let { width, height } = img;
-
+      let { width, height } = image;
       if (width > maxWidth || height > maxHeight) {
         const ratio = Math.min(maxWidth / width, maxHeight / height);
         width *= ratio;
         height *= ratio;
       }
 
-      const canvas = document.createElement('canvas');
+      const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
 
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('无法创建 canvas 上下文'));
+      const context = canvas.getContext("2d");
+      if (!context) {
+        reject(new Error(translate("Unable to create a canvas context.")));
         return;
       }
 
-      ctx.drawImage(img, 0, 0, width, height);
-
+      context.drawImage(image, 0, 0, width, height);
       canvas.toBlob(
         (blob) => {
           if (blob) {
             resolve(blob);
-          } else {
-            reject(new Error('图片压缩失败'));
+            return;
           }
+          reject(new Error(translate("Image compression failed.")));
         },
-        'image/jpeg',
-        quality
+        "image/jpeg",
+        quality,
       );
     };
 
-    img.onerror = () => {
+    image.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error('图片加载失败'));
+      reject(new Error(translate("Image loading failed.")));
     };
 
-    img.src = url;
+    image.src = url;
   });
 }
 
 export async function generateThumbnail(
   file: File,
-  maxWidth: number = 300,
-  maxHeight: number = 300
+  maxWidth = 300,
+  maxHeight = 300,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
+    const image = new Image();
     const url = URL.createObjectURL(file);
 
-    img.onload = () => {
-      let { width, height } = img;
-
+    image.onload = () => {
+      let { width, height } = image;
       if (width > maxWidth || height > maxHeight) {
         const ratio = Math.min(maxWidth / width, maxHeight / height);
         width *= ratio;
         height *= ratio;
       }
 
-      const canvas = document.createElement('canvas');
+      const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
 
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
+      const context = canvas.getContext("2d");
+      if (!context) {
         URL.revokeObjectURL(url);
-        reject(new Error('无法创建 canvas 上下文'));
+        reject(new Error(translate("Unable to create a canvas context.")));
         return;
       }
 
-      ctx.drawImage(img, 0, 0, width, height);
-
-      const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.7);
+      context.drawImage(image, 0, 0, width, height);
+      const thumbnailUrl = canvas.toDataURL("image/jpeg", 0.7);
       URL.revokeObjectURL(url);
       resolve(thumbnailUrl);
     };
 
-    img.onerror = () => {
+    image.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error('缩略图生成失败'));
+      reject(new Error(translate("Thumbnail generation failed.")));
     };
 
-    img.src = url;
+    image.src = url;
   });
 }
 
 export function getVideoDuration(file: File): Promise<number> {
   return new Promise((resolve, reject) => {
-    const video = document.createElement('video');
+    const video = document.createElement("video");
     const url = URL.createObjectURL(file);
 
     video.onloadedmetadata = () => {
@@ -225,37 +257,50 @@ export function getVideoDuration(file: File): Promise<number> {
 
     video.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error('无法获取视频信息'));
+      reject(new Error(translate("Unable to read video metadata.")));
     };
 
     video.src = url;
   });
 }
 
-export function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+export function getImageDimensions(
+  file: File,
+): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
+    const image = new Image();
     const url = URL.createObjectURL(file);
 
-    img.onload = () => {
+    image.onload = () => {
       URL.revokeObjectURL(url);
-      resolve({ width: img.width, height: img.height });
+      resolve({ width: image.width, height: image.height });
     };
 
-    img.onerror = () => {
+    image.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error('无法获取图片尺寸'));
+      reject(new Error(translate("Unable to read image dimensions.")));
     };
 
-    img.src = url;
+    image.src = url;
   });
 }
 
-export async function uploadFile(params: UploadFileParams): Promise<UploadResult> {
-  const { file, onProgress, compress = true, maxWidth = 1920, maxHeight = 1920 } = params;
+export async function uploadFile(
+  params: UploadFileParams,
+): Promise<UploadResult> {
+  const {
+    file,
+    onProgress,
+    compress = true,
+    maxWidth = 1920,
+    maxHeight = 1920,
+  } = params;
 
   const fileType = getFileType(file);
-  const validation = validateFile(file, fileType === 'unknown' ? undefined : fileType);
+  const validation = validateFile(
+    file,
+    fileType === "unknown" ? undefined : fileType,
+  );
 
   if (!validation.valid) {
     return { success: false, error: validation.error };
@@ -267,7 +312,7 @@ export async function uploadFile(params: UploadFileParams): Promise<UploadResult
     let dimensions: { width: number; height: number } | undefined;
     let duration: number | undefined;
 
-    if (fileType === 'image') {
+    if (fileType === "image") {
       dimensions = await getImageDimensions(file);
       thumbnailUrl = await generateThumbnail(file);
 
@@ -276,29 +321,32 @@ export async function uploadFile(params: UploadFileParams): Promise<UploadResult
       }
     }
 
-    if (fileType === 'video') {
+    if (fileType === "video") {
       duration = await getVideoDuration(file);
     }
 
-    const totalSize = uploadFileData instanceof File ? uploadFileData.size : uploadFileData.size;
+    const totalSize = uploadFileData.size;
     let uploadedSize = 0;
     const chunkSize = totalSize / 10;
 
-    for (let i = 0; i < 10; i++) {
+    for (let index = 0; index < 10; index += 1) {
       await new Promise((resolve) => setTimeout(resolve, 100));
       uploadedSize += chunkSize;
-      const progress = Math.min((uploadedSize / totalSize) * 100, 100);
-      onProgress?.(progress);
+      onProgress?.(Math.min((uploadedSize / totalSize) * 100, 100));
     }
 
-    const url = URL.createObjectURL(uploadFileData instanceof File ? uploadFileData : new Blob([uploadFileData]));
+    const url = URL.createObjectURL(
+      uploadFileData instanceof File
+        ? uploadFileData
+        : new Blob([uploadFileData]),
+    );
 
     return {
       success: true,
       url,
       thumbnailUrl,
       fileName: file.name,
-      fileSize: uploadFileData instanceof File ? uploadFileData.size : uploadFileData.size,
+      fileSize: uploadFileData.size,
       width: dimensions?.width,
       height: dimensions?.height,
       duration,
@@ -306,21 +354,24 @@ export async function uploadFile(params: UploadFileParams): Promise<UploadResult
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : '上传失败',
+      error:
+        error instanceof Error && error.message
+          ? error.message
+          : translate("Upload failed."),
     };
   }
 }
 
 export async function uploadFiles(
   files: File[],
-  onProgress?: (index: number, progress: number) => void
+  onProgress?: (index: number, progress: number) => void,
 ): Promise<UploadResult[]> {
   const results: UploadResult[] = [];
 
-  for (let i = 0; i < files.length; i++) {
+  for (let index = 0; index < files.length; index += 1) {
     const result = await uploadFile({
-      file: files[i],
-      onProgress: (progress) => onProgress?.(i, progress),
+      file: files[index],
+      onProgress: (progress) => onProgress?.(index, progress),
     });
     results.push(result);
   }
@@ -329,36 +380,24 @@ export async function uploadFiles(
 }
 
 export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) {
+    return "0 B";
+  }
 
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const k = 1024;
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const base = 1024;
+  const unitIndex = Math.floor(Math.log(bytes) / Math.log(base));
 
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${units[i]}`;
+  return `${parseFloat((bytes / Math.pow(base, unitIndex)).toFixed(2))} ${
+    units[unitIndex]
+  }`;
 }
 
 export function downloadFile(url: string, fileName: string): void {
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
   link.download = fileName;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-}
-
-export async function copyFileToClipboard(file: File): Promise<boolean> {
-  try {
-    if (navigator.clipboard && navigator.clipboard.write) {
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          [file.type]: file,
-        }),
-      ]);
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
 }

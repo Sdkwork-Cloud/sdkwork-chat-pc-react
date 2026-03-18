@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@sdkwork/app-sdk": "workspace:*",
+    "@sdkwork/openchat-pc-i18n": "workspace:*",
     "react": "^18.2.0"
   }
 }

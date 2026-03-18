@@ -1,13 +1,3 @@
-/**
- * 应用状态提供者
- * 
- * 整合所有全局状态管理：
- * - TanStack Query (数据获取)
- * - OpenChat SDK
- * - 主题
- * - 国际化
- * - 认证状态
- */
 
 import { ReactNode } from 'react';
 import { QueryProvider } from './QueryProvider';
@@ -19,7 +9,6 @@ interface AppProviderProps {
   children: ReactNode;
 }
 
-// 创建认证上下文
 import { createContext, useContext } from 'react';
 import type { UseAuthReturn } from '@sdkwork/openchat-pc-auth';
 
@@ -33,9 +22,7 @@ export function useAuthContext() {
   return context;
 }
 
-/**
- * 应用状态提供者
- */
+
 export function AppProvider({ children }: AppProviderProps) {
   const auth = useAuth();
 

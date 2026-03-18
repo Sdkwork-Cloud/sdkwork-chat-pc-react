@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Global error handling service.
  *
  * Responsibilities:

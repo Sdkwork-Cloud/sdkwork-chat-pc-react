@@ -20,6 +20,7 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
-    "@sdkwork/openchat-pc-discover": "workspace:*"
+    "@sdkwork/openchat-pc-discover": "workspace:*",
+    "@sdkwork/openchat-pc-i18n": "workspace:*"
   }
 }

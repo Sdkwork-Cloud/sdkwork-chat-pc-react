@@ -1,36 +1,48 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { useNavigate } from "react-router-dom";
-import {
-  buildMeWorkspaceSummary,
-  filterQuickActions,
-  QUICK_ACTIONS,
-  type QuickActionId,
-} from "./me.workspace.model";
+import { buildMeWorkspaceSummary, QUICK_ACTIONS, type QuickActionId } from "./me.workspace.model";
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
     return false;
   }
+
   const tagName = target.tagName.toLowerCase();
   return tagName === "input" || tagName === "textarea" || tagName === "select" || target.isContentEditable;
 }
 
 export function MePage() {
+  const { tr, formatTime } = useAppTranslation();
   const navigate = useNavigate();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [keyword, setKeyword] = useState("");
   const [selectedActionId, setSelectedActionId] = useState<QuickActionId | "">(QUICK_ACTIONS[0]?.id || "");
-  const [actionMessage, setActionMessage] = useState("Tip: Ctrl/Cmd+K search, Arrow Up/Down switch, Enter open.");
+  const [actionMessage, setActionMessage] = useState(tr("Tip: Ctrl/Cmd+K search, Arrow Up/Down switch, Enter open."));
+
+  const localizedActions = useMemo(
+    () =>
+      QUICK_ACTIONS.map((item) => ({
+        ...item,
+        label: tr(item.label),
+        desc: tr(item.desc),
+      })),
+    [tr],
+  );
 
   const filteredActions = useMemo(() => {
     const query = keyword.trim().toLowerCase();
     if (!query) {
-      return QUICK_ACTIONS;
+      return localizedActions;
     }
-    return filterQuickActions(QUICK_ACTIONS, query);
-  }, [keyword]);
 
-  const summary = useMemo(() => buildMeWorkspaceSummary(QUICK_ACTIONS, filteredActions), [filteredActions]);
+    return localizedActions.filter((item) => `${item.label} ${item.desc}`.toLowerCase().includes(query));
+  }, [keyword, localizedActions]);
+
+  const summary = useMemo(
+    () => buildMeWorkspaceSummary(localizedActions, filteredActions),
+    [filteredActions, localizedActions],
+  );
 
   useEffect(() => {
     if (!filteredActions.some((item) => item.id === selectedActionId)) {
@@ -44,7 +56,7 @@ export function MePage() {
   );
 
   function notifyAction(message: string): void {
-    setActionMessage(`${new Date().toLocaleTimeString()} - ${message}`);
+    setActionMessage(`${formatTime(new Date())} - ${message}`);
   }
 
   function openAction(actionId?: QuickActionId): void {
@@ -52,8 +64,9 @@ export function MePage() {
     if (!targetAction) {
       return;
     }
+
     navigate(targetAction.path);
-    notifyAction(`Opened ${targetAction.label}.`);
+    notifyAction(tr("Opened {{label}}.", { label: targetAction.label }));
   }
 
   useEffect(() => {
@@ -105,9 +118,9 @@ export function MePage() {
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <h1 className="text-xl font-semibold text-text-primary">Me</h1>
+        <h1 className="text-xl font-semibold text-text-primary">{tr("Me")}</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          PC-first personal workspace with quick navigation, account status and action shortcuts.
+          {tr("PC-first personal workspace with quick navigation, account status and action shortcuts.")}
         </p>
       </header>
 
@@ -119,50 +132,50 @@ export function MePage() {
                 OC
               </div>
               <div>
-                <h2 className="text-base font-semibold text-text-primary">OpenChat User</h2>
+                <h2 className="text-base font-semibold text-text-primary">{tr("OpenChat User")}</h2>
                 <p className="text-xs text-text-secondary">workspace@openchat.ai</p>
               </div>
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-2">
               <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                <p className="text-[11px] text-text-muted">Plan</p>
-                <p className="text-sm font-semibold text-text-primary">Pro</p>
+                <p className="text-[11px] text-text-muted">{tr("Plan")}</p>
+                <p className="text-sm font-semibold text-text-primary">{tr("Pro")}</p>
               </div>
               <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                <p className="text-[11px] text-text-muted">Team</p>
-                <p className="text-sm font-semibold text-text-primary">3 Members</p>
+                <p className="text-[11px] text-text-muted">{tr("Team")}</p>
+                <p className="text-sm font-semibold text-text-primary">{tr("3 Members")}</p>
               </div>
               <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                <p className="text-[11px] text-text-muted">Tokens Today</p>
+                <p className="text-[11px] text-text-muted">{tr("Tokens Today")}</p>
                 <p className="text-sm font-semibold text-text-primary">128k</p>
               </div>
               <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                <p className="text-[11px] text-text-muted">Storage</p>
+                <p className="text-[11px] text-text-muted">{tr("Storage")}</p>
                 <p className="text-sm font-semibold text-text-primary">42 GB</p>
               </div>
               <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                <p className="text-[11px] text-text-muted">Quick Actions</p>
+                <p className="text-[11px] text-text-muted">{tr("Quick Actions")}</p>
                 <p className="text-sm font-semibold text-text-primary">{summary.total}</p>
               </div>
               <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                <p className="text-[11px] text-text-muted">Visible Now</p>
+                <p className="text-[11px] text-text-muted">{tr("Visible Now")}</p>
                 <p className="text-sm font-semibold text-text-primary">{summary.visible}</p>
               </div>
             </div>
           </aside>
 
           <section className="rounded-xl border border-border bg-bg-secondary p-5">
-            <h3 className="text-sm font-semibold text-text-primary">Quick Actions</h3>
+            <h3 className="text-sm font-semibold text-text-primary">{tr("Quick Actions")}</h3>
             <div className="mt-3">
               <input
                 ref={searchInputRef}
                 value={keyword}
                 onChange={(event) => setKeyword(event.target.value)}
-                placeholder="Search quick action"
+                placeholder={tr("Search quick action")}
                 className="h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
               />
-              <p className="mt-2 text-[11px] text-text-muted">Shortcuts: Ctrl/Cmd+K, Arrow Up/Down, Enter</p>
+              <p className="mt-2 text-[11px] text-text-muted">{tr("Shortcuts: Ctrl/Cmd+K, Arrow Up/Down, Enter")}</p>
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {filteredActions.map((item) => (
@@ -182,23 +195,23 @@ export function MePage() {
                   <p className="mt-1 text-xs text-text-secondary">{item.desc}</p>
                 </button>
               ))}
-              {filteredActions.length === 0 ? <p className="text-xs text-text-muted">No action matched.</p> : null}
+              {filteredActions.length === 0 ? <p className="text-xs text-text-muted">{tr("No action matched.")}</p> : null}
             </div>
 
             <div className="mt-5 rounded-lg border border-border bg-bg-primary p-4">
-              <h4 className="text-sm font-semibold text-text-primary">Keyboard Shortcuts</h4>
+              <h4 className="text-sm font-semibold text-text-primary">{tr("Keyboard Shortcuts")}</h4>
               <div className="mt-2 grid gap-2 text-xs text-text-secondary md:grid-cols-2">
                 <p>
-                  <span className="font-semibold text-text-primary">Ctrl + K</span> Focus quick action search
+                  <span className="font-semibold text-text-primary">{tr("Ctrl + K")}</span> {tr("Focus quick action search")}
                 </p>
                 <p>
-                  <span className="font-semibold text-text-primary">Arrow Up / Down</span> Switch selected action
+                  <span className="font-semibold text-text-primary">{tr("Arrow Up / Down")}</span> {tr("Switch selected action")}
                 </p>
                 <p>
-                  <span className="font-semibold text-text-primary">Enter</span> Open selected action
+                  <span className="font-semibold text-text-primary">{tr("Enter")}</span> {tr("Open selected action")}
                 </p>
                 <p>
-                  <span className="font-semibold text-text-primary">Ctrl + ,</span> Open settings
+                  <span className="font-semibold text-text-primary">{tr("Ctrl + ,")}</span> {tr("Open settings")}
                 </p>
               </div>
             </div>

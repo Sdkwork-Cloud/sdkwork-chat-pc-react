@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "@sdkwork/app-sdk": "workspace:*",
+    "@sdkwork/openchat-pc-i18n": "workspace:*",
     "@openchat/typescript-sdk": "file:./vendor/openchat-typescript-sdk",
     "@tanstack/react-query": "^5.90.20",
     "@tanstack/react-virtual": "^3.13.18",

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { buildLookWorkspaceSummary, filterLookWorkspace, LOOK_CARDS } from "./look.workspace.model";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import { buildLookWorkspaceSummary, LOOK_CARDS } from "./look.workspace.model";
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
@@ -10,21 +11,35 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 export function LookPage() {
+  const { tr, formatNumber, formatTime } = useAppTranslation();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [selectedId, setSelectedId] = useState(LOOK_CARDS[0]?.id || "");
   const [keyword, setKeyword] = useState("");
   const [previewScale, setPreviewScale] = useState(100);
   const [actionMessage, setActionMessage] = useState(
-    "Tip: Ctrl/Cmd+K search, Arrow Up/Down switch, Enter apply, +/- scale.",
+    tr("Tip: Ctrl/Cmd+K search, Arrow Up/Down switch, Enter apply, +/- scale."),
+  );
+
+  const localizedCards = useMemo(
+    () =>
+      LOOK_CARDS.map((item) => ({
+        ...item,
+        title: tr(item.title),
+        theme: tr(item.theme),
+        usage: tr(item.usage),
+      })),
+    [tr],
   );
 
   const filtered = useMemo(() => {
     const query = keyword.trim().toLowerCase();
     if (!query) {
-      return LOOK_CARDS;
+      return localizedCards;
     }
-    return filterLookWorkspace(LOOK_CARDS, query);
-  }, [keyword]);
+    return localizedCards.filter((item) =>
+      `${item.title} ${item.theme} ${item.palette} ${item.usage}`.toLowerCase().includes(query),
+    );
+  }, [keyword, localizedCards]);
 
   const summary = useMemo(() => buildLookWorkspaceSummary(filtered), [filtered]);
 
@@ -40,20 +55,28 @@ export function LookPage() {
   );
 
   function notifyAction(message: string): void {
-    setActionMessage(`${new Date().toLocaleTimeString()} - ${message}`);
+    setActionMessage(`${formatTime(new Date())} - ${message}`);
   }
 
   function applyPreset(): void {
     if (!selected) {
       return;
     }
-    notifyAction(`Applied preset "${selected.title}" to workspace.`);
+    notifyAction(
+      tr("Applied preset \"{{title}}\" to workspace.", {
+        title: selected.title,
+      }),
+    );
   }
 
   function adjustScale(delta: number): void {
     setPreviewScale((current) => {
       const next = Math.min(140, Math.max(70, current + delta));
-      notifyAction(`Preview scale set to ${next}%.`);
+      notifyAction(
+        tr("Preview scale set to {{value}}%.", {
+          value: next,
+        }),
+      );
       return next;
     });
   }
@@ -119,9 +142,9 @@ export function LookPage() {
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <h1 className="text-xl font-semibold text-text-primary">Look</h1>
+        <h1 className="text-xl font-semibold text-text-primary">{tr("Look")}</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Visual style review board for desktop themes and view presets.
+          {tr("Visual style review board for desktop themes and view presets.")}
         </p>
       </header>
 
@@ -133,10 +156,12 @@ export function LookPage() {
                 ref={searchInputRef}
                 value={keyword}
                 onChange={(event) => setKeyword(event.target.value)}
-                placeholder="Search presets by title or theme"
+                placeholder={tr("Search presets by title or theme")}
                 className="h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
               />
-              <p className="mt-2 text-[11px] text-text-muted">Shortcuts: Ctrl/Cmd+K, Arrow Up/Down, Enter, + / -</p>
+              <p className="mt-2 text-[11px] text-text-muted">
+                {tr("Shortcuts: Ctrl/Cmd+K, Arrow Up/Down, Enter, + / -")}
+              </p>
             </div>
             <div className="min-h-0 flex-1 overflow-auto p-3">
               <div className="space-y-2">
@@ -154,7 +179,9 @@ export function LookPage() {
                     <p className="mt-1 text-xs text-text-secondary">{item.theme}</p>
                   </button>
                 ))}
-                {filtered.length === 0 ? <p className="text-xs text-text-muted">No presets matched.</p> : null}
+                {filtered.length === 0 ? (
+                  <p className="text-xs text-text-muted">{tr("No presets matched.")}</p>
+                ) : null}
               </div>
             </div>
           </aside>
@@ -163,51 +190,63 @@ export function LookPage() {
             {selected ? (
               <>
                 <h2 className="text-lg font-semibold text-text-primary">{selected.title}</h2>
-                <p className="mt-1 text-sm text-text-secondary">Theme: {selected.theme}</p>
-                <p className="mt-1 text-sm text-text-secondary">Palette: {selected.palette}</p>
+                <p className="mt-1 text-sm text-text-secondary">
+                  {tr("Theme: {{theme}}", { theme: selected.theme })}
+                </p>
+                <p className="mt-1 text-sm text-text-secondary">
+                  {tr("Palette: {{palette}}", { palette: selected.palette })}
+                </p>
                 <p className="mt-3 text-sm leading-6 text-text-secondary">{selected.usage}</p>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
                   <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                    <p className="text-[11px] text-text-muted">Scale</p>
-                    <p className="text-sm font-semibold text-text-primary">{previewScale}%</p>
+                    <p className="text-[11px] text-text-muted">{tr("Scale")}</p>
+                    <p className="text-sm font-semibold text-text-primary">{formatNumber(previewScale)}%</p>
                   </div>
                   <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                    <p className="text-[11px] text-text-muted">Filtered</p>
-                    <p className="text-sm font-semibold text-text-primary">{filtered.length}</p>
+                    <p className="text-[11px] text-text-muted">{tr("Filtered")}</p>
+                    <p className="text-sm font-semibold text-text-primary">{formatNumber(filtered.length)}</p>
                   </div>
                   <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                    <p className="text-[11px] text-text-muted">Themes</p>
-                    <p className="text-sm font-semibold text-text-primary">{summary.themes}</p>
+                    <p className="text-[11px] text-text-muted">{tr("Themes")}</p>
+                    <p className="text-sm font-semibold text-text-primary">{formatNumber(summary.themes)}</p>
                   </div>
                 </div>
 
-                <div className="mt-5 rounded-lg border border-dashed border-border bg-bg-primary/40 p-8 text-center text-sm text-text-muted">
-                  Desktop preview canvas placeholder for typography / spacing / contrast validation.
-                </div>
+                  <div className="mt-5 rounded-lg border border-dashed border-border bg-bg-primary/40 p-8 text-center text-sm text-text-muted">
+                    {tr(
+                      "Desktop preview canvas placeholder for typography / spacing / contrast validation.",
+                    )}
+                  </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button onClick={applyPreset} className="rounded-md bg-primary px-3 py-1.5 text-xs text-white">
-                    Apply to Workspace (Enter)
+                    {tr("Apply to Workspace (Enter)")}
                   </button>
-                  <button
-                    onClick={() => notifyAction(`Duplicated preset "${selected.title}".`)}
-                    className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
-                  >
-                    Duplicate Preset
-                  </button>
-                  <button
-                    onClick={() => adjustScale(-5)}
-                    className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
-                  >
-                    Scale -
-                  </button>
-                  <button
-                    onClick={() => adjustScale(5)}
-                    className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
-                  >
-                    Scale +
-                  </button>
+                    <button
+                      onClick={() =>
+                        notifyAction(
+                          tr("Duplicated preset \"{{title}}\".", {
+                            title: selected.title,
+                          }),
+                        )
+                      }
+                      className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
+                    >
+                      {tr("Duplicate Preset")}
+                    </button>
+                    <button
+                      onClick={() => adjustScale(-5)}
+                      className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
+                    >
+                      {tr("Scale -")}
+                    </button>
+                    <button
+                      onClick={() => adjustScale(5)}
+                      className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
+                    >
+                      {tr("Scale +")}
+                    </button>
                 </div>
                 <p className="mt-4 rounded-md border border-border bg-bg-primary px-3 py-2 text-xs text-text-secondary">
                   {actionMessage}

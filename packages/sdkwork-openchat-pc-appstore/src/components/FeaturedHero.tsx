@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { App } from "../entities/app.entity";
 
 interface FeaturedHeroProps {
@@ -7,6 +8,16 @@ interface FeaturedHeroProps {
 }
 
 export const FeaturedHero = memo(({ app, onClick }: FeaturedHeroProps) => {
+  const { tr, language, formatNumber } = useAppTranslation();
+  const compactNumberFormatter = new Intl.NumberFormat(language, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  });
+  const ratingValue = formatNumber(app.rating.average, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+
   return (
     <button
       onClick={onClick}
@@ -18,9 +29,11 @@ export const FeaturedHero = memo(({ app, onClick }: FeaturedHeroProps) => {
       <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
           <div className="mb-3 flex items-center gap-2">
-            <span className="rounded-full bg-primary px-2 py-1 text-xs font-semibold text-white">TODAY</span>
+            <span className="rounded-full bg-primary px-2 py-1 text-xs font-semibold text-white">{tr("TODAY")}</span>
             {app.editorChoice ? (
-              <span className="rounded-full bg-warning px-2 py-1 text-xs font-semibold text-white">EDITOR'S CHOICE</span>
+              <span className="rounded-full bg-warning px-2 py-1 text-xs font-semibold text-white">
+                {tr("EDITOR'S CHOICE")}
+              </span>
             ) : null}
           </div>
           <div className="mb-3 flex items-center gap-3">
@@ -34,16 +47,16 @@ export const FeaturedHero = memo(({ app, onClick }: FeaturedHeroProps) => {
           </div>
           <p className="max-w-3xl text-sm text-text-secondary">{app.shortDescription}</p>
           <div className="mt-3 flex items-center gap-4 text-xs text-text-muted">
-            <span>{app.rating.average.toFixed(1)} rating</span>
-            <span>{app.downloads.toLocaleString()} downloads</span>
+            <span>{tr("{{value}} rating", { value: ratingValue })}</span>
+            <span>{tr("{{count}} downloads", { count: app.downloads })}</span>
             <span>{app.developer.name}</span>
           </div>
         </div>
 
         <div className="flex flex-col items-start gap-2 md:items-end">
-          <span className="text-[11px] uppercase tracking-[0.18em] text-text-muted">Tap to open details</span>
+          <span className="text-[11px] uppercase tracking-[0.18em] text-text-muted">{tr("Tap to open details")}</span>
           <span className="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-transform group-hover:scale-105">
-            View Details
+            {tr("View Details")}
           </span>
         </div>
       </div>

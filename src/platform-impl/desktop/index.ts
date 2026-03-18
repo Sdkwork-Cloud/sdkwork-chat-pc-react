@@ -1,16 +1,9 @@
-/**
- * Desktop Platform 实现
- * 
- * 基于 Tauri API 的 Platform 实现
- * 适用于 Desktop 环境
- */
+
 
 import { invoke } from '@tauri-apps/api/tauri';
 import type { PlatformAPI, FileFilter } from '../../platform';
 
-/**
- * Desktop Platform 实现
- */
+
 export class DesktopPlatform implements PlatformAPI {
   private eventListeners: Map<string, Set<(data: any) => void>> = new Map();
 
@@ -19,16 +12,13 @@ export class DesktopPlatform implements PlatformAPI {
   }
 
   async getDeviceId(): Promise<string> {
-    // Desktop 环境使用系统信息生成设备ID
     const { platform } = await import('@tauri-apps/api/os');
     const platformName = await platform();
     return `desktop-${platformName}-${Date.now()}`;
   }
 
-  // ==================== 存储 ====================
 
   async setStorage(key: string, value: string): Promise<void> {
-    // 使用 Tauri 的存储 API
     localStorage.setItem(key, value);
   }
 
@@ -40,7 +30,6 @@ export class DesktopPlatform implements PlatformAPI {
     localStorage.removeItem(key);
   }
 
-  // ==================== 剪贴板 ====================
 
   async copy(text: string): Promise<void> {
     const { writeText } = await import('@tauri-apps/api/clipboard');
@@ -53,7 +42,6 @@ export class DesktopPlatform implements PlatformAPI {
     return text || '';
   }
 
-  // ==================== 系统操作 ====================
 
   async openExternal(url: string): Promise<void> {
     const { open } = await import('@tauri-apps/api/shell');
@@ -78,7 +66,6 @@ export class DesktopPlatform implements PlatformAPI {
     }
   }
 
-  // ==================== 文件系统 ====================
 
   async selectFile(options?: { multiple?: boolean; filters?: FileFilter[] }): Promise<string[]> {
     const { open } = await import('@tauri-apps/api/dialog');
@@ -118,7 +105,6 @@ export class DesktopPlatform implements PlatformAPI {
     await writeTextFile(path, content);
   }
 
-  // ==================== 窗口控制 ====================
 
   async minimizeWindow(): Promise<void> {
     await invoke('minimize_window');
@@ -137,7 +123,6 @@ export class DesktopPlatform implements PlatformAPI {
     await appWindow.setFullscreen(fullscreen);
   }
 
-  // ==================== 终端 ====================
 
   async createPty(id: string, shell?: string): Promise<void> {
     await invoke('create_pty', { id, shell });
@@ -156,12 +141,10 @@ export class DesktopPlatform implements PlatformAPI {
   }
 
   onPtyData(id: string, _callback: (data: string) => void): () => void {
-    // TODO: 实现 PTY 数据监听
     console.log('Listening PTY data for:', id);
     return () => {};
   }
 
-  // ==================== 网络 ====================
 
   isOnline(): boolean {
     return navigator.onLine;
@@ -180,7 +163,6 @@ export class DesktopPlatform implements PlatformAPI {
     };
   }
 
-  // ==================== 事件监听 ====================
 
   onEvent(event: string, callback: (data: any) => void): () => void {
     if (!this.eventListeners.has(event)) {
@@ -194,9 +176,7 @@ export class DesktopPlatform implements PlatformAPI {
   }
 }
 
-/**
- * 创建 Desktop Platform 实例
- */
+
 export function createDesktopPlatform(): PlatformAPI {
   return new DesktopPlatform();
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { useNavigate } from "react-router-dom";
 import {
   Bot,
@@ -24,15 +25,6 @@ interface SearchFilterOption {
   id: SearchResultType | "all";
   label: string;
 }
-
-const FILTERS: SearchFilterOption[] = [
-  { id: "all", label: "All" },
-  { id: "agent", label: "Agents" },
-  { id: "contact", label: "Contacts" },
-  { id: "file", label: "Files" },
-  { id: "command", label: "Commands" },
-  { id: "setting", label: "Settings" },
-];
 
 function getResultIcon(item: SearchResultItem) {
   if (typeof item.icon === "string" && item.icon.length <= 4) {
@@ -91,6 +83,7 @@ function resolvePath(item: SearchResultItem): string | null {
 }
 
 export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
+  const { tr } = useAppTranslation();
   const navigate = useNavigate();
 
   const [query, setQuery] = useState("");
@@ -105,20 +98,45 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
 
   const hasQuery = query.trim().length > 0;
   const showSuggestionPanel = !hasQuery;
+  const filters = useMemo<SearchFilterOption[]>(
+    () => [
+      { id: "all", label: tr("All") },
+      { id: "agent", label: tr("Agents") },
+      { id: "contact", label: tr("Contacts") },
+      { id: "file", label: tr("Files") },
+      { id: "command", label: tr("Commands") },
+      { id: "setting", label: tr("Settings") },
+    ],
+    [tr],
+  );
+  const groupLabelMap = useMemo<Record<SearchResultType | "all", string>>(
+    () => ({
+      all: tr("All"),
+      agent: tr("Agents"),
+      chat: tr("Chats"),
+      contact: tr("Contacts"),
+      file: tr("Files"),
+      article: tr("Articles"),
+      creation: tr("Creation"),
+      command: tr("Commands"),
+      setting: tr("Settings"),
+    }),
+    [tr],
+  );
 
   const groupedResults = useMemo(() => {
     if (activeFilter !== "all") {
-      return [{ label: FILTERS.find((item) => item.id === activeFilter)?.label || "Results", items: results }];
+      return [{ label: groupLabelMap[activeFilter] || tr("Results"), items: results }];
     }
 
     const order: SearchResultType[] = ["agent", "contact", "file", "command", "setting", "chat", "article", "creation"];
     return order
       .map((type) => ({
-        label: FILTERS.find((item) => item.id === type)?.label || type,
+        label: groupLabelMap[type],
         items: results.filter((item) => item.type === type),
       }))
       .filter((group) => group.items.length > 0);
-  }, [activeFilter, results]);
+  }, [activeFilter, groupLabelMap, results, tr]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -149,7 +167,7 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
               trendingResult.message ||
               suggestionResult.error ||
               suggestionResult.message ||
-              "Failed to load search context.",
+              tr("Failed to load search context."),
           );
         }
 
@@ -164,7 +182,7 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
         setSuggestions(suggestionResult.data || []);
       } catch (error) {
         if (!cancelled) {
-          setErrorText(error instanceof Error ? error.message : "Failed to load search context.");
+          setErrorText(error instanceof Error ? error.message : tr("Failed to load search context."));
         }
       } finally {
         if (!cancelled) {
@@ -178,7 +196,7 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
     return () => {
       cancelled = true;
     };
-  }, [isOpen]);
+  }, [isOpen, tr]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -249,7 +267,7 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
               searchResult.message ||
               suggestionResult.error ||
               suggestionResult.message ||
-              "Search failed.",
+              tr("Search failed."),
           );
           return;
         }
@@ -261,7 +279,7 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
       } catch (error) {
         if (!cancelled) {
           setResults([]);
-          setErrorText(error instanceof Error ? error.message : "Search failed.");
+          setErrorText(error instanceof Error ? error.message : tr("Search failed."));
         }
       } finally {
         if (!cancelled) {
@@ -280,7 +298,7 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
         clearTimeout(timer);
       }
     };
-  }, [activeFilter, hasQuery, isOpen, query]);
+  }, [activeFilter, hasQuery, isOpen, query, tr]);
 
   const handleSelectResult = (item: SearchResultItem) => {
     SearchService.executeCommand(item);
@@ -298,7 +316,7 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
   const handleClearHistory = async () => {
     const result = await SearchResultService.clearHistory();
     if (!result.success) {
-      setErrorText(result.error || result.message || "Failed to clear search history.");
+      setErrorText(result.error || result.message || tr("Failed to clear search history."));
       return;
     }
     setHistory([]);
@@ -308,7 +326,7 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
   const handleRemoveHistory = async (id: string) => {
     const result = await SearchResultService.removeHistoryItem(id);
     if (!result.success) {
-      setErrorText(result.error || result.message || "Failed to remove search history item.");
+      setErrorText(result.error || result.message || tr("Failed to remove search history item."));
       return;
     }
     setHistory((prev) => prev.filter((item) => item.id !== id));
@@ -333,12 +351,13 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
                 autoFocus
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search agents, contacts, files, commands..."
+                placeholder={tr("Search agents, contacts, files, commands...")}
                 className="h-11 w-full bg-transparent px-3 text-sm text-text-primary outline-none placeholder:text-text-muted"
               />
             </div>
             <button
               onClick={onClose}
+              aria-label={tr("Close")}
               className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-bg-tertiary text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
             >
               <X className="h-4 w-4" />
@@ -346,7 +365,7 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            {FILTERS.map((filter) => {
+            {filters.map((filter) => {
               const active = filter.id === activeFilter;
               return (
                 <button
@@ -369,13 +388,13 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
           {isLoadingInitial ? (
             <div className="flex h-40 items-center justify-center gap-2 text-sm text-text-muted">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading search context...
+              {tr("Loading search context...")}
             </div>
           ) : null}
 
           {!isLoadingInitial && errorText ? (
             <div className="rounded-xl border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
-              {errorText}
+              {tr(errorText)}
             </div>
           ) : null}
 
@@ -383,7 +402,7 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <section className="rounded-xl border border-border bg-bg-secondary p-4">
                 <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-text-primary">Recent searches</h3>
+                  <h3 className="text-sm font-semibold text-text-primary">{tr("Recent searches")}</h3>
                   {history.length > 0 ? (
                     <button
                       onClick={() => {
@@ -391,12 +410,12 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
                       }}
                       className="text-xs text-text-muted transition-colors hover:text-text-primary"
                     >
-                      Clear
+                      {tr("Clear")}
                     </button>
                   ) : null}
                 </div>
                 {history.length === 0 ? (
-                  <p className="text-sm text-text-muted">No recent search history.</p>
+                  <p className="text-sm text-text-muted">{tr("No recent search history.")}</p>
                 ) : (
                   <ul className="space-y-1">
                     {history.map((item) => (
@@ -423,9 +442,9 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
               </section>
 
               <section className="rounded-xl border border-border bg-bg-secondary p-4">
-                <h3 className="mb-3 text-sm font-semibold text-text-primary">Trending</h3>
+                <h3 className="mb-3 text-sm font-semibold text-text-primary">{tr("Trending")}</h3>
                 {trending.length === 0 ? (
-                  <p className="text-sm text-text-muted">No trending keywords.</p>
+                  <p className="text-sm text-text-muted">{tr("No trending keywords.")}</p>
                 ) : (
                   <ul className="space-y-1">
                     {trending.map((item) => (
@@ -450,13 +469,13 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
               {isSearching ? (
                 <div className="flex h-28 items-center justify-center gap-2 text-sm text-text-muted">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Searching...
+                  {tr("Searching...")}
                 </div>
               ) : null}
 
               {!isSearching && results.length === 0 ? (
                 <div className="rounded-xl border border-border bg-bg-secondary p-6 text-sm text-text-muted">
-                  No result found for "{query}".
+                  {tr('No result found for "{{query}}".', { query })}
                 </div>
               ) : null}
 
@@ -496,7 +515,7 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
               {!isSearching && suggestions.length > 0 ? (
                 <section className="mt-4 rounded-xl border border-border bg-bg-secondary p-3">
                   <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-text-muted">
-                    Related suggestions
+                    {tr("Related suggestions")}
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {suggestions.map((item) => (

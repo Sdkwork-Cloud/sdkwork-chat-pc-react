@@ -1,4 +1,5 @@
 import type { ToolMarketItem } from "../entities/tool.entity";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 
 interface ToolCardProps {
   tool: ToolMarketItem;
@@ -23,6 +24,8 @@ function methodBadgeClass(method: string): string {
 }
 
 export function ToolCard({ tool, onAdd, onClick }: ToolCardProps) {
+  const { tr, formatNumber } = useAppTranslation();
+
   return (
     <div
       onClick={onClick}
@@ -47,11 +50,13 @@ export function ToolCard({ tool, onAdd, onClick }: ToolCardProps) {
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 text-xs text-text-muted">
-          <span>{(tool.successRate * 100).toFixed(0)}% success</span>
-          <span>{tool.usageCount.toLocaleString()} calls</span>
+          <span>{tr("{{rate}}% success", {
+            rate: formatNumber(tool.successRate * 100, { maximumFractionDigits: 0 }),
+          })}</span>
+          <span>{tr("{{count}} calls", { count: tool.usageCount })}</span>
         </div>
         {tool.isEnabled ? (
-          <span className="rounded-lg bg-success/10 px-3 py-1 text-xs text-success">Enabled</span>
+          <span className="rounded-lg bg-success/10 px-3 py-1 text-xs text-success">{tr("Enabled")}</span>
         ) : (
           <button
             onClick={(event) => {
@@ -60,7 +65,7 @@ export function ToolCard({ tool, onAdd, onClick }: ToolCardProps) {
             }}
             className="rounded-lg bg-primary px-3 py-1 text-xs text-white hover:bg-primary-hover"
           >
-            Enable
+            {tr("Enable")}
           </button>
         )}
       </div>

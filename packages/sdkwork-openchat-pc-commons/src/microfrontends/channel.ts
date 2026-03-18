@@ -1,14 +1,7 @@
-/**
- * 微前端通信通道实现
- * 
- * 提供微前端之间的安全通信机制，支持事件的发送和接收
- */
+import type { MicroFrontendChannel, MicroFrontendEvent } from "./types";
 
-import { MicroFrontendEvent, MicroFrontendChannel } from './types';
-
-// 自定义事件发射器，兼容浏览器环境
 class EventEmitter {
-  private events: Map<string, Function[]> = new Map();
+  private events = new Map<string, Function[]>();
 
   on(event: string, listener: Function): void {
     if (!this.events.has(event)) {
@@ -19,52 +12,49 @@ class EventEmitter {
 
   emit(event: string, ...args: any[]): void {
     const listeners = this.events.get(event);
-    if (listeners) {
-      listeners.forEach(listener => {
-        try {
-          listener(...args);
-        } catch (error) {
-          console.error('Error in event listener:', error);
-        }
-      });
+    if (!listeners) {
+      return;
+    }
+
+    for (const listener of listeners) {
+      try {
+        listener(...args);
+      } catch (error) {
+        console.error("[MicroFrontendChannel] Listener error:", error);
+      }
     }
   }
 
   off(event: string, listener: Function): void {
     const listeners = this.events.get(event);
-    if (listeners) {
-      this.events.set(event, listeners.filter(l => l !== listener));
+    if (!listeners) {
+      return;
     }
-  }
-
-  once(event: string, listener: Function): void {
-    const onceListener = (...args: any[]) => {
-      listener(...args);
-      this.off(event, onceListener);
-    };
-    this.on(event, onceListener);
+    this.events.set(
+      event,
+      listeners.filter((item) => item !== listener),
+    );
   }
 
   removeAllListeners(event?: string): void {
     if (event) {
       this.events.delete(event);
-    } else {
-      this.events.clear();
+      return;
     }
-  }
-
-  listenerCount(event: string): number {
-    return this.events.get(event)?.length || 0;
-  }
-
-  listeners(event: string): Function[] {
-    return this.events.get(event) || [];
+    this.events.clear();
   }
 }
 
-export class DefaultMicroFrontendChannel extends EventEmitter implements MicroFrontendChannel {
+export class DefaultMicroFrontendChannel
+  extends EventEmitter
+  implements MicroFrontendChannel
+{
   private static instance: DefaultMicroFrontendChannel;
-  private eventListeners = new Map<string, Set<(event: MicroFrontendEvent) => void>>();
+
+  private eventListeners = new Map<
+    string,
+    Set<(event: MicroFrontendEvent) => void>
+  >();
 
   private constructor() {
     super();
@@ -77,87 +67,64 @@ export class DefaultMicroFrontendChannel extends EventEmitter implements MicroFr
     return DefaultMicroFrontendChannel.instance;
   }
 
-  /**
-   * 发送事件
-   */
   send(event: MicroFrontendEvent): void {
-    const timestamp = Date.now();
     const eventWithTimestamp: MicroFrontendEvent = {
       ...event,
-      timestamp,
+      timestamp: Date.now(),
     };
 
-    console.log(`[MicroFrontendChannel] 发送事件: ${event.type} 从 ${event.source} 到 ${event.target || '所有'}`);
+    console.log(
+      `[MicroFrontendChannel] Send event "${event.type}" from "${event.source}" to "${event.target || "all"}"`,
+    );
 
-    // 触发全局事件
-    this.emit('event', eventWithTimestamp);
-
-    // 触发特定类型的事件
+    this.emit("event", eventWithTimestamp);
     this.emit(event.type, eventWithTimestamp);
 
-    // 触发目标特定的事件
     if (event.target) {
       this.emit(`${event.type}:${event.target}`, eventWithTimestamp);
     }
   }
 
-  /**
-   * 监听事件
-   */
   on(type: string, handler: (event: MicroFrontendEvent) => void): void {
     if (!this.eventListeners.has(type)) {
       this.eventListeners.set(type, new Set());
     }
-
-    this.eventListeners.get(type)!.add(handler);
+    this.eventListeners.get(type)?.add(handler);
     super.on(type, handler);
-    console.log(`[MicroFrontendChannel] 注册事件监听器: ${type}`);
+    console.log(`[MicroFrontendChannel] Register listener for "${type}"`);
   }
 
-  /**
-   * 移除事件监听
-   */
   off(type: string, handler: (event: MicroFrontendEvent) => void): void {
-    if (this.eventListeners.has(type)) {
-      this.eventListeners.get(type)!.delete(handler);
-      if (this.eventListeners.get(type)!.size === 0) {
+    const handlers = this.eventListeners.get(type);
+    if (handlers) {
+      handlers.delete(handler);
+      if (handlers.size === 0) {
         this.eventListeners.delete(type);
       }
     }
-
     super.off(type, handler);
-    console.log(`[MicroFrontendChannel] 移除事件监听器: ${type}`);
+    console.log(`[MicroFrontendChannel] Remove listener for "${type}"`);
   }
 
-  /**
-   * 清除所有事件监听
-   */
   clear(): void {
     this.eventListeners.forEach((handlers, type) => {
-      handlers.forEach(handler => {
-        this.off(type, handler);
-      });
+      handlers.forEach((handler) => super.off(type, handler));
     });
-
     this.eventListeners.clear();
     this.removeAllListeners();
-    console.log('[MicroFrontendChannel] 清除所有事件监听器');
+    console.log("[MicroFrontendChannel] Cleared all listeners");
   }
 
-  /**
-   * 获取事件监听器数量
-   */
   getListenerCount(type?: string): number {
     if (type) {
       return this.eventListeners.get(type)?.size || 0;
     }
-
-    return Array.from(this.eventListeners.values()).reduce((total, handlers) => total + handlers.size, 0);
+    return Array.from(this.eventListeners.values()).reduce(
+      (total, handlers) => total + handlers.size,
+      0,
+    );
   }
 
-  /**
-   * 广播事件到所有微前端
-   */
   broadcast(type: string, payload: any, source: string): void {
     this.send({
       type,
@@ -167,9 +134,6 @@ export class DefaultMicroFrontendChannel extends EventEmitter implements MicroFr
     });
   }
 
-  /**
-   * 发送定向事件到特定微前端
-   */
   sendTo(target: string, type: string, payload: any, source: string): void {
     this.send({
       type,
@@ -181,7 +145,6 @@ export class DefaultMicroFrontendChannel extends EventEmitter implements MicroFr
   }
 }
 
-// 导出单例
 export const microFrontendChannel = DefaultMicroFrontendChannel.getInstance();
 
 export default DefaultMicroFrontendChannel;

@@ -1,7 +1,8 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { appAuthService } from "../services";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { UseAuthReturn } from "../hooks/useAuth";
+import { appAuthService } from "../services";
 
 interface RegisterPageProps {
   auth: UseAuthReturn;
@@ -36,6 +37,7 @@ function buildNickname(target: string): string {
 }
 
 export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
+  const { tr } = useAppTranslation();
   const [target, setTarget] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
@@ -46,7 +48,6 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
   const countdownTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -60,22 +61,22 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
   const canSendCode = useMemo(() => {
     const normalizedTarget = target.trim();
     return (
-      normalizedTarget.length > 0 &&
-      (isPhoneTarget(normalizedTarget) || isEmailTarget(normalizedTarget)) &&
-      countdown === 0 &&
-      !submitting &&
-      !auth.isLoading
+      normalizedTarget.length > 0
+      && (isPhoneTarget(normalizedTarget) || isEmailTarget(normalizedTarget))
+      && countdown === 0
+      && !submitting
+      && !auth.isLoading
     );
   }, [auth.isLoading, countdown, submitting, target]);
 
   const canSubmit = useMemo(() => {
     return (
-      target.trim().length > 0 &&
-      code.trim().length > 0 &&
-      password.trim().length > 0 &&
-      confirmPassword.trim().length > 0 &&
-      !submitting &&
-      !auth.isLoading
+      target.trim().length > 0
+      && code.trim().length > 0
+      && password.trim().length > 0
+      && confirmPassword.trim().length > 0
+      && !submitting
+      && !auth.isLoading
     );
   }, [auth.isLoading, code, confirmPassword, password, submitting, target]);
 
@@ -101,6 +102,7 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
           }
           return 0;
         }
+
         return previous - 1;
       });
     }, 1000);
@@ -111,7 +113,7 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
     clearFeedback();
 
     if (!isPhoneTarget(normalizedTarget) && !isEmailTarget(normalizedTarget)) {
-      setError("Please enter a valid phone number or email address.");
+      setError(tr("Please enter a valid phone number or email address."));
       return;
     }
 
@@ -123,9 +125,9 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
         verifyType: isPhoneTarget(normalizedTarget) ? "PHONE" : "EMAIL",
       });
       startCountdown();
-      setSuccessMessage("Verification code sent.");
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to send verification code.");
+      setSuccessMessage(tr("Verification code sent."));
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : tr("Failed to send verification code."));
     } finally {
       setSubmitting(false);
     }
@@ -141,12 +143,12 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
 
     const normalizedTarget = target.trim();
     if (!isPhoneTarget(normalizedTarget) && !isEmailTarget(normalizedTarget)) {
-      setError("Please enter a valid phone number or email address.");
+      setError(tr("Please enter a valid phone number or email address."));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError(tr("Passwords do not match."));
       return;
     }
 
@@ -167,86 +169,78 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
 
       const loginOk = await auth.login(username, password.trim());
       if (!loginOk) {
-        setError(auth.error || "Registration succeeded but login sync failed.");
+        setError(auth.error || tr("Registration succeeded but login sync failed."));
         return;
       }
 
-      setSuccessMessage("Registration successful.");
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Registration failed.");
+      setSuccessMessage(tr("Registration successful."));
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : tr("Registration failed."));
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-4 sm:p-6">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] p-4 sm:p-6">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-16 sm:w-20 h-16 sm:h-20 mx-auto mb-4 rounded-2xl bg-[var(--ai-primary)] flex items-center justify-center shadow-[var(--shadow-glow)]">
-            <svg className="w-8 sm:w-10 h-8 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--ai-primary)] shadow-[var(--shadow-glow)] sm:h-20 sm:w-20">
+            <svg className="h-8 w-8 text-white sm:h-10 sm:w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">OpenChat</h1>
-          <p className="text-sm text-[var(--text-muted)] mt-2">Create account</p>
+          <h1 className="text-xl font-bold text-[var(--text-primary)] sm:text-2xl">{tr("OpenChat")}</h1>
+          <p className="mt-2 text-sm text-[var(--text-muted)]">{tr("Create account")}</p>
         </div>
 
-        <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-color)] p-4 sm:p-6 shadow-[var(--shadow-lg)]">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-6">Register</h2>
+        <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 shadow-[var(--shadow-lg)] sm:p-6">
+          <h2 className="mb-6 text-lg font-semibold text-[var(--text-primary)]">{tr("Register")}</h2>
 
           <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                Phone or Email
-              </label>
+              <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Phone or Email")}</label>
               <input
                 type="text"
                 value={target}
                 onChange={(event) => setTarget(event.target.value)}
-                placeholder="Phone number or email"
-                className="w-full px-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
+                placeholder={tr("Phone number or email")}
+                className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
                 disabled={submitting || auth.isLoading}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                Verification Code
-              </label>
+              <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Verification Code")}</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={code}
                   onChange={(event) => setCode(event.target.value)}
-                  placeholder="Code"
-                  className="flex-1 px-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
+                  placeholder={tr("Code")}
+                  className="flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
                   disabled={submitting || auth.isLoading}
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    void handleSendCode();
-                  }}
+                  onClick={() => void handleSendCode()}
                   disabled={!canSendCode}
-                  className="px-4 py-2.5 bg-[var(--ai-primary)] hover:bg-[var(--ai-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed text-white rounded-xl transition-colors"
+                  className="rounded-xl bg-[var(--ai-primary)] px-4 py-2.5 text-white transition-colors hover:bg-[var(--ai-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--bg-tertiary)]"
                 >
-                  {countdown > 0 ? `${countdown}s` : "Send Code"}
+                  {countdown > 0 ? `${countdown}s` : tr("Send Code")}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                Password
-              </label>
+              <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Password")}</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Password"
-                  className="w-full px-4 py-2.5 pr-12 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
+                  placeholder={tr("Password")}
+                  className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2.5 pr-12 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
                   disabled={submitting || auth.isLoading}
                 />
                 <button
@@ -255,22 +249,20 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
                   onClick={() => setShowPassword((value) => !value)}
                   tabIndex={-1}
                 >
-                  {showPassword ? "Hide" : "Show"}
+                  {showPassword ? tr("Hide") : tr("Show")}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                Confirm Password
-              </label>
+              <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Confirm Password")}</label>
               <div className="relative">
                 <input
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
-                  placeholder="Confirm password"
-                  className="w-full px-4 py-2.5 pr-12 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
+                  placeholder={tr("Confirm password")}
+                  className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2.5 pr-12 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
                   disabled={submitting || auth.isLoading}
                 />
                 <button
@@ -279,40 +271,40 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
                   onClick={() => setShowConfirmPassword((value) => !value)}
                   tabIndex={-1}
                 >
-                  {showConfirmPassword ? "Hide" : "Show"}
+                  {showConfirmPassword ? tr("Hide") : tr("Show")}
                 </button>
               </div>
             </div>
 
-            {(error || auth.error) && (
-              <div className="p-3 bg-[var(--ai-error-soft)] border border-[var(--ai-error)]/20 rounded-xl">
+            {error || auth.error ? (
+              <div className="rounded-xl border border-[var(--ai-error)]/20 bg-[var(--ai-error-soft)] p-3">
                 <p className="text-sm text-[var(--ai-error)]">{error || auth.error}</p>
               </div>
-            )}
+            ) : null}
 
-            {successMessage && (
-              <div className="p-3 bg-[var(--ai-success-soft)] border border-[var(--ai-success)]/20 rounded-xl">
+            {successMessage ? (
+              <div className="rounded-xl border border-[var(--ai-success)]/20 bg-[var(--ai-success-soft)] p-3">
                 <p className="text-sm text-[var(--ai-success)]">{successMessage}</p>
               </div>
-            )}
+            ) : null}
 
             <button
               type="submit"
               disabled={!canSubmit}
-              className="w-full py-3 bg-[var(--ai-primary)] hover:bg-[var(--ai-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors"
+              className="w-full rounded-xl bg-[var(--ai-primary)] py-3 font-medium text-white transition-colors hover:bg-[var(--ai-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--bg-tertiary)]"
             >
-              {submitting || auth.isLoading ? "Registering..." : "Register"}
+              {submitting || auth.isLoading ? tr("Registering...") : tr("Register")}
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-[var(--border-color)] text-center">
+          <div className="mt-6 border-t border-[var(--border-color)] pt-6 text-center">
             <p className="text-sm text-[var(--text-secondary)]">
-              Already have an account?
+              {tr("Already have an account?")}
               <button
                 onClick={onSwitchToLogin}
                 className="ml-1 text-[var(--ai-primary)] hover:underline focus:outline-none"
               >
-                Login now
+                {tr("Login now")}
               </button>
             </p>
           </div>

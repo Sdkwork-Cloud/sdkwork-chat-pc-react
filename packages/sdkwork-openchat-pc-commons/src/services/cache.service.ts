@@ -1,7 +1,4 @@
-﻿/**
- * 缂撳瓨鏈嶅姟
- * 
- * 鎻愪緵缁熶竴鐨勭紦瀛樼鐞嗘帴鍙ｏ紝闆嗘垚鍒嗗眰缂撳瓨绯荤粺锛屾敮鎸佸绉嶇紦瀛樼瓥鐣ャ€? */
+
 
 import { LayeredCache, MemoryCacheLayer, LocalStorageCacheLayer } from '../utils/layeredCache';
 
@@ -20,8 +17,7 @@ export class CacheService {
     this.enableLocalStorage = options.enableLocalStorage !== false;
   }
 
-  /**
-   * 鑾峰彇鎴栧垱寤虹紦瀛?   */
+  
   getCache<K, V>(name: string, options?: { capacity?: number; enableLocalStorage?: boolean }): LayeredCache<K, V> {
     if (!this.caches.has(name)) {
       const capacity = options?.capacity || this.defaultCapacity;
@@ -43,15 +39,12 @@ export class CacheService {
     return this.caches.get(name) as LayeredCache<K, V>;
   }
 
-  /**
-   * 鍒犻櫎缂撳瓨
-   */
+  
   deleteCache(name: string): boolean {
     return this.caches.delete(name);
   }
 
-  /**
-   * 娓呴櫎鎵€鏈夌紦瀛?   */
+  
   async clearAllCaches(): Promise<void> {
     for (const cache of this.caches.values()) {
       await cache.clear();
@@ -59,15 +52,12 @@ export class CacheService {
     this.caches.clear();
   }
 
-  /**
-   * 鑾峰彇鎵€鏈夌紦瀛樺悕绉?   */
+  
   getCacheNames(): string[] {
     return Array.from(this.caches.keys());
   }
 
-  /**
-   * 鑾峰彇缂撳瓨缁熻淇℃伅
-   */
+  
   async getCacheStats(): Promise<Record<string, any>> {
     const stats: Record<string, any> = {};
     
@@ -86,10 +76,8 @@ export class CacheService {
     return stats;
   }
 
-  /**
-   * 鍒濆鍖栭粯璁ょ紦瀛?   */
+  
   initializeDefaultCaches(): void {
-    // 鍒濆鍖栧父鐢ㄧ紦瀛?    this.getCache('messages', { capacity: 500 });
     this.getCache('users', { capacity: 200 });
     this.getCache('conversations', { capacity: 100 });
     this.getCache('files', { capacity: 100 });
@@ -98,8 +86,7 @@ export class CacheService {
     this.getCache('settings', { capacity: 50, enableLocalStorage: true });
   }
 
-  /**
-   * 鍒濆鍖栫紦瀛樻湇鍔?   */
+  
   initialize(options?: CacheServiceOptions): void {
     if (options) {
       this.defaultCapacity = options.defaultCapacity || this.defaultCapacity;
@@ -111,7 +98,6 @@ export class CacheService {
   }
 }
 
-// 鍒涘缓鍏ㄥ眬缂撳瓨鏈嶅姟瀹炰緥
 const cacheService = new CacheService();
 
 export default CacheService;

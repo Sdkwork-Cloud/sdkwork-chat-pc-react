@@ -1,9 +1,4 @@
-/**
- * Agent 实体定义
- *
- * 与后端 API 对齐的智能体领域模型
- * 参考: src/modules/agent/agent.entity.ts, agent.interface.ts
- */
+
 
 export enum AgentStatus {
   IDLE = 'idle',

@@ -1,10 +1,6 @@
-﻿/**
- * 寮傛缁勪欢鍔犺浇鍣? *
- * 鑱岃矗锛氬鐞嗗姩鎬佸鍏ョ殑鍔犺浇鐘舵€佸拰閿欒
- */
-
-import { Suspense, lazy, ComponentType, ReactNode } from 'react';
-import { ErrorBoundary } from '../ErrorBoundary';
+import { Suspense, lazy, type ComponentType, type ReactNode } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import { ErrorBoundary } from "../ErrorBoundary";
 
 interface AsyncComponentOptions {
   fallback?: ReactNode;
@@ -13,27 +9,26 @@ interface AsyncComponentOptions {
   maxRetries?: number;
 }
 
-/**
- * 鍔犺浇涓崰浣嶇粍浠? */
 function DefaultLoadingFallback() {
+  const { tr } = useAppTranslation();
+
   return (
-    <div className="flex items-center justify-center min-h-[200px]">
+    <div className="flex min-h-[200px] items-center justify-center">
       <div className="flex items-center space-x-3">
-        <div className="w-6 h-6 border-2 border-[#0EA5E9] border-t-transparent rounded-full animate-spin" />
-        <span className="text-[#94A3B8] text-sm">鍔犺浇涓?..</span>
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#0EA5E9] border-t-transparent" />
+        <span className="text-sm text-[#94A3B8]">{tr("Loading...")}</span>
       </div>
     </div>
   );
 }
 
-/**
- * 閿欒闄嶇骇缁勪欢
- */
 function DefaultErrorFallback({ onRetry }: { onRetry: () => void }) {
+  const { tr } = useAppTranslation();
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-[200px] p-4">
-      <div className="text-[#EF4444] mb-3">
-        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="flex min-h-[200px] flex-col items-center justify-center p-4">
+      <div className="mb-3 text-[#EF4444]">
+        <svg className="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -42,23 +37,20 @@ function DefaultErrorFallback({ onRetry }: { onRetry: () => void }) {
           />
         </svg>
       </div>
-      <p className="text-[#94A3B8] mb-4">鍔犺浇澶辫触</p>
+      <p className="mb-4 text-[#94A3B8]">{tr("Failed to load component.")}</p>
       <button
         onClick={onRetry}
-        className="px-4 py-2 bg-[#0EA5E9] hover:bg-[#0284C7] text-white rounded-lg transition-colors"
+        className="rounded-lg bg-[#0EA5E9] px-4 py-2 text-white transition-colors hover:bg-[#0284C7]"
       >
-        閲嶈瘯
+        {tr("Retry")}
       </button>
     </div>
   );
 }
 
-/**
- * 鍒涘缓寮傛缁勪欢
- */
 export function createAsyncComponent<T extends ComponentType<any>>(
   importFn: () => Promise<{ default: T }>,
-  options: AsyncComponentOptions = {}
+  options: AsyncComponentOptions = {},
 ) {
   const { fallback, errorFallback, retryDelay = 1000, maxRetries = 3 } = options;
 
@@ -67,16 +59,15 @@ export function createAsyncComponent<T extends ComponentType<any>>(
       let retries = 0;
 
       const load = () => {
-        importFn()
-          .then((result) => resolve(result))
+        void importFn()
+          .then(resolve)
           .catch((error) => {
-            retries++;
+            retries += 1;
             if (retries <= maxRetries) {
-              console.log(`[AsyncComponent] Retry ${retries}/${maxRetries}`);
-              setTimeout(load, retryDelay * retries);
-            } else {
-              reject(error);
+              window.setTimeout(load, retryDelay * retries);
+              return;
             }
+            reject(error);
           });
       };
 
@@ -87,7 +78,7 @@ export function createAsyncComponent<T extends ComponentType<any>>(
   return function AsyncComponent(props: React.ComponentProps<T>) {
     return (
       <ErrorBoundary fallback={errorFallback}>
-        <Suspense fallback={fallback || <DefaultLoadingFallback />}>
+        <Suspense fallback={fallback ?? <DefaultLoadingFallback />}>
           <LazyComponent {...props} />
         </Suspense>
       </ErrorBoundary>
@@ -95,30 +86,25 @@ export function createAsyncComponent<T extends ComponentType<any>>(
   };
 }
 
-/**
- * 棰勫姞杞藉紓姝ョ粍浠? */
 export function preloadComponent<T extends ComponentType<any>>(
-  importFn: () => Promise<{ default: T }>
+  importFn: () => Promise<{ default: T }>,
 ): Promise<{ default: T }> {
   return importFn();
 }
 
-/**
- * 璺敱绾у埆鐨勫紓姝ョ粍浠? */
 export function createRouteComponent<T extends ComponentType<any>>(
   importFn: () => Promise<{ default: T }>,
-  options: AsyncComponentOptions = {}
+  options: AsyncComponentOptions = {},
 ) {
   const { fallback, errorFallback } = options;
-
   const LazyComponent = lazy(importFn);
 
   return function RouteComponent(props: React.ComponentProps<T>) {
     return (
       <ErrorBoundary
         fallback={
-          errorFallback || (
-            <div className="min-h-screen flex items-center justify-center bg-[#0F172A]">
+          errorFallback ?? (
+            <div className="flex min-h-screen items-center justify-center bg-[#0F172A]">
               <DefaultErrorFallback onRetry={() => window.location.reload()} />
             </div>
           )
@@ -126,8 +112,8 @@ export function createRouteComponent<T extends ComponentType<any>>(
       >
         <Suspense
           fallback={
-            fallback || (
-              <div className="min-h-screen flex items-center justify-center bg-[#0F172A]">
+            fallback ?? (
+              <div className="flex min-h-screen items-center justify-center bg-[#0F172A]">
                 <DefaultLoadingFallback />
               </div>
             )
@@ -141,4 +127,3 @@ export function createRouteComponent<T extends ComponentType<any>>(
 }
 
 export default createAsyncComponent;
-

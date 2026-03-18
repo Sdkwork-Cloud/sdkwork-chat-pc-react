@@ -1,4 +1,4 @@
-﻿import { codeGenerator } from '../tools/code-generator';
+import { codeGenerator } from '../tools/code-generator';
 import { toolchainConfig } from '../tools/toolchain.config';
 import { ComponentTemplateOptions, ServiceTemplateOptions } from '../tools/code-generator';
 
@@ -68,6 +68,5 @@ export class ToolchainServiceImpl implements ToolchainService {
   }
 }
 
-// 瀵煎嚭鍗曚緥瀹炰緥
 export const toolchainService = new ToolchainServiceImpl();
 

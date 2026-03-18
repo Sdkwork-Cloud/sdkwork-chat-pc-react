@@ -1,12 +1,4 @@
-﻿/**
- * RTC Service
- *
- * 鑱岃矗锛?
- * 1. 灏佽 RTC 涓氬姟閫昏緫
- * 2. 绠＄悊閫氳瘽鐢熷懡鍛ㄦ湡
- * 3. 澶勭悊淇′护閫氫俊
- * 4. 鍗忚皟 Repository 鍜?UI 鐘舵€?
- */
+
 
 import type {
   CallSession,
@@ -27,20 +19,15 @@ import {
   DeviceInfo,
 } from './sdk-adapter';
 
-// 褰撳墠鐢ㄦ埛 ID锛堝簲璇ヤ粠鐢ㄦ埛鏈嶅姟鑾峰彇锛?
 const CURRENT_USER_ID = 'current-user';
 
-// 妯℃嫙淇′护鏈嶅姟鍣紙鐢ㄤ簬娴嬭瘯锛?
 const MOCK_SIGNALING = true;
 
-// 鐗堟湰鏍囪鐢ㄤ簬寮哄埗鍒锋柊缂撳瓨 - 姣忔淇敼鍚庢洿鏂版鐗堟湰鍙?
 const RTC_SERVICE_VERSION = '1.0.9';
 
 
 
-/**
- * RTC Service 绫?
- */
+
 export class RTCService {
   private session: CallSession | null = null;
   private rtcSdk: any = null;
@@ -64,15 +51,12 @@ export class RTCService {
     this.initRTCSDK();
   }
 
-  /**
-   * 鍒濆鍖?RTC SDK
-   */
+  
   private async initRTCSDK() {
     try {
       this.rtcSdk = createRTCSDK(this.rtcConfig);
       await this.rtcSdk.init(this.rtcConfig);
       
-      // 娉ㄥ唽浜嬩欢鐩戝惉
       this.rtcSdk.on('stream-added', (event: any) => {
         console.log('[RTC] Stream added:', event);
       });
@@ -93,9 +77,7 @@ export class RTCService {
     }
   }
 
-  /**
-   * 鍙戣捣閫氳瘽
-   */
+  
   async initiateCall(
     calleeId: string,
     calleeName: string,
@@ -105,7 +87,6 @@ export class RTCService {
     try {
       console.log('[RTC] Initiating call to:', calleeId, 'type:', callType);
 
-      // 鍒涘缓閫氳瘽浼氳瘽
       const session: CallSession = {
         id: this.generateCallId(),
         callType,
@@ -124,7 +105,6 @@ export class RTCService {
       this.session = session;
       this.notifySessionChange();
 
-      // 鍒涘缓鎴块棿
       console.log('[RTC] Creating room...');
       const { room, token } = await createRoom({
         type: 'p2p',
@@ -136,15 +116,12 @@ export class RTCService {
       this.session.status = 'ringing';
       this.notifySessionChange();
 
-      // 鍒濆鍖?RTC SDK 杩炴帴锛堥敊璇笉褰卞搷閫氳瘽娴佺▼锛?
       try {
         await this.initRTCConnection(callType, room.id, token.token);
       } catch (rtcError) {
-        // RTC 鍒濆鍖栧け璐ワ紙濡傛棤璁惧锛夛紝浣嗙户缁€氳瘽娴佺▼
         console.error('[RTC] Failed to initialize RTC connection:', rtcError);
       }
 
-      // 鍙戦€佸懠鍙俊浠わ紙閫氳繃 IM 鎴栧叾浠栨柟寮忥級
       this.sendSignal({
         type: 'call',
         callId: session.id,
@@ -158,7 +135,6 @@ export class RTCService {
         timestamp: new Date().toISOString(),
       });
 
-      // 妯℃嫙锛?绉掑悗鑷姩鎺ュ惉锛堟祴璇曠敤锛?
       if (MOCK_SIGNALING) {
         setTimeout(() => {
           console.log('[RTC] Mock: Auto accepting call after 3s');
@@ -181,9 +157,7 @@ export class RTCService {
     }
   }
 
-  /**
-   * 鎺ュ惉閫氳瘽
-   */
+  
   async acceptCall(callId: string, roomId: string, callType: CallType): Promise<boolean> {
     try {
       console.log('[RTC] Accepting call:', callId);
@@ -192,18 +166,14 @@ export class RTCService {
         throw new Error('Call session not found');
       }
 
-      // 鏇存柊鐘舵€?
       this.session.status = 'connecting';
       this.session.connectTime = new Date().toISOString();
       this.notifySessionChange();
 
-      // 鑾峰彇浠ょ墝
       const tokenResult = await getToken(roomId);
 
-      // 鍒濆鍖?RTC 杩炴帴
       await this.initRTCConnection(callType, roomId, tokenResult.token);
 
-      // 鍙戦€佹帴鍙椾俊浠?
       this.sendSignal({
         type: 'accept',
         callId,
@@ -224,9 +194,7 @@ export class RTCService {
     }
   }
 
-  /**
-   * 鎷掔粷閫氳瘽
-   */
+  
   async rejectCall(callId: string): Promise<boolean> {
     if (!this.session || this.session.id !== callId) {
       return false;
@@ -234,7 +202,6 @@ export class RTCService {
 
     console.log('[RTC] Rejecting call:', callId);
 
-    // 鍙戦€佹嫆缁濅俊浠?
     this.sendSignal({
       type: 'reject',
       callId,
@@ -255,9 +222,7 @@ export class RTCService {
     return true;
   }
 
-  /**
-   * 鎸傛柇閫氳瘽
-   */
+  
   async hangup(): Promise<boolean> {
     if (!this.session) {
       return false;
@@ -267,7 +232,6 @@ export class RTCService {
 
     const { roomId, remoteUserId } = this.session;
 
-    // 鍙戦€佹寕鏂俊浠?
     if (remoteUserId) {
       this.sendSignal({
         type: 'hangup',
@@ -278,7 +242,6 @@ export class RTCService {
       });
     }
 
-    // 缁撴潫鎴块棿
     if (roomId) {
       try {
         await endRoom(roomId);
@@ -296,9 +259,7 @@ export class RTCService {
     return true;
   }
 
-  /**
-   * 澶勭悊鏉ョ數
-   */
+  
   handleIncomingCall(
     callId: string,
     callerId: string,
@@ -329,9 +290,7 @@ export class RTCService {
     this.notifySessionChange();
   }
 
-  /**
-   * 澶勭悊淇′护
-   */
+  
   async handleSignal(signal: CallSignal) {
     console.log('[RTC] Received signal:', signal.type);
 
@@ -351,15 +310,12 @@ export class RTCService {
           await this.handleHangup();
           break;
         case 'offer':
-          // 淇′护澶勭悊鐜板湪鐢?RTC SDK 鎶借薄灞傜鐞?
           console.log('[RTC] Received offer signal, handled by SDK');
           break;
         case 'answer':
-          // 淇′护澶勭悊鐜板湪鐢?RTC SDK 鎶借薄灞傜鐞?
           console.log('[RTC] Received answer signal, handled by SDK');
           break;
         case 'ice-candidate':
-          // 淇′护澶勭悊鐜板湪鐢?RTC SDK 鎶借薄灞傜鐞?
           console.log('[RTC] Received ice-candidate signal, handled by SDK');
           break;
       }
@@ -368,9 +324,7 @@ export class RTCService {
     }
   }
 
-  /**
-   * 鍒囨崲楹﹀厠椋?
-   */
+  
   async toggleMute(): Promise<boolean> {
     try {
       if (this.session) {
@@ -386,9 +340,7 @@ export class RTCService {
     }
   }
 
-  /**
-   * 鍒囨崲鎽勫儚澶?
-   */
+  
   async toggleCamera(): Promise<boolean> {
     try {
       if (this.session) {
@@ -404,9 +356,7 @@ export class RTCService {
     }
   }
 
-  /**
-   * 鍒囨崲鎵０鍣?
-   */
+  
   async toggleSpeaker(): Promise<boolean> {
     try {
       if (this.session) {
@@ -420,27 +370,21 @@ export class RTCService {
     }
   }
 
-  /**
-   * 鑾峰彇褰撳墠浼氳瘽
-   */
+  
   getSession(): CallSession | null {
     return this.session;
   }
 
-  /**
-   * 鍒濆鍖?RTC 杩炴帴
-   */
+  
   private async initRTCConnection(callType: CallType, roomId: string, token: string) {
     if (!this.rtcSdk) {
       throw new Error('RTC SDK not initialized');
     }
 
     try {
-      // 鍔犲叆鎴块棿
       await this.rtcSdk.joinRoom(roomId, CURRENT_USER_ID, token, callType);
       console.log('[RTC] Joined room:', roomId);
 
-      // 鑾峰彇鏈湴濯掍綋娴?
       console.log('[RTC] Getting local stream...');
       const localStream = await this.rtcSdk.getLocalStream({
         video: callType === 'video',
@@ -451,23 +395,18 @@ export class RTCService {
         console.log('[RTC] Local stream obtained');
         this.onLocalStream?.(localStream);
 
-        // 鍙戝竷鏈湴娴?
         await this.rtcSdk.publishStream(localStream);
         console.log('[RTC] Local stream published');
 
-        // 璁㈤槄杩滅▼娴?
         if (this.session?.remoteUserId) {
           await this.rtcSdk.subscribeStream(this.session.remoteUserId);
           console.log('[RTC] Subscribed to remote stream');
         }
       } else {
-        // 鍦ㄦā鎷熸ā寮忎笅锛屽嵆浣挎病鏈夎澶囦篃缁х画閫氳瘽娴佺▼
         if (MOCK_SIGNALING) {
-          // 鏇存柊浼氳瘽鐘舵€侊紝鏍囪娌℃湁濯掍綋璁惧
           if (this.session) {
             this.session.isCameraOff = true;
             this.session.isMuted = true;
-            // 娣诲姞閿欒淇℃伅鎻愮ず鐢ㄦ埛
             this.session.error = 'No camera or microphone device detected';
             this.notifySessionChange();
           }
@@ -479,20 +418,16 @@ export class RTCService {
     }
   }
 
-  /**
-   * 妯℃嫙鎺ュ惉閫氳瘽锛堟祴璇曠敤锛?
-   */
+  
   private async simulateAcceptCall() {
     if (!this.session) return;
 
     console.log('[RTC] Simulating accept call');
 
-    // 鏇存柊鐘舵€?
     this.session.status = 'connecting';
     this.session.connectTime = new Date().toISOString();
     this.notifySessionChange();
 
-    // 妯℃嫙锛?绉掑悗杩炴帴鎴愬姛
     setTimeout(() => {
       if (this.session) {
         this.session.status = 'connected';
@@ -502,9 +437,7 @@ export class RTCService {
     }, 1000);
   }
 
-  /**
-   * 澶勭悊鎺ュ彈
-   */
+  
   private async handleAccept() {
     if (!this.session) return;
 
@@ -514,9 +447,7 @@ export class RTCService {
     this.notifySessionChange();
   }
 
-  /**
-   * 澶勭悊鎷掔粷
-   */
+  
   private async handleReject() {
     if (!this.session) return;
 
@@ -528,9 +459,7 @@ export class RTCService {
     await this.cleanup();
   }
 
-  /**
-   * 澶勭悊鎸傛柇
-   */
+  
   private async handleHangup() {
     if (!this.session) return;
 
@@ -542,9 +471,7 @@ export class RTCService {
     await this.cleanup();
   }
 
-  /**
-   * 璁惧绠＄悊鏂规硶
-   */
+  
   async getDevices(deviceType: DeviceType): Promise<DeviceInfo[]> {
     try {
       if (!this.rtcSdk) {
@@ -570,41 +497,30 @@ export class RTCService {
     }
   }
 
-  /**
-   * 鍙戦€佷俊浠?
-   */
+  
   private sendSignal(signal: CallSignal) {
     console.log('[RTC] Sending signal:', signal.type, 'to:', signal.to);
 
-    // 杩欓噷搴旇閫氳繃 IM 鏈嶅姟鍙戦€佷俊浠?
-    // 鏆傛椂鐩存帴璋冪敤鍥炶皟
     this.signalHandler?.(signal);
 
-    // 妯℃嫙锛氬鏋滄槸 call 淇′护锛屾ā鎷熷鏂规敹鍒?
     if (MOCK_SIGNALING && signal.type === 'call') {
       console.log('[RTC] Mock: Simulating remote user receiving call');
     }
   }
 
-  /**
-   * 閫氱煡浼氳瘽鍙樺寲
-   */
+  
   private notifySessionChange() {
     if (this.session) {
       this.onSessionChange?.({ ...this.session });
     }
   }
 
-  /**
-   * 鐢熸垚閫氳瘽 ID
-   */
+  
   private generateCallId(): string {
     return generateUUID();
   }
 
-  /**
-   * 娓呯悊璧勬簮
-   */
+  
   private async cleanup() {
     console.log('[RTC] Cleaning up resources');
     
@@ -623,12 +539,9 @@ export class RTCService {
   }
 }
 
-// 鍗曚緥瀹炰緥
 let rtcServiceInstance: RTCService | null = null;
 
-/**
- * RTC Service 鏋勯€犲嚱鏁板弬鏁扮被鍨?
- */
+
 interface RTCServiceCallbacks {
   onSessionChange?: (session: CallSession | null) => void;
   onLocalStream?: (stream: MediaStream) => void;
@@ -636,9 +549,7 @@ interface RTCServiceCallbacks {
   onSignal?: (signal: CallSignal) => void;
 }
 
-/**
- * 鑾峰彇 RTC Service 瀹炰緥
- */
+
 export function getRTCService(callbacks?: RTCServiceCallbacks): RTCService {
   if (!rtcServiceInstance) {
     rtcServiceInstance = new RTCService(callbacks);
@@ -646,9 +557,7 @@ export function getRTCService(callbacks?: RTCServiceCallbacks): RTCService {
   return rtcServiceInstance;
 }
 
-/**
- * 閿€姣?RTC Service 瀹炰緥
- */
+
 export function destroyRTCService() {
   rtcServiceInstance = null;
 }

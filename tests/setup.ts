@@ -1,16 +1,17 @@
 /**
- * 测试环境初始化
- * 
- * 职责：配置测试全局设置和 mock
+ * Test environment bootstrap.
+ *
+ * Responsibilities:
+ * - configure global browser mocks
+ * - provide stable storage behavior
+ * - force a deterministic locale for UI rendering tests
  */
 
-import '@testing-library/jest-dom';
-import { vi } from 'vitest';
+import "@testing-library/jest-dom";
+import { vi } from "vitest";
+import { initializeI18n } from "@sdkwork/openchat-pc-i18n";
 
-// ==================== 全局 Mock ====================
-
-// Mock window.matchMedia
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
     matches: false,
@@ -24,31 +25,28 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock IntersectionObserver
 class MockIntersectionObserver {
   observe = vi.fn();
   disconnect = vi.fn();
   unobserve = vi.fn();
 }
 
-Object.defineProperty(window, 'IntersectionObserver', {
+Object.defineProperty(window, "IntersectionObserver", {
   writable: true,
   value: MockIntersectionObserver,
 });
 
-// Mock ResizeObserver
 class MockResizeObserver {
   observe = vi.fn();
   disconnect = vi.fn();
   unobserve = vi.fn();
 }
 
-Object.defineProperty(window, 'ResizeObserver', {
+Object.defineProperty(window, "ResizeObserver", {
   writable: true,
   value: MockResizeObserver,
 });
 
-// Mock localStorage
 const localStorageStore = new Map<string, string>();
 const localStorageMock = {
   getItem: vi.fn((key: string) => (localStorageStore.has(key) ? localStorageStore.get(key)! : null)),
@@ -67,39 +65,42 @@ const localStorageMock = {
   },
 };
 
-Object.defineProperty(window, 'localStorage', {
+Object.defineProperty(window, "localStorage", {
   value: localStorageMock,
 });
 
-// Mock URL.createObjectURL / revokeObjectURL
-Object.defineProperty(window.URL, 'createObjectURL', {
+localStorageStore.set("openchat.locale", "en-US");
+
+Object.defineProperty(window.URL, "createObjectURL", {
   writable: true,
   value: vi.fn(),
 });
 
-Object.defineProperty(window.URL, 'revokeObjectURL', {
+Object.defineProperty(window.URL, "revokeObjectURL", {
   writable: true,
   value: vi.fn(),
 });
 
-// ==================== 测试工具函数 ====================
+beforeAll(async () => {
+  await initializeI18n();
+});
 
 /**
- * 创建测试用的 Platform Mock
+ * Creates a platform mock for browser-focused tests.
  */
 export function createMockPlatform() {
   return {
-    getPlatform: vi.fn().mockReturnValue('web'),
-    getDeviceId: vi.fn().mockResolvedValue('test-device-id'),
+    getPlatform: vi.fn().mockReturnValue("web"),
+    getDeviceId: vi.fn().mockResolvedValue("test-device-id"),
     setStorage: vi.fn().mockResolvedValue(undefined),
     getStorage: vi.fn().mockResolvedValue(null),
     removeStorage: vi.fn().mockResolvedValue(undefined),
     copy: vi.fn().mockResolvedValue(undefined),
-    readClipboard: vi.fn().mockResolvedValue(''),
+    readClipboard: vi.fn().mockResolvedValue(""),
     openExternal: vi.fn().mockResolvedValue(undefined),
     selectFile: vi.fn().mockResolvedValue([]),
     saveFile: vi.fn().mockResolvedValue(undefined),
-    readFile: vi.fn().mockResolvedValue(''),
+    readFile: vi.fn().mockResolvedValue(""),
     writeFile: vi.fn().mockResolvedValue(undefined),
     minimizeWindow: vi.fn().mockResolvedValue(undefined),
     maximizeWindow: vi.fn().mockResolvedValue(undefined),
@@ -116,9 +117,14 @@ export function createMockPlatform() {
   };
 }
 
-// ==================== 全局清理 ====================
+beforeEach(async () => {
+  const { setAppLanguage } = await import("@sdkwork/openchat-pc-i18n");
+  localStorageStore.set("openchat.locale", "en-US");
+  await setAppLanguage("en-US");
+});
 
 afterEach(() => {
   localStorageStore.clear();
+  localStorageStore.set("openchat.locale", "en-US");
   vi.clearAllMocks();
 });

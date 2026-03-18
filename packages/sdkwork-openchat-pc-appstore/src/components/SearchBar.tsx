@@ -1,4 +1,5 @@
-﻿import { memo } from "react";
+import { memo } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 
 interface SearchBarProps {
   value: string;
@@ -8,12 +9,14 @@ interface SearchBarProps {
 
 export const SearchBar = memo(
   ({ value, onChange, placeholder = "Search apps, tags, or capabilities..." }: SearchBarProps) => {
+    const { tr } = useAppTranslation();
+
     return (
       <div className="relative">
         <input
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
+          placeholder={tr(placeholder)}
           className="h-11 w-full rounded-xl border border-border bg-bg-tertiary pl-10 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
         />
         <svg
@@ -31,10 +34,12 @@ export const SearchBar = memo(
         </svg>
         {value ? (
           <button
+            type="button"
             onClick={() => onChange("")}
+            aria-label={tr("Clear search")}
             className="absolute right-3 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-bg-secondary text-text-muted hover:bg-bg-hover hover:text-text-primary"
           >
-            ×
+            x
           </button>
         ) : null}
       </div>

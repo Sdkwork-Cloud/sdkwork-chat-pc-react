@@ -1,7 +1,4 @@
-/**
- * Settings Module Type Definitions
- * 设置模块类型定义
- */
+
 
 export type ThemeType = 'light' | 'dark' | 'blue' | 'purple' | 'green' | 'system';
 
@@ -35,37 +32,27 @@ export interface ModelConfig {
 }
 
 export interface NotificationSettings {
-  // 消息通知
   messagePreview: boolean;
   messageSound: boolean;
   messageVibration: boolean;
-  // 群组通知
   groupMessage: boolean;
   groupMention: boolean;
-  // 系统通知
   systemUpdates: boolean;
   marketingEmails: boolean;
-  // 免打扰
   doNotDisturb: boolean;
   doNotDisturbStart: string;
   doNotDisturbEnd: string;
 }
 
 export interface PrivacySettings {
-  // 在线状态
   onlineStatus: 'everyone' | 'contacts' | 'nobody';
-  // 最后上线时间
   lastSeen: 'everyone' | 'contacts' | 'nobody';
-  // 个人资料
   profilePhoto: 'everyone' | 'contacts' | 'nobody';
   phoneNumber: 'everyone' | 'contacts' | 'nobody';
-  // 添加方式
   addByPhone: boolean;
   addByUsername: boolean;
   addByQRCode: boolean;
-  // 已读回执
   readReceipts: boolean;
-  // 截屏通知
   screenshotNotification: boolean;
 }
 

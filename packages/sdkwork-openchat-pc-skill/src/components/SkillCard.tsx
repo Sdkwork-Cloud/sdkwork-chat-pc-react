@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { SkillMarketItem } from "../entities/skill.entity";
 
 interface SkillCardProps {
@@ -9,6 +10,8 @@ interface SkillCardProps {
 }
 
 export function SkillCard({ skill, onEnable, onDisable, onClick, disabled = false }: SkillCardProps) {
+  const { formatNumber, tr } = useAppTranslation();
+
   return (
     <div
       onClick={onClick}
@@ -40,11 +43,16 @@ export function SkillCard({ skill, onEnable, onDisable, onClick, disabled = fals
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 text-xs text-text-muted">
-          <span>{skill.rating.toFixed(1)} rating</span>
-          <span>{skill.usageCount.toLocaleString()} uses</span>
+          <span>{tr("{{value}} rating", {
+            value: formatNumber(skill.rating, {
+              minimumFractionDigits: 1,
+              maximumFractionDigits: 1,
+            }),
+          })}</span>
+          <span>{tr("{{count}} uses", { count: skill.usageCount })}</span>
           {skill.isEnabled && !skill.isConfigured ? (
             <span className="rounded bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning">
-              Needs config
+              {tr("Needs config")}
             </span>
           ) : null}
         </div>
@@ -60,7 +68,7 @@ export function SkillCard({ skill, onEnable, onDisable, onClick, disabled = fals
             disabled={disabled}
             className="rounded-md border border-success/40 bg-success/10 px-3 py-1 text-xs text-success transition-colors hover:bg-success/20 disabled:cursor-not-allowed"
           >
-            Enabled
+            {tr("Enabled")}
           </button>
         ) : (
           <button
@@ -73,7 +81,7 @@ export function SkillCard({ skill, onEnable, onDisable, onClick, disabled = fals
             disabled={disabled}
             className="rounded-md bg-primary px-3 py-1 text-xs text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed"
           >
-            Enable
+            {tr("Enable")}
           </button>
         )}
       </div>

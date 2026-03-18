@@ -1,8 +1,4 @@
-/**
- * 联系人实体
- *
- * 职责：定义联系人领域模型
- */
+
 
 export interface Friend {
   id: string;
@@ -15,7 +11,7 @@ export interface Friend {
   initial?: string;
   region?: string;
   signature?: string;
-  remark?: string; // 备注名
+  remark?: string; 
   phone?: string;
   email?: string;
   addTime?: string;

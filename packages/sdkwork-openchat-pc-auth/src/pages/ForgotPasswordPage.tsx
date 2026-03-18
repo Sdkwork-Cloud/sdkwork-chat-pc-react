@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { UseAuthReturn } from "../hooks/useAuth";
 
 interface ForgotPasswordPageProps {
@@ -18,6 +19,7 @@ function isValidPhone(value: string): boolean {
 }
 
 export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPageProps) {
+  const { tr } = useAppTranslation();
   const [method, setMethod] = useState<RecoveryMethod>("email");
   const [stage, setStage] = useState<ResetStage>("request");
   const [email, setEmail] = useState("");
@@ -43,17 +45,20 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
 
   const validateAccount = (): boolean => {
     if (!account) {
-      setLocalError("Email or phone is required.");
+      setLocalError(tr("Email or phone is required."));
       return false;
     }
+
     if (method === "email" && !isValidEmail(account)) {
-      setLocalError("Please enter a valid email address.");
+      setLocalError(tr("Please enter a valid email address."));
       return false;
     }
+
     if (method === "phone" && !isValidPhone(account)) {
-      setLocalError("Please enter a valid mainland China phone number.");
+      setLocalError(tr("Please enter a valid mainland China phone number."));
       return false;
     }
+
     return true;
   };
 
@@ -62,12 +67,14 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
     if (!validateAccount()) {
       return;
     }
+
     const ok = await auth.requestPasswordReset(account, channel);
     if (!ok) {
-      setLocalError(auth.error || "Failed to send reset code.");
+      setLocalError(auth.error || tr("Failed to send reset code."));
       return;
     }
-    setSuccessMessage("Verification code sent.");
+
+    setSuccessMessage(tr("Verification code sent."));
     setStage("verify");
   };
 
@@ -76,19 +83,21 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
     if (!validateAccount()) {
       return;
     }
+
     const normalizedCode = code.trim();
     if (!normalizedCode) {
-      setLocalError("Verification code is required.");
+      setLocalError(tr("Verification code is required."));
       return;
     }
 
     const ok = await auth.verifyPasswordResetCode(account, normalizedCode, channel);
     if (!ok) {
-      setLocalError(auth.error || "Verification code is invalid.");
+      setLocalError(auth.error || tr("Verification code is invalid."));
       return;
     }
+
     setVerifiedCode(normalizedCode);
-    setSuccessMessage("Code verification succeeded.");
+    setSuccessMessage(tr("Code verification succeeded."));
     setStage("reset");
   };
 
@@ -97,47 +106,51 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
     if (!validateAccount()) {
       return;
     }
+
     if (!verifiedCode) {
-      setLocalError("Please verify the code first.");
+      setLocalError(tr("Please verify the code first."));
       setStage("verify");
       return;
     }
+
     if (!newPassword || newPassword.length < 6) {
-      setLocalError("Password must be at least 6 characters.");
+      setLocalError(tr("Password must be at least 6 characters."));
       return;
     }
+
     if (newPassword !== confirmPassword) {
-      setLocalError("Passwords do not match.");
+      setLocalError(tr("Passwords do not match."));
       return;
     }
 
     const ok = await auth.resetPassword(account, verifiedCode, newPassword, confirmPassword);
     if (!ok) {
-      setLocalError(auth.error || "Failed to reset password.");
+      setLocalError(auth.error || tr("Failed to reset password."));
       return;
     }
-    setSuccessMessage("Password reset succeeded.");
+
+    setSuccessMessage(tr("Password reset succeeded."));
     setStage("done");
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-4">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-[var(--ai-primary)] flex items-center justify-center shadow-[var(--shadow-glow)]">
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--ai-primary)] shadow-[var(--shadow-glow)]">
+            <svg className="h-10 w-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">OpenChat</h1>
-          <p className="text-sm text-[var(--text-muted)] mt-2">Reset Password</p>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{tr("OpenChat")}</h1>
+          <p className="mt-2 text-sm text-[var(--text-muted)]">{tr("Reset Password")}</p>
         </div>
 
-        <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-color)] p-6 shadow-[var(--shadow-lg)]">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-6">Forgot Password</h2>
+        <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-[var(--shadow-lg)]">
+          <h2 className="mb-6 text-lg font-semibold text-[var(--text-primary)]">{tr("Forgot Password")}</h2>
 
-          <div className="flex space-x-4 mb-4">
-            <label className="flex items-center cursor-pointer">
+          <div className="mb-4 flex space-x-4">
+            <label className="flex cursor-pointer items-center">
               <input
                 type="radio"
                 name="recoveryMethod"
@@ -147,12 +160,12 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
                   clearFeedback();
                   setMethod("email");
                 }}
-                className="h-4 w-4 text-[var(--ai-primary)] focus:ring-[var(--ai-primary)] border-[var(--border-color)]"
+                className="h-4 w-4 border-[var(--border-color)] text-[var(--ai-primary)] focus:ring-[var(--ai-primary)]"
                 disabled={auth.isLoading || stage !== "request"}
               />
-              <span className="ml-2 text-sm text-[var(--text-secondary)]">Email</span>
+              <span className="ml-2 text-sm text-[var(--text-secondary)]">{tr("Email")}</span>
             </label>
-            <label className="flex items-center cursor-pointer">
+            <label className="flex cursor-pointer items-center">
               <input
                 type="radio"
                 name="recoveryMethod"
@@ -162,166 +175,158 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
                   clearFeedback();
                   setMethod("phone");
                 }}
-                className="h-4 w-4 text-[var(--ai-primary)] focus:ring-[var(--ai-primary)] border-[var(--border-color)]"
+                className="h-4 w-4 border-[var(--border-color)] text-[var(--ai-primary)] focus:ring-[var(--ai-primary)]"
                 disabled={auth.isLoading || stage !== "request"}
               />
-              <span className="ml-2 text-sm text-[var(--text-secondary)]">Phone</span>
+              <span className="ml-2 text-sm text-[var(--text-secondary)]">{tr("Phone")}</span>
             </label>
           </div>
 
           <div className="space-y-4">
             {method === "email" ? (
               <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Email</label>
+                <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Email")}</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="Please enter your email"
-                  className="w-full px-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--ai-primary)] focus:ring-1 focus:ring-[var(--ai-primary)] transition-colors"
+                  placeholder={tr("Please enter your email")}
+                  className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--ai-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
                   disabled={auth.isLoading}
                 />
               </div>
             ) : (
               <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Phone</label>
+                <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Phone")}</label>
                 <input
                   type="tel"
                   value={phone}
                   onChange={(event) => setPhone(event.target.value)}
-                  placeholder="Please enter your phone number"
-                  className="w-full px-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--ai-primary)] focus:ring-1 focus:ring-[var(--ai-primary)] transition-colors"
+                  placeholder={tr("Please enter your phone number")}
+                  className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--ai-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
                   disabled={auth.isLoading}
                 />
               </div>
             )}
 
-            {(stage === "verify" || stage === "reset") && (
+            {stage === "verify" || stage === "reset" ? (
               <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Verification Code</label>
+                <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Verification Code")}</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={code}
                     onChange={(event) => setCode(event.target.value)}
-                    placeholder="Please enter verification code"
-                    className="flex-1 px-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--ai-primary)] focus:ring-1 focus:ring-[var(--ai-primary)] transition-colors"
+                    placeholder={tr("Please enter verification code")}
+                    className="flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--ai-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
                     disabled={auth.isLoading || stage === "reset"}
                   />
-                  {stage === "verify" && (
+                  {stage === "verify" ? (
                     <button
                       type="button"
-                      onClick={() => {
-                        void handleSendCode();
-                      }}
+                      onClick={() => void handleSendCode()}
                       disabled={auth.isLoading}
-                      className="px-4 py-2.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded-xl border border-[var(--border-color)] hover:border-[var(--ai-primary)] transition-colors"
+                      className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2.5 text-[var(--text-secondary)] transition-colors hover:border-[var(--ai-primary)]"
                     >
-                      Resend
+                      {tr("Resend")}
                     </button>
-                  )}
+                  ) : null}
                 </div>
               </div>
-            )}
+            ) : null}
 
-            {stage === "reset" && (
+            {stage === "reset" ? (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">New Password</label>
+                  <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("New Password")}</label>
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(event) => setNewPassword(event.target.value)}
-                    placeholder="Please enter new password"
-                    className="w-full px-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--ai-primary)] focus:ring-1 focus:ring-[var(--ai-primary)] transition-colors"
+                    placeholder={tr("Please enter new password")}
+                    className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--ai-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
                     disabled={auth.isLoading}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Confirm Password</label>
+                  <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Confirm Password")}</label>
                   <input
                     type="password"
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
-                    placeholder="Please confirm new password"
-                    className="w-full px-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--ai-primary)] focus:ring-1 focus:ring-[var(--ai-primary)] transition-colors"
+                    placeholder={tr("Please confirm new password")}
+                    className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--ai-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
                     disabled={auth.isLoading}
                   />
                 </div>
               </>
-            )}
+            ) : null}
           </div>
 
-          {(localError || auth.error) && (
-            <div className="p-3 bg-[var(--ai-error-soft)] border border-[var(--ai-error)]/20 rounded-xl mt-4">
+          {localError || auth.error ? (
+            <div className="mt-4 rounded-xl border border-[var(--ai-error)]/20 bg-[var(--ai-error-soft)] p-3">
               <p className="text-sm text-[var(--ai-error)]">{localError || auth.error}</p>
             </div>
-          )}
+          ) : null}
 
-          {successMessage && (
-            <div className="p-3 bg-[var(--ai-success-soft)] border border-[var(--ai-success)]/20 rounded-xl mt-4">
+          {successMessage ? (
+            <div className="mt-4 rounded-xl border border-[var(--ai-success)]/20 bg-[var(--ai-success-soft)] p-3">
               <p className="text-sm text-[var(--ai-success)]">{successMessage}</p>
             </div>
-          )}
+          ) : null}
 
-          <div className="space-y-2 mt-6">
-            {stage === "request" && (
+          <div className="mt-6 space-y-2">
+            {stage === "request" ? (
               <button
                 type="button"
-                onClick={() => {
-                  void handleSendCode();
-                }}
+                onClick={() => void handleSendCode()}
                 disabled={auth.isLoading}
-                className="w-full py-3 bg-[var(--ai-primary)] hover:bg-[var(--ai-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors"
+                className="w-full rounded-xl bg-[var(--ai-primary)] py-3 font-medium text-white transition-colors hover:bg-[var(--ai-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--bg-tertiary)]"
               >
-                {auth.isLoading ? "Sending..." : "Send Verification Code"}
+                {auth.isLoading ? tr("Sending...") : tr("Send Verification Code")}
               </button>
-            )}
+            ) : null}
 
-            {stage === "verify" && (
+            {stage === "verify" ? (
               <button
                 type="button"
-                onClick={() => {
-                  void handleVerifyCode();
-                }}
+                onClick={() => void handleVerifyCode()}
                 disabled={auth.isLoading}
-                className="w-full py-3 bg-[var(--ai-primary)] hover:bg-[var(--ai-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors"
+                className="w-full rounded-xl bg-[var(--ai-primary)] py-3 font-medium text-white transition-colors hover:bg-[var(--ai-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--bg-tertiary)]"
               >
-                {auth.isLoading ? "Verifying..." : "Verify Code"}
+                {auth.isLoading ? tr("Verifying...") : tr("Verify Code")}
               </button>
-            )}
+            ) : null}
 
-            {stage === "reset" && (
+            {stage === "reset" ? (
               <button
                 type="button"
-                onClick={() => {
-                  void handleResetPassword();
-                }}
+                onClick={() => void handleResetPassword()}
                 disabled={auth.isLoading}
-                className="w-full py-3 bg-[var(--ai-primary)] hover:bg-[var(--ai-primary-hover)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors"
+                className="w-full rounded-xl bg-[var(--ai-primary)] py-3 font-medium text-white transition-colors hover:bg-[var(--ai-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--bg-tertiary)]"
               >
-                {auth.isLoading ? "Resetting..." : "Reset Password"}
+                {auth.isLoading ? tr("Resetting...") : tr("Reset Password")}
               </button>
-            )}
+            ) : null}
 
-            {stage === "done" && (
+            {stage === "done" ? (
               <button
                 type="button"
                 onClick={onSwitchToLogin}
-                className="w-full py-3 bg-[var(--ai-primary)] hover:bg-[var(--ai-primary-hover)] text-white font-medium rounded-xl transition-colors"
+                className="w-full rounded-xl bg-[var(--ai-primary)] py-3 font-medium text-white transition-colors hover:bg-[var(--ai-primary-hover)]"
               >
-                Back to Login
+                {tr("Back to Login")}
               </button>
-            )}
+            ) : null}
           </div>
 
-          <div className="mt-6 pt-6 border-t border-[var(--border-color)] text-center">
+          <div className="mt-6 border-t border-[var(--border-color)] pt-6 text-center">
             <button
               type="button"
               onClick={onSwitchToLogin}
               className="text-sm text-[var(--ai-primary)] hover:underline focus:outline-none"
             >
-              Back to Login
+              {tr("Back to Login")}
             </button>
           </div>
         </div>

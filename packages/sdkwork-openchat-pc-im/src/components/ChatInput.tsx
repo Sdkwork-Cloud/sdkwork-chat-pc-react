@@ -8,6 +8,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
+import { formatNumber, useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 
 export interface RichTextEditorRef {
   getHTML: () => string;
@@ -52,7 +53,7 @@ function formatFileSize(bytes?: number): string {
     size /= 1024;
     unitIndex++;
   }
-  return `${size.toFixed(1)} ${units[unitIndex]}`;
+  return `${formatNumber(size, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${units[unitIndex]}`;
 }
 
 export const ChatInput = memo(function ChatInput({
@@ -60,6 +61,7 @@ export const ChatInput = memo(function ChatInput({
   onSend,
   disabled = false,
 }: ChatInputProps) {
+  const { tr } = useAppTranslation();
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<MediaItem[]>([]);
   const [isFocused, setIsFocused] = useState(false);
@@ -243,20 +245,25 @@ export const ChatInput = memo(function ChatInput({
 
       <div className="flex items-center justify-between px-4 py-2">
         <div className="flex items-center space-x-1">
-          <ToolbarButton onClick={() => fileInputRef.current?.click()} title="文件">
+          <ToolbarButton onClick={() => fileInputRef.current?.click()} title={tr("Files")}>
             📎
           </ToolbarButton>
-          <ToolbarButton onClick={() => void handleScreenshotCapture()} title="截图">
+          <ToolbarButton onClick={() => void handleScreenshotCapture()} title={tr("Screenshot")}>
             📸
           </ToolbarButton>
-          <ToolbarButton onClick={() => setDraft((prev) => `${prev}\n\`\`\`\n\n\`\`\`\n`)} title="代码块">
+          <ToolbarButton
+            onClick={() => setDraft((prev) => `${prev}\n\`\`\`\n\n\`\`\`\n`)}
+            title={tr("Code block")}
+          >
             {"</>"}
           </ToolbarButton>
-          <ToolbarButton onClick={() => setDraft((prev) => `${prev}@`)} title="@提及">
+          <ToolbarButton onClick={() => setDraft((prev) => `${prev}@`)} title={tr("@ mention")}>
             @
           </ToolbarButton>
         </div>
-        <div className="text-xs text-text-muted">按 Enter 发送，Shift + Enter 换行</div>
+        <div className="text-xs text-text-muted">
+          {tr("Press Enter to send, Shift + Enter for a new line")}
+        </div>
       </div>
 
       <div className={`relative px-4 pb-2 ${isFocused ? "chat-input-focused" : ""}`}>
@@ -273,7 +280,7 @@ export const ChatInput = memo(function ChatInput({
             }
           }}
           disabled={disabled}
-          placeholder={attachments.length > 0 ? "添加描述..." : "输入消息..."}
+          placeholder={attachments.length > 0 ? tr("Add details...") : tr("Type a message...")}
           className="min-h-[80px] w-full resize-y rounded-lg border border-border bg-bg-tertiary p-3 text-sm text-text-primary outline-none placeholder:text-text-muted focus:border-primary"
         />
 
@@ -288,7 +295,7 @@ export const ChatInput = memo(function ChatInput({
                 : "cursor-not-allowed bg-bg-hover text-text-muted"
             }`}
           >
-            发送
+            {tr("Send")}
           </button>
         </div>
       </div>

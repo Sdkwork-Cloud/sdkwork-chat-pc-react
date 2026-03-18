@@ -1,21 +1,15 @@
-/**
- * PTY (Pseudo Terminal) 模块
- * 
- * 提供终端仿真功能
- */
+
 
 use portable_pty::{CommandBuilder, NativePtySystem, PtyPair, PtySize, PtySystem};
 use std::io::{Read, Write};
 use std::sync::Mutex;
 use tauri::Manager;
 
-// 全局 PTY 存储
 use once_cell::sync::Lazy;
 
 static PTY_PAIRS: Lazy<Mutex<std::collections::HashMap<String, PtyPair>>> =
     Lazy::new(|| Mutex::new(std::collections::HashMap::new()));
 
-/// 创建 PTY
 #[tauri::command]
 pub fn create_pty(id: String, shell: Option<String>) -> Result<(), String> {
     let pty_system = NativePtySystem::default();
@@ -39,7 +33,6 @@ pub fn create_pty(id: String, shell: Option<String>) -> Result<(), String> {
     Ok(())
 }
 
-/// 写入 PTY
 #[tauri::command]
 pub fn write_pty(id: String, data: String) -> Result<(), String> {
     let mut pairs = PTY_PAIRS.lock().unwrap();
@@ -52,7 +45,6 @@ pub fn write_pty(id: String, data: String) -> Result<(), String> {
     Ok(())
 }
 
-/// 调整 PTY 大小
 #[tauri::command]
 pub fn resize_pty(id: String, cols: u16, rows: u16) -> Result<(), String> {
     let mut pairs = PTY_PAIRS.lock().unwrap();
@@ -70,7 +62,6 @@ pub fn resize_pty(id: String, cols: u16, rows: u16) -> Result<(), String> {
     Ok(())
 }
 
-/// 销毁 PTY
 #[tauri::command]
 pub fn destroy_pty(id: String) -> Result<(), String> {
     PTY_PAIRS.lock().unwrap().remove(&id);

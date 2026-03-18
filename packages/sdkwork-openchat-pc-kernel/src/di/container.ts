@@ -1,6 +1,4 @@
-/**
- * 依赖注入容器实现
- */
+
 
 import { Container, Token, Factory, ServiceMetadata, Module } from './types';
 
@@ -52,23 +50,17 @@ export class DIContainer implements Container {
     this.services.clear();
   }
 
-  /**
-   * 注册模块
-   */
+  
   registerModule(module: Module): void {
     module.configure(this);
   }
 
-  /**
-   * 注册多个模块
-   */
+  
   registerModules(modules: Module[]): void {
     modules.forEach(module => this.registerModule(module));
   }
 
-  /**
-   * 获取所有注册的服务
-   */
+  
   getRegisteredServices(): Array<{ token: any; isSingleton: boolean }> {
     return Array.from(this.services.entries()).map(([token, metadata]) => ({
       token,
@@ -77,7 +69,6 @@ export class DIContainer implements Container {
   }
 }
 
-// 创建全局容器实例
 const container = new DIContainer();
 
 export default container;

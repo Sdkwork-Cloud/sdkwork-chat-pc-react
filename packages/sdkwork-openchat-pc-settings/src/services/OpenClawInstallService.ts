@@ -12,38 +12,38 @@ const catalog: OpenClawInstallCatalog = {
   categories: [
     {
       id: "official",
-      label: "官方安装器",
-      description: "推荐给大多数用户，一步完成 Node 检测、安装和 onboarding。",
+      label: "Official installer",
+      description: "Recommended for most users. Detects Node, installs OpenClaw, and runs onboarding.",
     },
     {
       id: "manual",
-      label: "手动安装",
-      description: "已有 Node 环境或需要源码开发时使用。",
+      label: "Manual installation",
+      description: "Use this when Node is already available or when developing from source.",
     },
     {
       id: "container",
-      label: "容器安装",
-      description: "适合隔离部署、可重复环境和服务器场景。",
+      label: "Containerized installation",
+      description: "Best for isolated deployments, reproducible environments, and server use cases.",
     },
     {
       id: "automation",
-      label: "自动化/声明式",
-      description: "适合企业运维、批量部署和可回滚配置。",
+      label: "Automation / declarative",
+      description: "Best for enterprise ops, bulk rollouts, and rollback-friendly configuration.",
     },
     {
       id: "managed",
-      label: "托管平台",
-      description: "一键部署到云平台，减少主机运维负担。",
+      label: "Managed platforms",
+      description: "Deploy to cloud platforms with less host maintenance overhead.",
     },
     {
       id: "vps",
-      label: "自管云主机",
-      description: "控制力最高，适合长期 24/7 运行。",
+      label: "Self-managed cloud hosts",
+      description: "Maximum control, ideal for long-running 24/7 deployments.",
     },
     {
       id: "special",
-      label: "特殊场景",
-      description: "实验运行时、macOS VM 与特定平台集成。",
+      label: "Special scenarios",
+      description: "Experimental runtimes, macOS VMs, and platform-specific integrations.",
     },
   ],
   modes: [
@@ -51,15 +51,15 @@ const catalog: OpenClawInstallCatalog = {
       id: "installer-script",
       name: "Installer Script (install.sh / install.ps1)",
       categoryId: "official",
-      summary: "官方推荐路径，自动处理 Node 22+ 和基础检查。",
-      bestFor: "首次安装、通用本地环境",
+      summary: "Official recommended path that handles Node 22+ and baseline checks automatically.",
+      bestFor: "First-time setup and common local environments",
       platforms: ["macOS", "Linux", "WSL2", "Windows"],
       docsUrl: `${DOCS_BASE_URL}/install`,
       steps: [
         {
           id: "run-installer",
-          title: "运行安装器",
-          description: "按系统选择命令执行。",
+          title: "Run the installer",
+          description: "Pick and execute the command for your operating system.",
           commands: [
             {
               id: "install-sh",
@@ -77,8 +77,8 @@ const catalog: OpenClawInstallCatalog = {
         },
         {
           id: "skip-onboarding",
-          title: "可选：仅安装不启动向导",
-          description: "用于 CI 或你计划后续手动配置。",
+          title: "Optional: install without onboarding",
+          description: "Useful for CI or when you plan to configure manually later.",
           commands: [
             {
               id: "install-sh-no-onboard",
@@ -101,25 +101,25 @@ const catalog: OpenClawInstallCatalog = {
       id: "installer-cli",
       name: "Local Prefix Installer (install-cli.sh)",
       categoryId: "official",
-      summary: "安装到本地前缀（默认 ~/.openclaw），适合无 root 权限环境。",
-      bestFor: "CI、受限环境、本地隔离安装",
+      summary: "Installs to a local prefix (default `~/.openclaw`) for environments without root access.",
+      bestFor: "CI, restricted hosts, and isolated local installation",
       platforms: ["macOS", "Linux", "WSL2"],
       docsUrl: `${DOCS_BASE_URL}/install/installer`,
       steps: [
         {
           id: "run-install-cli",
-          title: "运行本地前缀安装器",
-          description: "默认会把 Node 与 OpenClaw 安装到本地目录。",
+          title: "Run the local-prefix installer",
+          description: "By default, Node and OpenClaw are installed into a local directory.",
           commands: [
             {
               id: "install-cli-default",
-              title: "默认前缀",
+              title: "Default prefix",
               shell: "bash",
               command: "curl -fsSL https://openclaw.ai/install-cli.sh | bash",
             },
             {
               id: "install-cli-custom-prefix",
-              title: "自定义前缀 + JSON 输出",
+              title: "Custom prefix with JSON output",
               shell: "bash",
               command:
                 "curl -fsSL https://openclaw.ai/install-cli.sh | bash -s -- --prefix /opt/openclaw --version latest --json",
@@ -130,17 +130,17 @@ const catalog: OpenClawInstallCatalog = {
     },
     {
       id: "npm-pnpm",
-      name: "npm / pnpm 全局安装",
+      name: "npm / pnpm global install",
       categoryId: "manual",
-      summary: "Node 22+ 已就绪时，最直接的手动安装方式。",
-      bestFor: "已有 Node 环境、偏好手动控制",
+      summary: "The most direct manual option when Node 22+ is already available.",
+      bestFor: "Existing Node environments and manual control workflows",
       platforms: ["macOS", "Linux", "Windows", "WSL2"],
       docsUrl: `${DOCS_BASE_URL}/install`,
       steps: [
         {
           id: "global-install",
-          title: "执行全局安装",
-          description: "选择 npm 或 pnpm 其中一种。",
+          title: "Run a global installation",
+          description: "Choose either npm or pnpm.",
           commands: [
             {
               id: "npm-global-install",
@@ -156,7 +156,7 @@ const catalog: OpenClawInstallCatalog = {
             },
             {
               id: "pnpm-approve-builds",
-              title: "pnpm 首次需授权构建脚本",
+              title: "Authorize build scripts for first-time pnpm use",
               shell: "bash",
               command: "pnpm approve-builds -g",
             },
@@ -164,8 +164,8 @@ const catalog: OpenClawInstallCatalog = {
         },
         {
           id: "run-onboard",
-          title: "启动 onboarding",
-          description: "完成网关基础配置。",
+          title: "Run onboarding",
+          description: "Complete baseline gateway configuration.",
           commands: [
             {
               id: "onboard",
@@ -181,15 +181,15 @@ const catalog: OpenClawInstallCatalog = {
       id: "from-source",
       name: "From Source",
       categoryId: "manual",
-      summary: "源码构建并链接 CLI，适合贡献者与深度定制。",
-      bestFor: "二次开发、调试、提 PR",
+      summary: "Build from source and link the CLI for contributor and customization workflows.",
+      bestFor: "Custom development, debugging, and pull requests",
       platforms: ["macOS", "Linux", "Windows", "WSL2"],
       docsUrl: `${DOCS_BASE_URL}/install`,
       steps: [
         {
           id: "clone-build",
-          title: "拉取并构建",
-          description: "按仓库脚本安装依赖并编译。",
+          title: "Clone and build",
+          description: "Install dependencies and compile using repository scripts.",
           commands: [
             {
               id: "source-clone",
@@ -199,13 +199,13 @@ const catalog: OpenClawInstallCatalog = {
             },
             {
               id: "source-install-build",
-              title: "安装并构建",
+              title: "Install and build",
               shell: "bash",
               command: "pnpm install && pnpm ui:build && pnpm build",
             },
             {
               id: "source-link",
-              title: "全局链接命令",
+              title: "Link CLI globally",
               shell: "bash",
               command: "pnpm link --global",
             },
@@ -215,21 +215,21 @@ const catalog: OpenClawInstallCatalog = {
     },
     {
       id: "node-manual",
-      name: "Node.js 手动准备",
+      name: "Manual Node.js preparation",
       categoryId: "manual",
-      summary: "先手工准备 Node 22+ 再进行任意安装模式。",
-      bestFor: "受限主机、预装基础环境",
+      summary: "Prepare Node 22+ manually before using any installation mode.",
+      bestFor: "Restricted hosts and pre-provisioned base environments",
       platforms: ["macOS", "Linux", "Windows"],
       docsUrl: `${DOCS_BASE_URL}/install/node`,
       steps: [
         {
           id: "check-node",
-          title: "检查 Node 版本",
-          description: "需要 v22 或更高。",
+          title: "Check Node version",
+          description: "Version v22 or newer is required.",
           commands: [
             {
               id: "node-version",
-              title: "查看版本",
+              title: "Show version",
               shell: "bash",
               command: "node -v",
             },
@@ -237,8 +237,8 @@ const catalog: OpenClawInstallCatalog = {
         },
         {
           id: "install-node",
-          title: "安装 Node 22+",
-          description: "不同系统选择不同命令。",
+          title: "Install Node 22+",
+          description: "Use the command that matches your operating system.",
           commands: [
             {
               id: "node-linux-nodesource",
@@ -261,25 +261,25 @@ const catalog: OpenClawInstallCatalog = {
       id: "docker",
       name: "Docker",
       categoryId: "container",
-      summary: "容器化网关部署，支持 sandbox 与卷持久化。",
-      bestFor: "隔离部署、服务器与自动化",
+      summary: "Containerized gateway deployment with sandbox support and persistent volumes.",
+      bestFor: "Isolated deployments, servers, and automation",
       platforms: ["Linux", "macOS", "Windows"],
       docsUrl: `${DOCS_BASE_URL}/install/docker`,
       steps: [
         {
           id: "docker-quickstart",
-          title: "快速启动",
-          description: "在仓库根目录执行一键脚本。",
+          title: "Quick start",
+          description: "Run the one-command script from the repository root.",
           commands: [
             {
               id: "docker-setup",
-              title: "初始化 Docker 部署",
+              title: "Initialize Docker deployment",
               shell: "bash",
               command: "./docker-setup.sh",
             },
             {
               id: "docker-dashboard",
-              title: "获取 dashboard 链接",
+              title: "Get dashboard link",
               shell: "bash",
               command: "docker compose run --rm openclaw-cli dashboard --no-open",
             },
@@ -291,25 +291,25 @@ const catalog: OpenClawInstallCatalog = {
       id: "podman",
       name: "Podman Rootless",
       categoryId: "container",
-      summary: "以 rootless 模式运行 OpenClaw 容器。",
-      bestFor: "Podman 环境、强化隔离",
+      summary: "Run OpenClaw containers in rootless mode.",
+      bestFor: "Podman environments and stronger isolation",
       platforms: ["Linux"],
       docsUrl: `${DOCS_BASE_URL}/install/podman`,
       steps: [
         {
           id: "podman-setup",
-          title: "一次性安装",
-          description: "创建 openclaw 用户并部署脚本。",
+          title: "One-time setup",
+          description: "Create the openclaw user and deploy scripts.",
           commands: [
             {
               id: "podman-bootstrap",
-              title: "初始化",
+              title: "Initialize",
               shell: "bash",
               command: "./setup-podman.sh",
             },
             {
               id: "podman-launch",
-              title: "启动网关",
+              title: "Start gateway",
               shell: "bash",
               command: "./scripts/run-openclaw-podman.sh launch",
             },
@@ -321,25 +321,25 @@ const catalog: OpenClawInstallCatalog = {
       id: "bun",
       name: "Bun (Experimental)",
       categoryId: "special",
-      summary: "可用 Bun 提升本地开发速度，但不建议作为网关生产运行时。",
-      bestFor: "本地开发迭代",
+      summary: "Bun can speed up local development, but it is not recommended for production gateway runtime.",
+      bestFor: "Local development iteration",
       platforms: ["macOS", "Linux", "Windows"],
       docsUrl: `${DOCS_BASE_URL}/install/bun`,
       steps: [
         {
           id: "bun-install",
-          title: "安装与构建",
-          description: "用于本地开发，不建议生产。",
+          title: "Install and build",
+          description: "For local development only; not recommended for production.",
           commands: [
             {
               id: "bun-install-cmd",
-              title: "安装依赖",
+              title: "Install dependencies",
               shell: "bash",
               command: "bun install",
             },
             {
               id: "bun-build-cmd",
-              title: "构建/测试",
+              title: "Build and test",
               shell: "bash",
               command: "bun run build && bun run vitest run",
             },
@@ -351,31 +351,31 @@ const catalog: OpenClawInstallCatalog = {
       id: "nix",
       name: "Nix / nix-openclaw",
       categoryId: "automation",
-      summary: "声明式安装，可回滚，适合 Nix 用户。",
-      bestFor: "可重现部署、Home Manager",
+      summary: "Declarative installation with rollback support for Nix users.",
+      bestFor: "Reproducible deployments and Home Manager",
       platforms: ["macOS", "Linux"],
       docsUrl: `${DOCS_BASE_URL}/install/nix`,
       steps: [
         {
           id: "nix-mode",
-          title: "启用 Nix 模式",
-          description: "在运行时关闭自修改流程并使用声明式路径。",
+          title: "Enable Nix mode",
+          description: "Disable self-mutating flows at runtime and use declarative paths.",
           commands: [
             {
               id: "nix-env",
-              title: "Shell 环境变量",
+              title: "Shell environment variable",
               shell: "bash",
               command: "export OPENCLAW_NIX_MODE=1",
             },
             {
               id: "nix-macos-defaults",
-              title: "macOS GUI 默认项",
+              title: "macOS GUI default",
               shell: "bash",
               command: "defaults write ai.openclaw.mac openclaw.nixMode -bool true",
             },
           ],
           notes: [
-            "完整安装流程请使用 github.com/openclaw/nix-openclaw 的模板与 README。",
+            "For the full installation flow, use templates and README from github.com/openclaw/nix-openclaw.",
           ],
         },
       ],
@@ -384,15 +384,15 @@ const catalog: OpenClawInstallCatalog = {
       id: "ansible",
       name: "Ansible (openclaw-ansible)",
       categoryId: "automation",
-      summary: "自动化加固部署，默认包含防火墙、Tailscale 与 systemd。",
-      bestFor: "生产服务器、团队运维",
+      summary: "Automated hardened deployment with firewall, Tailscale, and systemd defaults.",
+      bestFor: "Production servers and team operations",
       platforms: ["Debian", "Ubuntu"],
       docsUrl: `${DOCS_BASE_URL}/install/ansible`,
       steps: [
         {
           id: "ansible-quickstart",
-          title: "一键安装",
-          description: "自动安装 Ansible 并执行部署脚本。",
+          title: "One-command install",
+          description: "Automatically installs Ansible and runs deployment scripts.",
           commands: [
             {
               id: "ansible-install",
@@ -409,19 +409,19 @@ const catalog: OpenClawInstallCatalog = {
       id: "railway",
       name: "Railway",
       categoryId: "managed",
-      summary: "托管一键部署，主要通过 /setup 页面完成配置。",
-      bestFor: "零服务器运维、快速上线",
+      summary: "Managed one-click deployment with most configuration completed on `/setup`.",
+      bestFor: "Zero server maintenance and fast launch",
       platforms: ["Railway"],
       docsUrl: `${DOCS_BASE_URL}/install/railway`,
       steps: [
         {
           id: "railway-deploy",
-          title: "创建服务",
-          description: "使用官方模板，并配置 Volume 与环境变量。",
+          title: "Create service",
+          description: "Use the official template and configure volumes and environment variables.",
           notes: [
             "Deploy: https://railway.com/deploy/clawdbot-railway-template",
-            "必填变量: SETUP_PASSWORD, PORT=8080",
-            "推荐变量: OPENCLAW_STATE_DIR=/data/.openclaw, OPENCLAW_WORKSPACE_DIR=/data/workspace",
+            "Required variables: SETUP_PASSWORD, PORT=8080",
+            "Recommended variables: OPENCLAW_STATE_DIR=/data/.openclaw, OPENCLAW_WORKSPACE_DIR=/data/workspace",
           ],
         },
       ],
@@ -430,18 +430,18 @@ const catalog: OpenClawInstallCatalog = {
       id: "render",
       name: "Render Blueprint",
       categoryId: "managed",
-      summary: "使用 render.yaml 声明式部署，支持持久磁盘。",
-      bestFor: "可版本化托管部署",
+      summary: "Declarative deployment via render.yaml with persistent disk support.",
+      bestFor: "Versioned managed deployments",
       platforms: ["Render"],
       docsUrl: `${DOCS_BASE_URL}/install/render`,
       steps: [
         {
           id: "render-deploy",
-          title: "Blueprint 部署",
-          description: "通过 Render Blueprint 一键创建服务。",
+          title: "Blueprint deployment",
+          description: "Create services with one click through Render Blueprint.",
           notes: [
             "Deploy: https://render.com/deploy?repo=https://github.com/openclaw/openclaw",
-            "需设置 SETUP_PASSWORD；生产建议使用 Starter 或更高套餐以启用持久磁盘。",
+            "SETUP_PASSWORD is required. For production, use Starter or higher to enable persistent disk.",
           ],
         },
       ],
@@ -450,18 +450,18 @@ const catalog: OpenClawInstallCatalog = {
       id: "northflank",
       name: "Northflank",
       categoryId: "managed",
-      summary: "模板化部署，完成后通过 /setup 初始化。",
-      bestFor: "托管平台快速部署",
+      summary: "Template-based deployment, then initialize through `/setup`.",
+      bestFor: "Fast deployment on managed platforms",
       platforms: ["Northflank"],
       docsUrl: `${DOCS_BASE_URL}/install/northflank`,
       steps: [
         {
           id: "northflank-deploy",
-          title: "模板部署",
-          description: "部署栈并配置 SETUP_PASSWORD。",
+          title: "Template deployment",
+          description: "Deploy the stack and configure SETUP_PASSWORD.",
           notes: [
             "Deploy: https://northflank.com/stacks/deploy-openclaw",
-            "完成后访问 /setup 和 /openclaw。",
+            "After deployment, visit /setup and /openclaw.",
           ],
         },
       ],
@@ -470,31 +470,31 @@ const catalog: OpenClawInstallCatalog = {
       id: "fly",
       name: "Fly.io",
       categoryId: "vps",
-      summary: "基于 fly.toml 与 volume 的长期运行部署。",
-      bestFor: "全球可访问、容器化云主机",
+      summary: "Long-running deployment based on fly.toml and persistent volumes.",
+      bestFor: "Globally accessible containerized cloud hosts",
       platforms: ["Fly.io"],
       docsUrl: `${DOCS_BASE_URL}/install/fly`,
       steps: [
         {
           id: "fly-bootstrap",
-          title: "创建应用与存储",
-          description: "先创建 app 与 volume，再配置 secrets。",
+          title: "Create app and storage",
+          description: "Create the app and volume first, then configure secrets.",
           commands: [
             {
               id: "fly-app-create",
-              title: "创建应用",
+              title: "Create app",
               shell: "bash",
               command: "fly apps create my-openclaw",
             },
             {
               id: "fly-volume-create",
-              title: "创建 volume",
+              title: "Create volume",
               shell: "bash",
               command: "fly volumes create openclaw_data --size 1 --region iad",
             },
             {
               id: "fly-deploy",
-              title: "部署",
+              title: "Deploy",
               shell: "bash",
               command: "fly deploy",
             },
@@ -506,26 +506,26 @@ const catalog: OpenClawInstallCatalog = {
       id: "gcp",
       name: "GCP Compute Engine",
       categoryId: "vps",
-      summary: "自管 VM + Docker 的生产部署方案。",
-      bestFor: "企业云主机、细粒度网络控制",
+      summary: "Production deployment with self-managed VM plus Docker.",
+      bestFor: "Enterprise cloud hosts and fine-grained network control",
       platforms: ["GCP"],
       docsUrl: `${DOCS_BASE_URL}/install/gcp`,
       steps: [
         {
           id: "gcp-create-vm",
-          title: "创建 VM",
-          description: "推荐 e2-small 起步，避免本地构建 OOM。",
+          title: "Create VM",
+          description: "Start with e2-small to reduce local build OOM risks.",
           commands: [
             {
               id: "gcp-create-instance",
-              title: "创建实例",
+              title: "Create instance",
               shell: "bash",
               command:
                 "gcloud compute instances create openclaw-gateway --zone=us-central1-a --machine-type=e2-small --boot-disk-size=20GB --image-family=debian-12 --image-project=debian-cloud",
             },
             {
               id: "gcp-ssh",
-              title: "SSH 连接",
+              title: "SSH access",
               shell: "bash",
               command: "gcloud compute ssh openclaw-gateway --zone=us-central1-a",
             },
@@ -537,25 +537,25 @@ const catalog: OpenClawInstallCatalog = {
       id: "hetzner",
       name: "Hetzner VPS",
       categoryId: "vps",
-      summary: "低成本 24/7 Docker 运行方案。",
-      bestFor: "自管廉价 VPS",
+      summary: "Low-cost Docker runtime for 24/7 operation.",
+      bestFor: "Self-managed budget VPS",
       platforms: ["Hetzner", "Linux VPS"],
       docsUrl: `${DOCS_BASE_URL}/install/hetzner`,
       steps: [
         {
           id: "hetzner-bootstrap",
-          title: "主机初始化",
-          description: "安装 Docker 并启动 compose。",
+          title: "Host bootstrap",
+          description: "Install Docker and start compose.",
           commands: [
             {
               id: "hetzner-docker",
-              title: "安装 Docker",
+              title: "Install Docker",
               shell: "bash",
               command: "apt-get update && apt-get install -y git curl ca-certificates && curl -fsSL https://get.docker.com | sh",
             },
             {
               id: "hetzner-run",
-              title: "构建并启动",
+              title: "Build and start",
               shell: "bash",
               command: "docker compose build && docker compose up -d openclaw-gateway",
             },
@@ -567,25 +567,25 @@ const catalog: OpenClawInstallCatalog = {
       id: "exe-dev",
       name: "exe.dev VM",
       categoryId: "vps",
-      summary: "在 exe.dev VM 上部署，并通过 https 代理远程访问。",
-      bestFor: "轻量远程主机",
+      summary: "Deploy on an exe.dev VM and access remotely through HTTPS proxy.",
+      bestFor: "Lightweight remote hosts",
       platforms: ["exe.dev"],
       docsUrl: `${DOCS_BASE_URL}/install/exe-dev`,
       steps: [
         {
           id: "exe-dev-provision",
-          title: "创建并连接 VM",
-          description: "创建 VM 后安装 OpenClaw。",
+          title: "Provision and connect VM",
+          description: "Create the VM, then install OpenClaw.",
           commands: [
             {
               id: "exe-new",
-              title: "创建 VM",
+              title: "Create VM",
               shell: "bash",
               command: "ssh exe.dev new",
             },
             {
               id: "exe-install-openclaw",
-              title: "安装 OpenClaw",
+              title: "Install OpenClaw",
               shell: "bash",
               command: "curl -fsSL https://openclaw.ai/install.sh | bash",
             },
@@ -597,31 +597,31 @@ const catalog: OpenClawInstallCatalog = {
       id: "macos-vm",
       name: "macOS VM (Lume / Hosted Mac)",
       categoryId: "special",
-      summary: "隔离环境运行 OpenClaw，支持 iMessage/BlueBubbles 场景。",
-      bestFor: "macOS 能力隔离、iMessage 集成",
+      summary: "Run OpenClaw in isolated environments for iMessage or BlueBubbles scenarios.",
+      bestFor: "macOS capability isolation and iMessage integration",
       platforms: ["macOS VM"],
       docsUrl: `${DOCS_BASE_URL}/install/macos-vm`,
       steps: [
         {
           id: "lume-create",
-          title: "创建 macOS VM",
-          description: "完成 Setup Assistant 后启用 Remote Login。",
+          title: "Create macOS VM",
+          description: "Enable Remote Login after completing Setup Assistant.",
           commands: [
             {
               id: "lume-create-command",
-              title: "创建 VM",
+              title: "Create VM",
               shell: "bash",
               command: "lume create openclaw --os macos --ipsw latest",
             },
             {
               id: "lume-run-headless",
-              title: "后台运行 VM",
+              title: "Run VM headless",
               shell: "bash",
               command: "lume run openclaw --no-display",
             },
             {
               id: "vm-install-openclaw",
-              title: "VM 内安装 OpenClaw",
+              title: "Install OpenClaw inside VM",
               shell: "bash",
               command: "npm install -g openclaw@latest && openclaw onboard --install-daemon",
             },
@@ -659,28 +659,28 @@ class OpenClawInstallServiceClass {
     if (platform === "windows") {
       return {
         platform,
-        recommendation: "优先使用 WSL2 + install.sh，其次使用 install.ps1。",
+        recommendation: "Use WSL2 with install.sh first, and use install.ps1 as the secondary option.",
         notes: [
-          "官方文档对 Windows 推荐 WSL2 路径。",
-          "若直接 PowerShell 安装，请确认 PATH 中能找到全局 npm bin。",
+          "Official documentation recommends the WSL2 path on Windows.",
+          "If you install directly from PowerShell, make sure PATH includes the global npm bin directory.",
         ],
         quickCommands: [
           {
             id: "desktop-win-powershell",
-            title: "PowerShell 快速安装",
+            title: "PowerShell quick install",
             shell: "powershell",
             command: "iwr -useb https://openclaw.ai/install.ps1 | iex",
           },
           {
             id: "desktop-win-no-onboard",
-            title: "仅安装不引导",
+            title: "Install only, skip onboarding",
             shell: "powershell",
             command:
               '& ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -NoOnboard',
           },
           {
             id: "desktop-win-verify",
-            title: "安装验证",
+            title: "Verify installation",
             shell: "powershell",
             command: "openclaw doctor; openclaw status",
           },
@@ -691,27 +691,27 @@ class OpenClawInstallServiceClass {
     if (platform === "macos" || platform === "linux") {
       return {
         platform,
-        recommendation: "使用 install.sh，一次完成安装与 onboarding。",
+        recommendation: "Use install.sh to complete installation and onboarding in one flow.",
         notes: [
-          "macOS/Linux 默认路径推荐 install.sh。",
-          "需要 CI 或自动化时请加 --no-onboard。",
+          "install.sh is the recommended default path for macOS and Linux.",
+          "Add --no-onboard for CI or automation workflows.",
         ],
         quickCommands: [
           {
             id: "desktop-unix-install",
-            title: "标准安装",
+            title: "Standard install",
             shell: "bash",
             command: "curl -fsSL https://openclaw.ai/install.sh | bash",
           },
           {
             id: "desktop-unix-no-onboard",
-            title: "自动化安装",
+            title: "Automated install",
             shell: "bash",
             command: "curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard",
           },
           {
             id: "desktop-unix-verify",
-            title: "安装验证",
+            title: "Verify installation",
             shell: "bash",
             command: "openclaw doctor && openclaw status && openclaw dashboard",
           },
@@ -721,14 +721,14 @@ class OpenClawInstallServiceClass {
 
     return {
       platform,
-      recommendation: "优先走官方安装器，并根据平台改用对应脚本。",
+      recommendation: "Start with the official installer and switch to platform-specific scripts when needed.",
       notes: [
-        "未知平台请从 docs.openclaw.ai/install 选择适配模式。",
+        "For unknown platforms, choose the best-fit mode from docs.openclaw.ai/install.",
       ],
       quickCommands: [
         {
           id: "desktop-generic-install",
-          title: "通用安装命令（Unix）",
+          title: "Generic install command (Unix)",
           shell: "bash",
           command: "curl -fsSL https://openclaw.ai/install.sh | bash",
         },
@@ -740,19 +740,19 @@ class OpenClawInstallServiceClass {
     const commands: OpenClawInstallCommand[] = [
       {
         id: "config-mode",
-        title: "设置网关模式",
+        title: "Set gateway mode",
         shell: "bash",
         command: `openclaw config set gateway.mode ${profile.gatewayMode}`,
       },
       {
         id: "config-bind",
-        title: "设置绑定模式",
+        title: "Set gateway bind mode",
         shell: "bash",
         command: `openclaw config set gateway.bind ${profile.gatewayBind}`,
       },
       {
         id: "restart-gateway",
-        title: "重启网关",
+        title: "Restart gateway",
         shell: "bash",
         command: "openclaw gateway restart",
       },
@@ -762,7 +762,7 @@ class OpenClawInstallServiceClass {
     if (normalizedPort) {
       commands.splice(2, 0, {
         id: "run-port",
-        title: "手动指定端口运行（可选）",
+        title: "Run with a manual port (optional)",
         shell: "bash",
         command: `openclaw gateway --port ${normalizedPort}`,
       });
@@ -772,7 +772,7 @@ class OpenClawInstallServiceClass {
     if (normalizedToken) {
       commands.push({
         id: "config-token",
-        title: "设置控制 UI Token",
+        title: "Set control UI token",
         shell: "bash",
         command: `openclaw config set gateway.auth.token ${quoteValue(normalizedToken)}`,
       });
@@ -782,7 +782,7 @@ class OpenClawInstallServiceClass {
     if (normalizedStateDir) {
       commands.push({
         id: "env-state-dir",
-        title: "设置状态目录（当前 shell）",
+        title: "Set state directory (current shell)",
         shell: "bash",
         command: `export OPENCLAW_STATE_DIR=${quoteValue(normalizedStateDir)}`,
       });
@@ -792,7 +792,7 @@ class OpenClawInstallServiceClass {
     if (normalizedConfigPath) {
       commands.push({
         id: "env-config-path",
-        title: "设置配置文件路径（当前 shell）",
+        title: "Set config file path (current shell)",
         shell: "bash",
         command: `export OPENCLAW_CONFIG_PATH=${quoteValue(normalizedConfigPath)}`,
       });
@@ -802,7 +802,7 @@ class OpenClawInstallServiceClass {
     if (normalizedWorkspaceDir) {
       commands.push({
         id: "env-workspace",
-        title: "设置工作区路径（当前 shell）",
+        title: "Set workspace path (current shell)",
         shell: "bash",
         command: `export OPENCLAW_HOME=${quoteValue(normalizedWorkspaceDir)}`,
       });
@@ -811,7 +811,7 @@ class OpenClawInstallServiceClass {
     if (profile.channels.telegram) {
       commands.push({
         id: "channel-telegram",
-        title: "配置 Telegram（替换 token）",
+        title: "Configure Telegram (replace token)",
         shell: "bash",
         command: 'openclaw channels add --channel telegram --token "<telegram_bot_token>"',
       });
@@ -820,7 +820,7 @@ class OpenClawInstallServiceClass {
     if (profile.channels.discord) {
       commands.push({
         id: "channel-discord",
-        title: "配置 Discord（替换 token）",
+        title: "Configure Discord (replace token)",
         shell: "bash",
         command: 'openclaw channels add --channel discord --token "<discord_bot_token>"',
       });
@@ -829,7 +829,7 @@ class OpenClawInstallServiceClass {
     if (profile.channels.whatsapp) {
       commands.push({
         id: "channel-whatsapp",
-        title: "登录 WhatsApp",
+        title: "Sign in to WhatsApp",
         shell: "bash",
         command: "openclaw channels login",
       });
@@ -838,7 +838,7 @@ class OpenClawInstallServiceClass {
     if (profile.channels.signal) {
       commands.push({
         id: "channel-signal",
-        title: "查看通道状态并完成 Signal 配置",
+        title: "Check channel status and finish Signal configuration",
         shell: "bash",
         command: "openclaw channels status --probe",
       });
@@ -847,19 +847,19 @@ class OpenClawInstallServiceClass {
     commands.push(
       {
         id: "verify-doctor",
-        title: "健康检查",
+        title: "Health check",
         shell: "bash",
         command: "openclaw doctor",
       },
       {
         id: "verify-status",
-        title: "状态检查",
+        title: "Status check",
         shell: "bash",
         command: "openclaw status",
       },
       {
         id: "verify-dashboard",
-        title: "打开控制台",
+        title: "Open dashboard",
         shell: "bash",
         command: "openclaw dashboard",
       },

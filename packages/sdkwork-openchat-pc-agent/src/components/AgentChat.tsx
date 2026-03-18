@@ -1,12 +1,7 @@
-/**
- * Agent 聊天组件
- *
- * 职责：提供智能体对话界面，支持流式响应
- */
-
-import { useState, useRef, useEffect, useCallback } from 'react';
-import type { Agent, AgentSession, AgentMessage, ChatMessage } from '../entities/agent.entity';
-import { AgentResultService } from '../services';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import type { Agent, AgentMessage, AgentSession, ChatMessage } from "../entities/agent.entity";
+import { AgentResultService } from "../services";
 
 interface AgentChatProps {
   agent: Agent;
@@ -19,21 +14,22 @@ export const AgentChat: React.FC<AgentChatProps> = ({
   session: initialSession,
   onSessionCreated,
 }) => {
+  const { tr } = useAppTranslation();
   const [session, setSession] = useState<AgentSession | undefined>(initialSession);
   const [messages, setMessages] = useState<AgentMessage[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [streamingContent, setStreamingContent] = useState('');
+  const [streamingContent, setStreamingContent] = useState("");
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, streamingContent, scrollToBottom]);
+  }, [messages, scrollToBottom, streamingContent]);
 
   useEffect(() => {
     setSession(initialSession);
@@ -45,53 +41,67 @@ export const AgentChat: React.FC<AgentChatProps> = ({
     }
   }, [session]);
 
-  const toMessageText = (content: ChatMessage['content']): string => {
-    if (typeof content === 'string') {
+  const toMessageText = (content: ChatMessage["content"]): string => {
+    if (typeof content === "string") {
       return content;
     }
+
     return content
       .map((part) => {
-        if (part.type === 'text') return part.text;
-        if (part.type === 'image_url') return `[image] ${part.imageUrl.url}`;
-        return `[file] ${part.file.name}`;
+        if (part.type === "text") {
+          return part.text;
+        }
+
+        if (part.type === "image_url") {
+          return tr("[Image] {{url}}", { url: part.imageUrl.url });
+        }
+
+        return tr("[File] {{name}}", { name: part.file.name });
       })
-      .join(' ');
+      .join(" ");
   };
 
-  const toErrorMessage = (error: unknown): string => {
-    if (error instanceof Error) {
-      return error.message;
+  const toErrorMessage = (nextError: unknown): string => {
+    if (nextError instanceof Error && nextError.message) {
+      return nextError.message;
     }
-    return 'Send message failed';
+
+    return tr("Failed to send message.");
   };
 
   const loadMessages = async () => {
-    if (!session) return;
+    if (!session) {
+      return;
+    }
+
     try {
-      const msgsResult = await AgentResultService.getSessionMessages(session.id);
-      if (!msgsResult.success || !msgsResult.data) {
-        throw new Error(msgsResult.error || msgsResult.message || 'Failed to load messages.');
+      const result = await AgentResultService.getSessionMessages(session.id);
+      if (!result.success || !result.data) {
+        throw new Error(result.error || result.message || tr("Failed to load messages."));
       }
-      const msgs = msgsResult.data;
-      const agentMsgs: AgentMessage[] = msgs.map((message) => ({
+
+      const nextMessages: AgentMessage[] = result.data.map((message) => ({
         id: message.id,
         sessionId: session.id,
         content: toMessageText(message.content),
         role: message.role,
         createdAt: new Date(message.timestamp).toISOString(),
       }));
-      setMessages(agentMsgs);
-    } catch (error) {
-      console.error('Failed to load messages:', error);
+
+      setMessages(nextMessages);
+    } catch (nextError) {
+      console.error("Failed to load agent messages:", nextError);
     }
   };
 
   const handleSend = async () => {
-    if (!input.trim() || loading) return;
+    if (!input.trim() || loading) {
+      return;
+    }
 
     setError(null);
     const userMessage = input.trim();
-    setInput('');
+    setInput("");
     setLoading(true);
 
     try {
@@ -101,11 +111,13 @@ export const AgentChat: React.FC<AgentChatProps> = ({
         const sessionResult = await AgentResultService.createSession(agent.id, {
           title: userMessage.slice(0, 50),
         });
+
         if (!sessionResult.success || !sessionResult.data) {
-          setError(sessionResult.error || sessionResult.message || 'Failed to create session.');
+          setError(sessionResult.error || sessionResult.message || tr("Failed to create session."));
           setLoading(false);
           return;
         }
+
         currentSession = sessionResult.data;
         setSession(currentSession);
         onSessionCreated?.(currentSession);
@@ -115,209 +127,252 @@ export const AgentChat: React.FC<AgentChatProps> = ({
         id: `temp-${Date.now()}`,
         sessionId: currentSession.id,
         content: userMessage,
-        role: 'user',
+        role: "user",
         createdAt: new Date().toISOString(),
       };
 
-      setMessages((prev) => [...prev, tempUserMessage]);
-      setStreamingContent('');
+      setMessages((previous) => [...previous, tempUserMessage]);
+      setStreamingContent("");
 
       const streamResult = await AgentResultService.streamMessage(
         currentSession.id,
         { content: userMessage },
         (chunk: { id: string; content: string; done: boolean }) => {
-          setStreamingContent(chunk.content || '');
+          setStreamingContent(chunk.content || "");
         },
         () => {
-          setStreamingContent((prev) => {
+          setStreamingContent((previous) => {
             if (currentSession) {
               const assistantMessage: AgentMessage = {
                 id: `msg-${Date.now()}`,
                 sessionId: currentSession.id,
-                content: prev,
-                role: 'assistant',
+                content: previous,
+                role: "assistant",
                 createdAt: new Date().toISOString(),
               };
-              setMessages((prevMsgs) => [...prevMsgs, assistantMessage]);
+              setMessages((currentMessages) => [...currentMessages, assistantMessage]);
             }
-            return '';
+            return "";
           });
           setLoading(false);
         },
-        (err: Error) => {
-          setError(err.message);
+        (streamError: Error) => {
+          setError(streamError.message);
           setLoading(false);
-        }
+        },
       );
+
       if (!streamResult.success) {
-        setError(streamResult.error || streamResult.message || 'Send message failed.');
+        setError(streamResult.error || streamResult.message || tr("Failed to send message."));
         setLoading(false);
       }
-    } catch (error) {
-      setError(toErrorMessage(error));
+    } catch (nextError) {
+      setError(toErrorMessage(nextError));
       setLoading(false);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      void handleSend();
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ready':
-      case 'active':
-        return 'bg-green-100 text-green-700';
-      case 'chatting':
-        return 'bg-blue-100 text-blue-700';
-      case 'error':
-        return 'bg-red-100 text-red-700';
+      case "ready":
+      case "active":
+        return "bg-green-100 text-green-700";
+      case "chatting":
+        return "bg-blue-100 text-blue-700";
+      case "error":
+        return "bg-red-100 text-red-700";
       default:
-        return 'bg-gray-100 text-gray-600';
+        return "bg-gray-100 text-gray-600";
     }
   };
 
-  const welcomeMessage = agent.config.welcomeMessage || '开始与智能体对话吧';
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "ready":
+        return tr("Ready");
+      case "active":
+        return tr("Active");
+      case "chatting":
+        return tr("Chatting");
+      case "error":
+        return tr("Error");
+      case "idle":
+        return tr("Idle");
+      default:
+        return status;
+    }
+  };
+
+  const welcomeMessage = agent.config.welcomeMessage || tr("Start chatting with this agent.");
   const exampleQuestions = Array.isArray(agent.config.customSettings?.exampleQuestions)
     ? (agent.config.customSettings.exampleQuestions as string[]).filter(
-        (item) => typeof item === 'string' && item.trim().length > 0,
+        (item) => typeof item === "string" && item.trim().length > 0,
       )
     : [];
 
   return (
-    <div className="h-full flex flex-col bg-[var(--bg-primary)]">
-      <div className="flex-shrink-0 p-4 border-b border-[var(--border-color)] flex items-center gap-4 bg-[var(--bg-secondary)]">
-        <div className="w-10 h-10 text-2xl flex items-center justify-center bg-[var(--bg-tertiary)] rounded-xl">
-          {agent.avatar || '🤖'}
+    <div className="flex h-full flex-col bg-[var(--bg-primary)]">
+      <div className="flex flex-shrink-0 items-center gap-4 border-b border-[var(--border-color)] bg-[var(--bg-secondary)] p-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-tertiary)] text-2xl">
+          {agent.avatar || "AI"}
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <h3 className="text-base font-medium text-[var(--text-primary)]">{agent.name}</h3>
-          <p className="text-xs text-[var(--text-muted)] truncate">
+          <p className="truncate text-xs text-[var(--text-muted)]">
             {agent.description?.slice(0, 50)}
-            {agent.description && agent.description.length > 50 ? '...' : ''}
+            {agent.description && agent.description.length > 50 ? "..." : ""}
           </p>
         </div>
-        <span className={`px-3 py-1 text-xs rounded-full ${getStatusColor(agent.status)}`}>
-          {agent.status}
+        <span className={`rounded-full px-3 py-1 text-xs ${getStatusColor(agent.status)}`}>
+          {getStatusLabel(agent.status)}
         </span>
       </div>
 
       <div className="flex-1 overflow-auto p-4">
-        {messages.length === 0 && !streamingContent && (
-          <div className="h-full flex flex-col items-center justify-center text-[var(--text-muted)]">
-            <div className="w-20 h-20 text-5xl mb-6 flex items-center justify-center bg-[var(--bg-tertiary)] rounded-2xl">
-              {agent.avatar || '🤖'}
+        {messages.length === 0 && !streamingContent ? (
+          <div className="flex h-full flex-col items-center justify-center text-[var(--text-muted)]">
+            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-5xl">
+              {agent.avatar || "AI"}
             </div>
-            <p className="text-lg font-medium text-[var(--text-primary)] mb-2">{agent.name}</p>
-            <p className="text-sm text-center max-w-md">{welcomeMessage}</p>
-            {exampleQuestions.length > 0 && (
+            <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">{agent.name}</p>
+            <p className="max-w-md text-center text-sm">{welcomeMessage}</p>
+            {exampleQuestions.length > 0 ? (
               <div className="mt-6 space-y-2">
                 {exampleQuestions.slice(0, 3).map((question) => (
                   <button
                     key={question}
                     onClick={() => setInput(question)}
-                    className="block w-full text-left px-4 py-2 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-hover)] rounded-xl text-sm text-[var(--text-secondary)] transition-colors"
+                    className="block w-full rounded-xl bg-[var(--bg-tertiary)] px-4 py-2 text-left text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
                   >
                     {question}
                   </button>
                 ))}
               </div>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
 
         {messages.map((message) => {
-          const isUser = message.role === 'user';
+          const isUser = message.role === "user";
+
           return (
             <div
               key={message.id}
-              className={`flex gap-3 mb-4 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
+              className={`mb-4 flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}
             >
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  isUser ? 'bg-[var(--ai-primary)]' : 'bg-[var(--bg-tertiary)]'
+                className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${
+                  isUser ? "bg-[var(--ai-primary)]" : "bg-[var(--bg-tertiary)]"
                 }`}
               >
                 {isUser ? (
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
                   </svg>
                 ) : (
-                  <span className="text-lg">{agent.avatar || '🤖'}</span>
+                  <span className="text-lg">{agent.avatar || "AI"}</span>
                 )}
               </div>
               <div
-                className={`max-w-[70%] px-4 py-3 rounded-2xl ${
+                className={`max-w-[70%] rounded-2xl px-4 py-3 ${
                   isUser
-                    ? 'bg-[var(--ai-primary)] text-white rounded-tr-sm'
-                    : 'bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-tl-sm border border-[var(--border-color)]'
+                    ? "rounded-tr-sm bg-[var(--ai-primary)] text-white"
+                    : "rounded-tl-sm border border-[var(--border-color)] bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
                 }`}
               >
-                <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                <p className="break-words whitespace-pre-wrap text-sm">{message.content}</p>
               </div>
             </div>
           );
         })}
 
-        {streamingContent && (
-          <div className="flex gap-3 mb-4">
-            <div className="w-9 h-9 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center flex-shrink-0">
-              <span className="text-lg">{agent.avatar || '🤖'}</span>
+        {streamingContent ? (
+          <div className="mb-4 flex gap-3">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[var(--bg-tertiary)]">
+              <span className="text-lg">{agent.avatar || "AI"}</span>
             </div>
-            <div className="max-w-[70%] px-4 py-3 rounded-2xl bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-tl-sm border border-[var(--border-color)]">
-              <p className="text-sm whitespace-pre-wrap">{streamingContent}</p>
+            <div className="max-w-[70%] rounded-2xl rounded-tl-sm border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-3 text-[var(--text-primary)]">
+              <p className="whitespace-pre-wrap text-sm">{streamingContent}</p>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {loading && !streamingContent && (
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center">
-              <span className="text-lg">{agent.avatar || '🤖'}</span>
+        {loading && !streamingContent ? (
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--bg-tertiary)]">
+              <span className="text-lg">{agent.avatar || "AI"}</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-tertiary)] rounded-2xl border border-[var(--border-color)]">
-              <div className="w-2 h-2 bg-[var(--ai-primary)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="w-2 h-2 bg-[var(--ai-primary)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <div className="w-2 h-2 bg-[var(--ai-primary)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="flex items-center gap-2 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-3">
+              <div
+                className="h-2 w-2 animate-bounce rounded-full bg-[var(--ai-primary)]"
+                style={{ animationDelay: "0ms" }}
+              />
+              <div
+                className="h-2 w-2 animate-bounce rounded-full bg-[var(--ai-primary)]"
+                style={{ animationDelay: "150ms" }}
+              />
+              <div
+                className="h-2 w-2 animate-bounce rounded-full bg-[var(--ai-primary)]"
+                style={{ animationDelay: "300ms" }}
+              />
             </div>
           </div>
-        )}
+        ) : null}
 
         <div ref={messagesEndRef} />
       </div>
 
-      {error && (
-        <div className="mx-4 mb-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 flex items-center justify-between">
+      {error ? (
+        <div className="mx-4 mb-2 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
           <span>{error}</span>
           <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
-      )}
+      ) : null}
 
-      <div className="flex-shrink-0 p-4 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]">
+      <div className="flex-shrink-0 border-t border-[var(--border-color)] bg-[var(--bg-secondary)] p-4">
         <div className="flex gap-3">
           <textarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="输入消息..."
+            placeholder={tr("Type a message...")}
             disabled={loading}
             rows={1}
-            className="flex-1 px-4 py-3 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--ai-primary)] focus:ring-2 focus:ring-[var(--ai-primary)]/20 resize-none transition-all"
+            className="flex-1 resize-none rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-3 text-sm text-[var(--text-primary)] transition-all placeholder:text-[var(--text-muted)] focus:border-[var(--ai-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--ai-primary)]/20"
           />
           <button
-            onClick={handleSend}
+            onClick={() => void handleSend()}
             disabled={!input.trim() || loading}
-            className="px-5 py-3 bg-[var(--ai-primary)] hover:bg-[var(--ai-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-all shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)]"
+            className="rounded-xl bg-[var(--ai-primary)] px-5 py-3 text-white shadow-[var(--shadow-md)] transition-all hover:bg-[var(--ai-primary-hover)] hover:shadow-[var(--shadow-lg)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+              />
             </svg>
           </button>
         </div>

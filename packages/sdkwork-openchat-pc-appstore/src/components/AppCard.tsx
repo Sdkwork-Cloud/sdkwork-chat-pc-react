@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { App } from "../entities/app.entity";
 
 type AppCardVariant = "large" | "small" | "compact" | "banner";
@@ -12,23 +13,6 @@ interface AppCardProps {
   onActionClick?: () => void;
   actionDisabled?: boolean;
   actionTone?: AppCardActionTone;
-}
-
-function formatDownloads(value: number): string {
-  if (value >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(1)}M`;
-  }
-  if (value >= 1_000) {
-    return `${(value / 1_000).toFixed(1)}K`;
-  }
-  return String(value);
-}
-
-function formatActionLabel(price: number, currency: string): string {
-  if (!price || price <= 0) {
-    return "GET";
-  }
-  return `${currency} ${price.toFixed(2)}`;
 }
 
 function getActionClass(actionTone: AppCardActionTone): string {
@@ -51,7 +35,17 @@ export const AppCard = memo(
     actionDisabled = false,
     actionTone = "primary",
   }: AppCardProps) => {
-    const resolvedActionLabel = actionLabel || formatActionLabel(app.price, app.currency);
+    const { tr, language, formatCurrency, formatNumber } = useAppTranslation();
+    const compactNumberFormatter = new Intl.NumberFormat(language, {
+      notation: "compact",
+      maximumFractionDigits: 1,
+    });
+    const ratingLabel = formatNumber(app.rating.average, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+    const resolvedActionLabel =
+      actionLabel || (!app.price || app.price <= 0 ? tr("GET") : formatCurrency(app.price, app.currency));
     const actionClass = getActionClass(actionTone);
 
     const actionNode = onActionClick ? (
@@ -87,14 +81,14 @@ export const AppCard = memo(
                 <h3 className="truncate text-base font-semibold text-text-primary">{app.name}</h3>
                 {app.editorChoice ? (
                   <span className="rounded bg-warning/20 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
-                    Editor
+                    {tr("Editor")}
                   </span>
                 ) : null}
               </div>
               <p className="mt-1 line-clamp-2 text-sm text-text-secondary">{app.shortDescription}</p>
               <div className="mt-2 flex items-center gap-3 text-xs text-text-muted">
-                <span>{app.rating.average.toFixed(1)} rating</span>
-                <span>{formatDownloads(app.downloads)} downloads</span>
+                <span>{tr("{{value}} rating", { value: ratingLabel })}</span>
+                <span>{tr("{{count}} downloads", { count: app.downloads })}</span>
                 <span>{app.category.name}</span>
               </div>
             </div>
@@ -116,7 +110,7 @@ export const AppCard = memo(
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-sm font-semibold text-text-primary">{app.name}</h3>
             <p className="truncate text-xs text-text-tertiary">{app.category.name}</p>
-            <p className="mt-1 text-xs text-text-muted">{app.rating.average.toFixed(1)} rating</p>
+            <p className="mt-1 text-xs text-text-muted">{tr("{{value}} rating", { value: ratingLabel })}</p>
           </div>
           {actionNode}
         </button>
@@ -150,12 +144,12 @@ export const AppCard = memo(
           <div className="flex gap-1">
             {app.featured ? (
               <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                Featured
+                {tr("Featured")}
               </span>
             ) : null}
             {app.trending ? (
               <span className="rounded bg-success/20 px-1.5 py-0.5 text-[10px] font-semibold text-success">
-                Trending
+                {tr("Trending")}
               </span>
             ) : null}
           </div>
@@ -164,10 +158,12 @@ export const AppCard = memo(
         <p className="mt-1 line-clamp-2 text-sm text-text-secondary">{app.shortDescription}</p>
         <div className="mt-3 flex items-center justify-between text-xs text-text-muted">
           <span>{app.developer.name}</span>
-          <span>{app.rating.average.toFixed(1)} / 5</span>
+          <span>{ratingLabel} / 5</span>
         </div>
         <div className="mt-3 flex items-center justify-between">
-          <span className="text-xs text-text-muted">{formatDownloads(app.downloads)} installs</span>
+          <span className="text-xs text-text-muted">
+                  {tr("{{count}} installs", { count: app.downloads })}
+          </span>
           {actionNode}
         </div>
       </button>
@@ -178,4 +174,3 @@ export const AppCard = memo(
 AppCard.displayName = "AppCard";
 
 export default AppCard;
-

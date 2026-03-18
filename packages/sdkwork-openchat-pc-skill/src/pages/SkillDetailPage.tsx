@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import type { SkillMarketItem } from "../entities/skill.entity";
 import { SkillResultService, SkillService } from "../services";
 import { getSkillConfigValidation, type SkillScope } from "./skill.workspace.model";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 
 function prettyJson(input: Record<string, unknown>): string {
   try {
@@ -50,6 +51,7 @@ const scopeOptions: Array<{ value: SkillScope; label: string; description: strin
 export function SkillDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { tr, formatNumber } = useAppTranslation();
 
   const [skill, setSkill] = useState<SkillMarketItem | null>(null);
   const [activeTab, setActiveTab] = useState<DetailTab>("overview");
@@ -65,7 +67,7 @@ export function SkillDetailPage() {
   useEffect(() => {
     const skillId = id || "";
     if (!skillId) {
-      setErrorText("Missing skill id.");
+      setErrorText(tr("Missing skill id."));
       setSkill(null);
       return;
     }
@@ -89,13 +91,13 @@ export function SkillDetailPage() {
 
         if (!detailResult.success || !mySkillsResult.success) {
           setSkill(null);
-          setErrorText(
-            detailResult.error ||
-              detailResult.message ||
-              mySkillsResult.error ||
-              mySkillsResult.message ||
-              "Failed to load skill detail.",
-          );
+        setErrorText(
+          detailResult.error ||
+            detailResult.message ||
+            mySkillsResult.error ||
+            mySkillsResult.message ||
+            tr("Failed to load skill detail."),
+        );
           return;
         }
 
@@ -104,7 +106,7 @@ export function SkillDetailPage() {
 
         if (!detail) {
           setSkill(null);
-          setErrorText("Skill not found.");
+          setErrorText(tr("Skill not found."));
           return;
         }
 
@@ -127,7 +129,7 @@ export function SkillDetailPage() {
       } catch (error) {
         if (!cancelled) {
           setSkill(null);
-          setErrorText(error instanceof Error ? error.message : "Failed to load skill detail.");
+          setErrorText(error instanceof Error ? error.message : tr("Failed to load skill detail."));
         }
       } finally {
         if (!cancelled) {
@@ -140,7 +142,7 @@ export function SkillDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, tr]);
 
   const parsedConfig = useMemo(() => {
     try {
@@ -164,18 +166,18 @@ export function SkillDetailPage() {
     if (!mergedConfig) {
       return {
         valid: false,
-        warnings: ["Configuration JSON is invalid."],
+        warnings: [tr("Configuration JSON is invalid.")],
       };
     }
     return getSkillConfigValidation(mergedConfig);
-  }, [mergedConfig]);
+  }, [mergedConfig, tr]);
 
   const capabilityText = useMemo(() => {
     if (!skill || skill.capabilities.length === 0) {
       return "-";
     }
-    return skill.capabilities.join(" / ");
-  }, [skill]);
+    return skill.capabilities.map((capability) => tr(capability)).join(" / ");
+  }, [skill, tr]);
 
   const handleToggle = async () => {
     if (!skill) {
@@ -189,22 +191,22 @@ export function SkillDetailPage() {
       if (skill.isEnabled) {
         const result = await SkillResultService.disableSkill(skill.id);
         if (!result.success) {
-          setErrorText(result.error || result.message || "Failed to update skill state.");
+          setErrorText(result.error || result.message || tr("Failed to update skill state."));
           return;
         }
         setSkill((previous) => (previous ? { ...previous, isEnabled: false } : previous));
-        setStatusText("Skill disabled.");
+        setStatusText(tr("Skill disabled."));
       } else {
         const result = await SkillResultService.enableSkill(skill.id);
         if (!result.success) {
-          setErrorText(result.error || result.message || "Failed to update skill state.");
+          setErrorText(result.error || result.message || tr("Failed to update skill state."));
           return;
         }
         setSkill((previous) => (previous ? { ...previous, isEnabled: true } : previous));
-        setStatusText("Skill enabled.");
+        setStatusText(tr("Skill enabled."));
       }
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Failed to update skill state.");
+      setErrorText(error instanceof Error ? error.message : tr("Failed to update skill state."));
     } finally {
       setIsToggling(false);
     }
@@ -223,7 +225,7 @@ export function SkillDetailPage() {
     };
 
     setConfigText(prettyJson(nextConfig));
-    setStatusText(`Preset "${preset.name}" applied.`);
+    setStatusText(tr('Preset "{{name}}" applied.', { name: preset.name }));
     setErrorText("");
     setActiveTab("config");
   };
@@ -234,12 +236,16 @@ export function SkillDetailPage() {
     }
 
     if (!mergedConfig) {
-      setErrorText("Invalid JSON. Please fix before saving.");
+      setErrorText(tr("Invalid JSON. Please fix before saving."));
       return;
     }
 
     if (!validation.valid) {
-      setErrorText(`Config validation failed: ${validation.warnings.join("; ")}`);
+      setErrorText(
+        tr("Config validation failed: {{warnings}}", {
+          warnings: validation.warnings.map((warning) => tr(warning)).join("; "),
+        }),
+      );
       return;
     }
 
@@ -249,7 +255,7 @@ export function SkillDetailPage() {
     try {
       const result = await SkillResultService.updateSkillConfig(skill.id, mergedConfig);
       if (!result.success) {
-        setErrorText(result.error || result.message || "Save failed.");
+        setErrorText(result.error || result.message || tr("Save failed."));
         return;
       }
       setSkill((previous) =>
@@ -261,9 +267,9 @@ export function SkillDetailPage() {
             }
           : previous,
       );
-      setStatusText("Configuration saved.");
+      setStatusText(tr("Configuration saved."));
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Save failed.");
+      setErrorText(error instanceof Error ? error.message : tr("Save failed."));
     } finally {
       setIsSaving(false);
     }
@@ -275,7 +281,7 @@ export function SkillDetailPage() {
     }
     const enabled = SkillService.toggleFavoriteSkill(skill.id);
     setIsFavorite(enabled);
-    setStatusText(enabled ? "Added to favorites." : "Removed from favorites.");
+    setStatusText(enabled ? tr("Added to favorites.") : tr("Removed from favorites."));
     setErrorText("");
   };
 
@@ -283,7 +289,7 @@ export function SkillDetailPage() {
     return (
       <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary p-6">
         <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-          Loading skill detail...
+          {tr("Loading skill detail...")}
         </div>
       </section>
     );
@@ -292,12 +298,12 @@ export function SkillDetailPage() {
   if (!skill) {
     return (
       <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary p-6">
-        <button
-          onClick={() => navigate("/skills")}
-          className="w-fit rounded-full border border-border bg-bg-secondary px-4 py-2 text-xs text-text-secondary hover:bg-bg-hover"
-        >
-          Back to Skill Market
-        </button>
+          <button
+            onClick={() => navigate("/skills")}
+            className="w-fit rounded-full border border-border bg-bg-secondary px-4 py-2 text-xs text-text-secondary hover:bg-bg-hover"
+          >
+            {tr("Back to Skill Market")}
+          </button>
         <div className="mt-4 rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
           {errorText || "Skill not found."}
         </div>
@@ -312,43 +318,46 @@ export function SkillDetailPage() {
           onClick={() => navigate("/skills")}
           className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs text-text-secondary transition-colors hover:bg-bg-hover"
         >
-          Back to Skill Market
+          {tr("Back to Skill Market")}
         </button>
         <h1 className="mt-3 text-xl font-semibold text-text-primary">
           {skill.icon} {skill.name}
         </h1>
         <p className="mt-1 text-sm text-text-secondary">{skill.description}</p>
         <div className="mt-3 inline-flex items-center rounded-full border border-border bg-bg-tertiary px-3 py-1 text-xs text-text-muted">
-          {skill.category} / v{skill.version}
+          {tr(skill.category)} / v{skill.version}
         </div>
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-6 xl:grid-cols-[300px_minmax(0,1fr)]">
         <aside className="min-h-0 overflow-auto rounded-2xl border border-border bg-bg-secondary p-4">
-          <h2 className="text-sm font-semibold text-text-primary">Skill Lifecycle</h2>
+          <h2 className="text-sm font-semibold text-text-primary">{tr("Skill Lifecycle")}</h2>
           <div className="mt-3 grid grid-cols-2 gap-2">
             <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">Category</p>
-              <p className="mt-1 text-sm text-text-primary">{skill.category}</p>
+              <p className="text-xs text-text-muted">{tr("Category")}</p>
+              <p className="mt-1 text-sm text-text-primary">{tr(skill.category)}</p>
             </div>
             <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">Version</p>
+              <p className="text-xs text-text-muted">{tr("Version")}</p>
               <p className="mt-1 text-sm text-text-primary">v{skill.version}</p>
             </div>
             <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">Rating</p>
-              <p className="mt-1 text-sm text-text-primary">{skill.rating.toFixed(1)}</p>
+              <p className="text-xs text-text-muted">{tr("Rating")}</p>
+              <p className="mt-1 text-sm text-text-primary">{formatNumber(skill.rating, {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1,
+              })}</p>
             </div>
             <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">Usage</p>
-              <p className="mt-1 text-sm text-text-primary">{skill.usageCount.toLocaleString()}</p>
+              <p className="text-xs text-text-muted">{tr("Usage")}</p>
+              <p className="mt-1 text-sm text-text-primary">{formatNumber(skill.usageCount)}</p>
             </div>
           </div>
 
           <div className="mt-3 rounded-xl border border-border bg-gradient-to-r from-primary/10 via-bg-primary to-bg-primary p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Rollout Plan</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{tr("Rollout Plan")}</p>
             <p className="mt-1 text-xs text-text-secondary">
-              Start from workspace rollout, validate stability, then scale to team or global scope.
+              {tr("Start from workspace rollout, validate stability, then scale to team or global scope.")}
             </p>
           </div>
 
@@ -362,7 +371,11 @@ export function SkillDetailPage() {
                 skill.isEnabled ? "bg-warning hover:brightness-110" : "bg-primary hover:bg-primary-hover"
               } disabled:cursor-not-allowed disabled:opacity-60`}
             >
-              {isToggling ? "Updating..." : skill.isEnabled ? "Disable Skill" : "Enable Skill"}
+              {isToggling
+                ? tr("Updating...")
+                : skill.isEnabled
+                ? tr("Disable Skill")
+                : tr("Enable Skill")}
             </button>
             <button
               onClick={() => {
@@ -370,7 +383,7 @@ export function SkillDetailPage() {
               }}
               className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-bg-hover"
             >
-              Edit Configuration
+              {tr("Edit Configuration")}
             </button>
             <button
               onClick={handleToggleFavorite}
@@ -380,21 +393,21 @@ export function SkillDetailPage() {
                   : "border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
               }`}
             >
-              {isFavorite ? "Favorited" : "Add to favorites"}
+              {isFavorite ? tr("Favorited") : tr("Add to favorites")}
             </button>
           </div>
 
-          <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">Presets</h3>
+          <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Presets")}</h3>
           <div className="mt-2 space-y-2">
             {presetOptions.map((preset) => (
-              <button
-                key={preset.id}
-                onClick={() => handleApplyPreset(preset.id)}
-                className="w-full rounded-lg border border-border bg-bg-primary px-3 py-2 text-left transition-colors hover:border-primary/40"
-              >
-                <p className="text-sm font-medium text-text-primary">{preset.name}</p>
-                <p className="mt-1 text-xs text-text-muted">{preset.description}</p>
-              </button>
+                <button
+                  key={preset.id}
+                  onClick={() => handleApplyPreset(preset.id)}
+                  className="w-full rounded-lg border border-border bg-bg-primary px-3 py-2 text-left transition-colors hover:border-primary/40"
+                >
+                  <p className="text-sm font-medium text-text-primary">{tr(preset.name)}</p>
+                  <p className="mt-1 text-xs text-text-muted">{tr(preset.description)}</p>
+                </button>
             ))}
           </div>
         </aside>
@@ -413,8 +426,10 @@ export function SkillDetailPage() {
                       : "border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
                   }`}
                 >
-                  {tab.label}
-                  <span className={`ml-2 ${active ? "text-white/80" : "text-text-muted"}`}>{tab.hint}</span>
+                  {tr(tab.label)}
+                  <span className={`ml-2 ${active ? "text-white/80" : "text-text-muted"}`}>
+                    {tr(tab.hint)}
+                  </span>
                 </button>
               );
             })}
@@ -436,14 +451,14 @@ export function SkillDetailPage() {
             <div className="min-h-0 flex-1 overflow-auto">
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <div className="rounded-xl border border-border bg-bg-primary p-4">
-                  <h3 className="text-sm font-semibold text-text-primary">Capabilities</h3>
+                  <h3 className="text-sm font-semibold text-text-primary">{tr("Capabilities")}</h3>
                   <p className="mt-2 text-sm text-text-secondary">{capabilityText}</p>
                 </div>
 
                 <div className="rounded-xl border border-border bg-bg-primary p-4">
-                  <h3 className="text-sm font-semibold text-text-primary">Tags</h3>
+                  <h3 className="text-sm font-semibold text-text-primary">{tr("Tags")}</h3>
                   {skill.tags.length === 0 ? (
-                    <p className="mt-2 text-sm text-text-muted">No tags.</p>
+                    <p className="mt-2 text-sm text-text-muted">{tr("No tags.")}</p>
                   ) : (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {skill.tags.map((tag) => (
@@ -456,17 +471,23 @@ export function SkillDetailPage() {
                 </div>
 
                 <div className="rounded-xl border border-border bg-bg-primary p-4 lg:col-span-2">
-                  <h3 className="text-sm font-semibold text-text-primary">Current Policy</h3>
+                  <h3 className="text-sm font-semibold text-text-primary">{tr("Current Policy")}</h3>
                   <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
                     <div className="rounded-lg border border-border bg-bg-secondary p-3 text-sm text-text-secondary">
-                      Scope: <span className="font-medium text-text-primary">{scope}</span>
+                      {tr("Scope")}: <span className="font-medium text-text-primary">{tr(scope)}</span>
                     </div>
                     <div className="rounded-lg border border-border bg-bg-secondary p-3 text-sm text-text-secondary">
-                      State: <span className="ml-1 font-medium text-text-primary">{skill.isEnabled ? "Enabled" : "Disabled"}</span>
+                      {tr("State")}:{" "}
+                      <span className="ml-1 font-medium text-text-primary">
+                        {skill.isEnabled ? tr("Enabled") : tr("Disabled")}
+                      </span>
                     </div>
                     <div className="rounded-lg border border-border bg-bg-secondary p-3 text-sm text-text-secondary">
-                      Validation:
-                      <span className="ml-1 font-medium text-text-primary">{validation.valid ? "Pass" : "Warn"}</span>
+                      {tr("Validation")}
+                      :
+                      <span className="ml-1 font-medium text-text-primary">
+                        {validation.valid ? tr("Pass") : tr("Warn")}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -477,7 +498,7 @@ export function SkillDetailPage() {
           {activeTab === "config" ? (
             <div className="min-h-0 flex-1 overflow-auto">
               <div className="rounded-xl border border-border bg-bg-primary p-4">
-                <h3 className="text-sm font-semibold text-text-primary">Configuration JSON</h3>
+                <h3 className="text-sm font-semibold text-text-primary">{tr("Configuration JSON")}</h3>
                 <textarea
                   value={configText}
                   onChange={(event) => setConfigText(event.target.value)}
@@ -485,16 +506,18 @@ export function SkillDetailPage() {
                   className="mt-3 w-full rounded-lg border border-border bg-bg-tertiary p-3 font-mono text-xs text-text-primary focus:border-primary focus:outline-none"
                 />
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={() => {
-                      void handleSaveConfig();
-                    }}
-                    disabled={isSaving}
-                    className="rounded-md bg-primary px-3 py-1.5 text-xs text-white transition-colors hover:brightness-110 disabled:opacity-60"
-                  >
-                    {isSaving ? "Saving..." : "Save Configuration"}
-                  </button>
-                  <span className="text-xs text-text-muted">Required fields and scope are validated before save.</span>
+                    <button
+                      onClick={() => {
+                        void handleSaveConfig();
+                      }}
+                      disabled={isSaving}
+                      className="rounded-md bg-primary px-3 py-1.5 text-xs text-white transition-colors hover:brightness-110 disabled:opacity-60"
+                    >
+                      {isSaving ? tr("Saving...") : tr("Save Configuration")}
+                    </button>
+                  <span className="text-xs text-text-muted">
+                    {tr("Required fields and scope are validated before save.")}
+                  </span>
                 </div>
               </div>
             </div>
@@ -503,7 +526,7 @@ export function SkillDetailPage() {
           {activeTab === "governance" ? (
             <div className="min-h-0 flex-1 overflow-auto">
               <div className="rounded-xl border border-border bg-bg-primary p-4">
-                <h3 className="text-sm font-semibold text-text-primary">Rollout Scope</h3>
+                <h3 className="text-sm font-semibold text-text-primary">{tr("Rollout Scope")}</h3>
                 <div className="mt-3 space-y-2">
                   {scopeOptions.map((option) => {
                     const active = scope === option.value;
@@ -517,23 +540,23 @@ export function SkillDetailPage() {
                             : "border-border bg-bg-secondary text-text-secondary hover:bg-bg-hover"
                         }`}
                       >
-                        <p className="text-sm font-medium">{option.label}</p>
-                        <p className="mt-1 text-xs opacity-80">{option.description}</p>
-                      </button>
-                    );
-                  })}
-                </div>
+                          <p className="text-sm font-medium">{tr(option.label)}</p>
+                          <p className="mt-1 text-xs opacity-80">{tr(option.description)}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                <div className="mt-4 rounded-lg border border-border bg-bg-secondary p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Validation</p>
-                  {validation.warnings.length === 0 ? (
-                    <p className="mt-2 text-sm text-success">Configuration contract looks good.</p>
-                  ) : (
-                    <ul className="mt-2 list-disc pl-5 text-sm text-warning">
-                      {validation.warnings.map((warning) => (
-                        <li key={warning}>{warning}</li>
-                      ))}
-                    </ul>
+                  <div className="mt-4 rounded-lg border border-border bg-bg-secondary p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Validation")}</p>
+                    {validation.warnings.length === 0 ? (
+                      <p className="mt-2 text-sm text-success">{tr("Configuration contract looks good.")}</p>
+                    ) : (
+                      <ul className="mt-2 list-disc pl-5 text-sm text-warning">
+                        {validation.warnings.map((warning) => (
+                          <li key={warning}>{tr(warning)}</li>
+                        ))}
+                      </ul>
                   )}
                 </div>
               </div>

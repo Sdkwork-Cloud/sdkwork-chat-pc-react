@@ -1,16 +1,11 @@
-﻿/**
- * 联系人详情组件
- *
- * 职责：渲染联系人/群组详情
- */
+import { memo } from "react";
 
-import { memo } from 'react';
-import type { Friend, Group } from '../entities/contact.entity';
-import { FriendDetail } from './FriendDetail';
-import { GroupDetail } from './GroupDetail';
-import { EmptyContact } from './EmptyContact';
+import type { Friend, Group } from "../entities/contact.entity";
+import { EmptyContact } from "./EmptyContact";
+import { FriendDetail } from "./FriendDetail";
+import { GroupDetail } from "./GroupDetail";
 
-type CallType = 'audio' | 'video';
+type CallType = "audio" | "video";
 
 interface ContactDetailProps {
   friend?: Friend;
@@ -22,31 +17,31 @@ interface ContactDetailProps {
   onGroupDeleted?: (groupId: string) => void;
 }
 
-export const ContactDetail = memo(
-  ({ friend, group, groupMembers, onCall, onStartChat, onGroupUpdated, onGroupDeleted }: ContactDetailProps) => {
-    if (friend) {
-      return (
-        <FriendDetail
-          friend={friend}
-          onCall={onCall}
-          onStartChat={onStartChat}
-        />
-      );
-    }
+export const ContactDetail = memo(function ContactDetail({
+  friend,
+  group,
+  groupMembers,
+  onCall,
+  onStartChat,
+  onGroupUpdated,
+  onGroupDeleted,
+}: ContactDetailProps) {
+  if (friend) {
+    return <FriendDetail friend={friend} onCall={onCall} onStartChat={onStartChat} />;
+  }
 
-    if (group) {
-      return (
-        <GroupDetail
-          group={group}
-          members={groupMembers}
-          onGroupUpdated={onGroupUpdated}
-          onGroupDeleted={onGroupDeleted}
-        />
-      );
-    }
+  if (group) {
+    return (
+      <GroupDetail
+        group={group}
+        members={groupMembers}
+        onGroupUpdated={onGroupUpdated}
+        onGroupDeleted={onGroupDeleted}
+      />
+    );
+  }
 
-    return <EmptyContact />;
-  },
-);
+  return <EmptyContact />;
+});
 
-ContactDetail.displayName = 'ContactDetail';
+ContactDetail.displayName = "ContactDetail";

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { ToolsResultService, ToolsService } from "../services";
 import type { PasswordOptions, Tool, ToolCategory, ToolExecutionOptions, ToolHistory } from "../types";
 import {
@@ -19,14 +20,8 @@ const defaultPasswordOptions: PasswordOptions = {
   includeSymbols: true,
 };
 
-function formatHistoryTime(value?: number): string {
-  if (!value) {
-    return "-";
-  }
-  return new Date(value).toLocaleString();
-}
-
 export function ToolsPage() {
+  const { tr, formatDateTime } = useAppTranslation();
   const [tools, setTools] = useState<Tool[]>([]);
   const [history, setHistory] = useState<ToolHistory[]>([]);
   const [category, setCategory] = useState<"all" | ToolCategory>("all");
@@ -48,6 +43,43 @@ export function ToolsPage() {
 
   const [favoriteToolIds, setFavoriteToolIds] = useState<string[]>(() => ToolsService.getFavoriteToolIds());
   const [recentToolIds, setRecentToolIds] = useState<string[]>(() => ToolsService.getRecentToolIds());
+
+  const formatHistoryTime = (value?: number): string => {
+    if (!value) {
+      return "-";
+    }
+    return formatDateTime(value);
+  };
+
+  const categoryOptions = useMemo<Array<{ value: "all" | ToolCategory; label: string }>>(
+    () => [
+      { value: "all", label: tr("All categories") },
+      { value: "utility", label: tr("Utility") },
+      { value: "converter", label: tr("Converter") },
+      { value: "generator", label: tr("Generator") },
+      { value: "developer", label: tr("Developer") },
+      { value: "ai", label: tr("AI") },
+    ],
+    [tr],
+  );
+
+  const sortOptions = useMemo<Array<{ value: "recommended" | "name"; label: string }>>(
+    () => [
+      { value: "recommended", label: tr("Recommended") },
+      { value: "name", label: tr("Name") },
+    ],
+    [tr],
+  );
+
+  const passwordToggleOptions = useMemo(
+    () => [
+      { key: "includeUppercase", label: tr("Uppercase") },
+      { key: "includeLowercase", label: tr("Lowercase") },
+      { key: "includeNumbers", label: tr("Numbers") },
+      { key: "includeSymbols", label: tr("Symbols") },
+    ] as const,
+    [tr],
+  );
 
   const loadTools = async () => {
     setIsLoading(true);
@@ -194,26 +226,28 @@ export function ToolsPage() {
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <h1 className="text-xl font-semibold text-text-primary">Toolbox</h1>
-        <p className="mt-1 text-sm text-text-secondary">Execute utilities, converters, and AI helpers with persistent history.</p>
+        <h1 className="text-xl font-semibold text-text-primary">{tr("Toolbox")}</h1>
+        <p className="mt-1 text-sm text-text-secondary">
+          {tr("Execute utilities, converters, and AI helpers with persistent history.")}
+        </p>
       </header>
 
       <div className="flex-1 overflow-auto p-6">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Current Results</p>
+            <p className="text-xs text-text-muted">{tr("Current Results")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.total}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Popular</p>
+            <p className="text-xs text-text-muted">{tr("Popular")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.popular}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">New</p>
+            <p className="text-xs text-text-muted">{tr("New")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.newest}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">AI Tools</p>
+            <p className="text-xs text-text-muted">{tr("AI Tools")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.ai}</p>
           </div>
         </div>
@@ -226,17 +260,16 @@ export function ToolsPage() {
                 onChange={(event) => setCategory(event.target.value as "all" | ToolCategory)}
                 className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
               >
-                <option value="all">All categories</option>
-                <option value="utility">Utility</option>
-                <option value="converter">Converter</option>
-                <option value="generator">Generator</option>
-                <option value="developer">Developer</option>
-                <option value="ai">AI</option>
+                {categoryOptions.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
               </select>
               <input
                 value={keyword}
                 onChange={(event) => setKeyword(event.target.value)}
-                placeholder="Search tools"
+                placeholder={tr("Search tools")}
                 className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
               />
               <select
@@ -244,16 +277,19 @@ export function ToolsPage() {
                 onChange={(event) => setSortBy(event.target.value as "recommended" | "name")}
                 className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
               >
-                <option value="recommended">Recommended</option>
-                <option value="name">Name</option>
+                {sortOptions.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div className="mt-3 flex-1 space-y-2 overflow-auto">
               {isLoading ? (
-                <p className="text-sm text-text-secondary">Loading tools...</p>
+                <p className="text-sm text-text-secondary">{tr("Loading tools...")}</p>
               ) : workspaceTools.length === 0 ? (
-                <p className="text-sm text-text-secondary">No tools available.</p>
+                <p className="text-sm text-text-secondary">{tr("No tools available.")}</p>
               ) : (
                 workspaceTools.map((tool) => (
                   <button
@@ -266,25 +302,27 @@ export function ToolsPage() {
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-sm font-semibold text-text-primary">{tool.name}</p>
+                      <p className="truncate text-sm font-semibold text-text-primary">{tr(tool.name)}</p>
                       <div className="flex items-center gap-1">
                         {favoriteSet.has(tool.id) ? (
-                          <span className="rounded bg-warning/20 px-1.5 py-0.5 text-[10px] text-warning">Fav</span>
+                          <span className="rounded bg-warning/20 px-1.5 py-0.5 text-[10px] text-warning">{tr("Fav")}</span>
                         ) : null}
-                        {tool.isNew ? <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] text-white">New</span> : null}
+                        {tool.isNew ? (
+                          <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] text-white">{tr("New")}</span>
+                        ) : null}
                       </div>
                     </div>
-                    <p className="mt-1 line-clamp-2 text-xs text-text-muted">{tool.description}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-text-muted">{tr(tool.description)}</p>
                   </button>
                 ))
               )}
             </div>
 
             <div className="mt-3 rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs font-semibold text-text-primary">Recent History</p>
+              <p className="text-xs font-semibold text-text-primary">{tr("Recent History")}</p>
               <div className="mt-2 max-h-28 space-y-1 overflow-auto">
                 {history.length === 0 ? (
-                  <p className="text-xs text-text-muted">No records yet.</p>
+                  <p className="text-xs text-text-muted">{tr("No records yet.")}</p>
                 ) : (
                   history.slice(0, 6).map((item) => (
                     <button
@@ -296,7 +334,7 @@ export function ToolsPage() {
                       }}
                       className="w-full rounded-md px-2 py-1 text-left hover:bg-bg-hover"
                     >
-                      <p className="truncate text-[11px] text-text-primary">{item.toolName}</p>
+                      <p className="truncate text-[11px] text-text-primary">{tr(item.toolName)}</p>
                       <p className="truncate text-[10px] text-text-muted">{formatHistoryTime(item.createTime)}</p>
                     </button>
                   ))
@@ -305,46 +343,52 @@ export function ToolsPage() {
             </div>
 
             <div className="mt-3 rounded-lg border border-border bg-bg-primary p-3 text-[11px]">
-              <p className="mb-2 text-xs font-semibold text-text-primary">Workspace Lanes</p>
+              <p className="mb-2 text-xs font-semibold text-text-primary">{tr("Workspace Lanes")}</p>
               <div className="space-y-2">
                 <div>
-                  <p className="font-semibold uppercase tracking-wide text-text-muted">Favorites</p>
+                  <p className="font-semibold uppercase tracking-wide text-text-muted">{tr("Favorites")}</p>
                   {workspaceLibrary.favorites.slice(0, 2).map((item) => (
                     <button
                       key={`favorite-${item.id}`}
                       onClick={() => setActiveToolId(item.id)}
                       className="block w-full truncate rounded px-2 py-1 text-left text-text-secondary hover:bg-bg-hover"
                     >
-                      {item.name}
+                      {tr(item.name)}
                     </button>
                   ))}
-                  {workspaceLibrary.favorites.length === 0 ? <p className="text-text-muted">No favorites yet.</p> : null}
+                  {workspaceLibrary.favorites.length === 0 ? (
+                    <p className="text-text-muted">{tr("No favorites yet.")}</p>
+                  ) : null}
                 </div>
                 <div>
-                  <p className="font-semibold uppercase tracking-wide text-text-muted">Recent</p>
+                  <p className="font-semibold uppercase tracking-wide text-text-muted">{tr("Recent")}</p>
                   {workspaceLibrary.recent.slice(0, 2).map((item) => (
                     <button
                       key={`recent-${item.id}`}
                       onClick={() => setActiveToolId(item.id)}
                       className="block w-full truncate rounded px-2 py-1 text-left text-text-secondary hover:bg-bg-hover"
                     >
-                      {item.name}
+                      {tr(item.name)}
                     </button>
                   ))}
-                  {workspaceLibrary.recent.length === 0 ? <p className="text-text-muted">No recent history.</p> : null}
+                  {workspaceLibrary.recent.length === 0 ? (
+                    <p className="text-text-muted">{tr("No recent history.")}</p>
+                  ) : null}
                 </div>
                 <div>
-                  <p className="font-semibold uppercase tracking-wide text-text-muted">Recommended</p>
+                  <p className="font-semibold uppercase tracking-wide text-text-muted">{tr("Recommended")}</p>
                   {workspaceLibrary.recommended.slice(0, 2).map((item) => (
                     <button
                       key={`recommended-${item.id}`}
                       onClick={() => setActiveToolId(item.id)}
                       className="block w-full truncate rounded px-2 py-1 text-left text-text-secondary hover:bg-bg-hover"
                     >
-                      {item.name}
+                      {tr(item.name)}
                     </button>
                   ))}
-                  {workspaceLibrary.recommended.length === 0 ? <p className="text-text-muted">No recommendations.</p> : null}
+                  {workspaceLibrary.recommended.length === 0 ? (
+                    <p className="text-text-muted">{tr("No recommendations.")}</p>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -353,14 +397,14 @@ export function ToolsPage() {
           <div className="flex h-full flex-col rounded-xl border border-border bg-bg-secondary p-4">
             {!activeTool ? (
               <div className="rounded-lg border border-border bg-bg-primary p-5 text-sm text-text-secondary">
-                Select a tool from the left panel.
+                {tr("Select a tool from the left panel.")}
               </div>
             ) : (
               <>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h2 className="text-lg font-semibold text-text-primary">{activeTool.name}</h2>
-                    <p className="mt-1 text-sm text-text-secondary">{activeTool.description}</p>
+                    <h2 className="text-lg font-semibold text-text-primary">{tr(activeTool.name)}</h2>
+                    <p className="mt-1 text-sm text-text-secondary">{tr(activeTool.description)}</p>
                   </div>
                   <button
                     onClick={() => handleToggleFavorite(activeTool.id)}
@@ -370,63 +414,63 @@ export function ToolsPage() {
                         : "border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
                     }`}
                   >
-                    {favoriteSet.has(activeTool.id) ? "Favorited" : "Favorite"}
+                    {favoriteSet.has(activeTool.id) ? tr("Favorited") : tr("Favorite")}
                   </button>
                 </div>
 
                 {(activeTool.id === "base64" || activeTool.id === "url-encode") && (
                   <div className="mt-3 w-56">
-                    <label className="text-xs text-text-muted">Mode</label>
+                    <label className="text-xs text-text-muted">{tr("Mode")}</label>
                     <select
                       value={mode === "decode" ? "decode" : "encode"}
                       onChange={(event) => setMode(event.target.value as ModeOption)}
                       className="mt-1 h-9 w-full rounded-md border border-border bg-bg-tertiary px-2 text-sm text-text-primary"
                     >
-                      <option value="encode">Encode</option>
-                      <option value="decode">Decode</option>
+                      <option value="encode">{tr("Encode")}</option>
+                      <option value="decode">{tr("Decode")}</option>
                     </select>
                   </div>
                 )}
 
                 {activeTool.id === "html-escape" && (
                   <div className="mt-3 w-56">
-                    <label className="text-xs text-text-muted">Mode</label>
+                    <label className="text-xs text-text-muted">{tr("Mode")}</label>
                     <select
                       value={mode === "unescape" ? "unescape" : "escape"}
                       onChange={(event) => setMode(event.target.value as ModeOption)}
                       className="mt-1 h-9 w-full rounded-md border border-border bg-bg-tertiary px-2 text-sm text-text-primary"
                     >
-                      <option value="escape">Escape</option>
-                      <option value="unescape">Unescape</option>
+                      <option value="escape">{tr("Escape")}</option>
+                      <option value="unescape">{tr("Unescape")}</option>
                     </select>
                   </div>
                 )}
 
                 {activeTool.id === "timestamp" && (
                   <div className="mt-3 w-56">
-                    <label className="text-xs text-text-muted">Mode</label>
+                    <label className="text-xs text-text-muted">{tr("Mode")}</label>
                     <select
                       value={mode}
                       onChange={(event) => setMode(event.target.value as ModeOption)}
                       className="mt-1 h-9 w-full rounded-md border border-border bg-bg-tertiary px-2 text-sm text-text-primary"
                     >
-                      <option value="auto">Auto Detect</option>
-                      <option value="toDate">Timestamp to Date</option>
-                      <option value="toTimestamp">Date to Timestamp</option>
+                      <option value="auto">{tr("Auto Detect")}</option>
+                      <option value="toDate">{tr("Timestamp to Date")}</option>
+                      <option value="toTimestamp">{tr("Date to Timestamp")}</option>
                     </select>
                   </div>
                 )}
 
                 {activeTool.id === "case-converter" && (
                   <div className="mt-3 w-56">
-                    <label className="text-xs text-text-muted">Case mode</label>
+                    <label className="text-xs text-text-muted">{tr("Case mode")}</label>
                     <select
                       value={caseMode}
                       onChange={(event) => setCaseMode(event.target.value as CaseMode)}
                       className="mt-1 h-9 w-full rounded-md border border-border bg-bg-tertiary px-2 text-sm text-text-primary"
                     >
                       <option value="camel">camelCase</option>
-                      <option value="title">Title Case</option>
+                      <option value="title">{tr("Title Case")}</option>
                       <option value="upper">UPPERCASE</option>
                       <option value="lower">lowercase</option>
                     </select>
@@ -435,7 +479,7 @@ export function ToolsPage() {
 
                 {activeTool.id === "hash" && (
                   <div className="mt-3 w-56">
-                    <label className="text-xs text-text-muted">Hash algorithm</label>
+                    <label className="text-xs text-text-muted">{tr("Hash algorithm")}</label>
                     <select
                       value={hashAlgorithm}
                       onChange={(event) => setHashAlgorithm(event.target.value as HashMode)}
@@ -450,7 +494,7 @@ export function ToolsPage() {
 
                 {activeTool.id === "text-generator" && (
                   <div className="mt-3 w-56">
-                    <label className="text-xs text-text-muted">Paragraph count</label>
+                    <label className="text-xs text-text-muted">{tr("Paragraph count")}</label>
                     <input
                       type="number"
                       min={1}
@@ -464,7 +508,7 @@ export function ToolsPage() {
 
                 {activeTool.id === "password" && (
                   <div className="mt-3 grid grid-cols-2 gap-2 md:w-[420px]">
-                    <label className="col-span-2 text-xs text-text-muted">Password options</label>
+                    <label className="col-span-2 text-xs text-text-muted">{tr("Password options")}</label>
                     <input
                       type="number"
                       min={8}
@@ -479,12 +523,7 @@ export function ToolsPage() {
                       className="h-9 rounded-md border border-border bg-bg-tertiary px-2 text-sm text-text-primary"
                     />
                     <div className="col-span-2 grid grid-cols-2 gap-2 text-xs text-text-secondary">
-                      {[
-                        { key: "includeUppercase", label: "Uppercase" },
-                        { key: "includeLowercase", label: "Lowercase" },
-                        { key: "includeNumbers", label: "Numbers" },
-                        { key: "includeSymbols", label: "Symbols" },
-                      ].map((item) => (
+                      {passwordToggleOptions.map((item) => (
                         <label key={item.key} className="flex items-center gap-2">
                           <input
                             type="checkbox"
@@ -505,21 +544,21 @@ export function ToolsPage() {
 
                 <div className="mt-4 grid flex-1 grid-cols-1 gap-4 lg:grid-cols-2">
                   <div className="flex flex-col">
-                    <p className="text-xs text-text-muted">Input</p>
+                    <p className="text-xs text-text-muted">{tr("Input")}</p>
                     <textarea
                       value={inputText}
                       onChange={(event) => setInputText(event.target.value)}
                       className="mt-2 h-full min-h-[240px] rounded-lg border border-border bg-bg-primary p-3 text-sm text-text-primary"
-                      placeholder="Enter content to process"
+                      placeholder={tr("Enter content to process")}
                     />
                   </div>
                   <div className="flex flex-col">
-                    <p className="text-xs text-text-muted">Output</p>
+                    <p className="text-xs text-text-muted">{tr("Output")}</p>
                     <textarea
                       value={outputText}
                       readOnly
                       className="mt-2 h-full min-h-[240px] rounded-lg border border-border bg-bg-primary p-3 text-sm text-text-primary"
-                      placeholder="Result will be shown here"
+                      placeholder={tr("Result will be shown here")}
                     />
                   </div>
                 </div>
@@ -532,7 +571,7 @@ export function ToolsPage() {
                     disabled={runDisabled}
                     className="rounded-md bg-primary px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {isRunning ? "Running..." : "Run Tool"}
+                    {isRunning ? tr("Running...") : tr("Run Tool")}
                   </button>
                   <button
                     onClick={() => {
@@ -543,12 +582,12 @@ export function ToolsPage() {
                     }}
                     className="rounded-md border border-border bg-bg-tertiary px-4 py-2 text-sm text-text-secondary hover:bg-bg-hover"
                   >
-                    Clear
+                    {tr("Clear")}
                   </button>
                 </div>
 
-                {statusText ? <p className="mt-2 text-sm text-text-secondary">{statusText}</p> : null}
-                {errorText ? <p className="mt-2 text-sm text-error">{errorText}</p> : null}
+                {statusText ? <p className="mt-2 text-sm text-text-secondary">{tr(statusText)}</p> : null}
+                {errorText ? <p className="mt-2 text-sm text-error">{tr(errorText)}</p> : null}
               </>
             )}
           </div>

@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@sdkwork/openchat-pc-kernel";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { useTheme, type ThemeType } from "./theme";
 
 export type ButtonVariant =
@@ -120,6 +121,7 @@ export function Input({
   readOnly,
   ...props
 }: InputProps) {
+  const { tr } = useAppTranslation();
   const [innerValue, setInnerValue] = useState(defaultValue);
   const isControlled = value !== undefined;
   const currentValue = isControlled ? value : innerValue;
@@ -159,7 +161,7 @@ export function Input({
       {allowClear && currentValue && !disabled && !readOnly ? (
         <button
           type="button"
-          aria-label="Clear input"
+          aria-label={tr("Clear input")}
           onClick={() => handleValueChange("")}
           className="mr-2 rounded p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
         >
@@ -200,6 +202,7 @@ export function Modal({
   contentClassName,
   closeOnOverlayClick = true,
 }: ModalProps) {
+  const { tr } = useAppTranslation();
   if (!isOpen) return null;
 
   const widthClass =
@@ -235,7 +238,7 @@ export function Modal({
           <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-4">
             <h3 className="text-base font-semibold text-[var(--text-primary)]">{title}</h3>
             <button
-              aria-label="Close modal"
+              aria-label={tr("Close modal")}
               onClick={onClose}
               className="rounded p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
             >
@@ -273,13 +276,17 @@ export function ModalButtonGroup({
   isLoading = false,
   disabled = false,
 }: ModalButtonGroupProps) {
+  const { tr } = useAppTranslation();
+  const cancelLabel = tr(cancelText);
+  const confirmLabel = tr(confirmText);
+
   return (
     <div className="flex justify-end gap-3">
       <Button variant="outline" onClick={onCancel}>
-        {cancelText}
+        {cancelLabel}
       </Button>
       <Button variant={confirmVariant} onClick={onConfirm} disabled={disabled || isLoading}>
-        {isLoading ? "Loading..." : confirmText}
+        {isLoading ? tr("Loading...") : confirmLabel}
       </Button>
     </div>
   );
@@ -375,6 +382,7 @@ export function ThemeSelector({
   direction = "horizontal",
   size = "medium",
 }: ThemeSelectorProps) {
+  const { tr } = useAppTranslation();
   const { currentTheme, setTheme } = useTheme();
 
   const sizeClass =
@@ -398,6 +406,7 @@ export function ThemeSelector({
       {themes.map((themeKey) => {
         const active = themeKey === currentTheme;
         const meta = themePalette[themeKey];
+        const label = tr(meta.label);
 
         return (
           <button
@@ -408,7 +417,7 @@ export function ThemeSelector({
               direction === "vertical" ? "w-full flex-row p-2 hover:bg-[var(--bg-tertiary)]" : "",
             )}
             onClick={() => setTheme(themeKey)}
-            title={meta.label}
+            title={label}
           >
             <div
               className={cn(
@@ -425,7 +434,7 @@ export function ThemeSelector({
                 active ? "text-[var(--ai-primary)]" : "group-hover:text-[var(--text-primary)]",
               )}
             >
-              {meta.label}
+              {label}
             </span>
           </button>
         );
@@ -433,4 +442,3 @@ export function ThemeSelector({
     </div>
   );
 }
-

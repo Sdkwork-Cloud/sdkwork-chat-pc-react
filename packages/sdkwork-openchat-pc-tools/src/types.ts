@@ -1,4 +1,4 @@
-﻿import type { BaseEntity } from '@sdkwork/openchat-pc-contracts';
+import type { BaseEntity } from '@sdkwork/openchat-pc-contracts';
 
 export type ToolCategory = 'utility' | 'converter' | 'generator' | 'developer' | 'ai';
 

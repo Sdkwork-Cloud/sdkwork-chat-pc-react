@@ -1,6 +1,4 @@
-/**
- * 依赖注入系统类型定义
- */
+
 
 export interface Container {
   register<T>(token: Token<T>, factory: Factory<T>): void;

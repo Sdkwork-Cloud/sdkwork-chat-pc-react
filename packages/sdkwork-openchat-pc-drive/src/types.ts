@@ -1,4 +1,4 @@
-﻿import type { BaseEntity } from '@sdkwork/openchat-pc-contracts';
+import type { BaseEntity } from '@sdkwork/openchat-pc-contracts';
 
 export type FileType = 'folder' | 'image' | 'video' | 'audio' | 'doc' | 'pdf' | 'xls' | 'ppt' | 'zip' | 'code' | 'unknown';
 

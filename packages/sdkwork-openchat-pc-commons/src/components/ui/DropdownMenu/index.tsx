@@ -1,4 +1,4 @@
-﻿import React, { useState, createContext, useContext } from "react";
+import React, { useState, createContext, useContext } from "react";
 import { cn } from "../../../lib/utils";
 
 interface DropdownMenuContextValue {
@@ -13,9 +13,7 @@ const DropdownMenuContext = createContext<DropdownMenuContextValue | null>(
 function useDropdownMenu() {
   const context = useContext(DropdownMenuContext);
   if (!context) {
-    throw new Error(
-      "DropdownMenu components must be used within a DropdownMenu provider",
-    );
+    throw new Error("DropdownMenu components must be used within a DropdownMenu provider");
   }
   return context;
 }
@@ -45,7 +43,7 @@ export const DropdownMenuTrigger = React.forwardRef<
 >(({ children, className, asChild, ...props }, ref) => {
   const { open, setOpen } = useDropdownMenu();
 
-  // 濡傛灉asChild涓簍rue锛屽皢浜嬩欢澶勭悊绋嬪簭浼犻€掔粰瀛愬厓绱?  if (asChild && React.isValidElement(children)) {
+  if (asChild && React.isValidElement(children)) {
     return React.cloneElement(children, {
       ...props,
       onClick: () => setOpen(!open),
@@ -151,4 +149,3 @@ export const DropdownMenuSeparator = React.forwardRef<
 DropdownMenuSeparator.displayName = "DropdownMenuSeparator";
 
 export default DropdownMenu;
-

@@ -1,77 +1,89 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { CartResultService, CommerceResultService } from "../services";
 import type { Product, ProductCategory } from "../types";
 
 type ProductSortType = "default" | "price-asc" | "price-desc" | "sales" | "rating";
 
-const fallbackProducts: Product[] = [
-  {
-    id: "fallback-1",
-    name: "OpenChat Pro Membership",
-    description: "Unlock higher model quotas and team collaboration features.",
-    price: 199,
-    originalPrice: 299,
-    images: [],
-    cover: "https://picsum.photos/640/360?random=801",
-    category: { id: "membership", name: "Membership", icon: "PRO", sortOrder: 1 },
-    tags: ["membership", "productivity"],
-    stock: 999,
-    sales: 1200,
-    rating: 4.8,
-    reviewCount: 324,
-    specifications: {
-      seats: "1",
-      access: "Priority",
-    },
-    detailImages: [],
-    isOnSale: true,
-    discount: 33,
-    merchantId: "m-1",
-    merchantName: "OpenChat",
-    createTime: new Date().toISOString(),
-    updateTime: new Date().toISOString(),
-  },
-  {
-    id: "fallback-2",
-    name: "Enterprise Knowledge Bundle",
-    description: "Ready-to-use knowledge retrieval and QA templates for enterprise rollout.",
-    price: 899,
-    images: [],
-    cover: "https://picsum.photos/640/360?random=802",
-    category: { id: "solution", name: "Solution", icon: "BIZ", sortOrder: 2 },
-    tags: ["enterprise", "knowledge"],
-    stock: 87,
-    sales: 320,
-    rating: 4.6,
-    reviewCount: 98,
-    specifications: {
-      deployment: "Cloud",
-      support: "Standard",
-    },
-    detailImages: [],
-    isOnSale: false,
-    merchantId: "m-1",
-    merchantName: "OpenChat",
-    createTime: new Date().toISOString(),
-    updateTime: new Date().toISOString(),
-  },
-];
+type TranslationFn = ReturnType<typeof useAppTranslation>["tr"];
 
-const sortLabels: Record<ProductSortType, string> = {
-  default: "Recommended",
-  "price-asc": "Price Low to High",
-  "price-desc": "Price High to Low",
-  sales: "Best Selling",
-  rating: "Top Rated",
-};
+function buildRuntimeFallbackProducts(tr: TranslationFn): Product[] {
+  const now = new Date().toISOString();
 
-function formatPrice(value: number): string {
-  return `CNY ${value.toFixed(2)}`;
+  return [
+    {
+      id: "fallback-1",
+      name: tr("Mall.NewArrivals.Title"),
+      description: tr("Mall.Header.Subtitle"),
+      price: 199,
+      originalPrice: 299,
+      images: [],
+      cover: "https://picsum.photos/640/360?random=801",
+      category: { id: "membership", name: tr("Mall.Categories.Title"), icon: "PRO", sortOrder: 1 },
+      tags: [tr("Mall.Sort.Recommended"), tr("Mall.Stats.OnSale")],
+      stock: 999,
+      sales: 1200,
+      rating: 4.8,
+      reviewCount: 324,
+      specifications: {
+        [tr("Mall.ProductDetail.Stock")]: "999",
+        [tr("Mall.ProductDetail.Sales")]: "1200",
+        [tr("Mall.ProductDetail.Rating")]: "4.8",
+      },
+      detailImages: [],
+      isOnSale: true,
+      discount: 33,
+      merchantId: "m-1",
+      merchantName: tr("OpenChat"),
+      createTime: now,
+      updateTime: now,
+    },
+    {
+      id: "fallback-2",
+      name: tr("Mall.HotProducts.Title"),
+      description: tr("Mall.Categories.Subtitle"),
+      price: 899,
+      images: [],
+      cover: "https://picsum.photos/640/360?random=802",
+      category: { id: "solution", name: tr("Mall.Categories.All"), icon: "BIZ", sortOrder: 2 },
+      tags: [tr("Mall.Sort.BestSelling"), tr("Mall.Sort.TopRated")],
+      stock: 87,
+      sales: 320,
+      rating: 4.6,
+      reviewCount: 98,
+      specifications: {
+        [tr("Mall.ProductDetail.Stock")]: "87",
+        [tr("Mall.ProductDetail.Sales")]: "320",
+        [tr("Mall.ProductDetail.Rating")]: "4.6",
+      },
+      detailImages: [],
+      isOnSale: false,
+      merchantId: "m-1",
+      merchantName: tr("OpenChat"),
+      createTime: now,
+      updateTime: now,
+    },
+  ];
 }
+
+const sortLabelKeys: Record<ProductSortType, string> = {
+  default: "Mall.Sort.Recommended",
+  "price-asc": "Mall.Sort.PriceAsc",
+  "price-desc": "Mall.Sort.PriceDesc",
+  sales: "Mall.Sort.BestSelling",
+  rating: "Mall.Sort.TopRated",
+};
 
 export function MallPage() {
   const navigate = useNavigate();
+  const { tr, formatCurrency, formatNumber } = useAppTranslation();
+  const runtimeFallbackProducts = useMemo(() => buildRuntimeFallbackProducts(tr), [tr]);
+  const formatPrice = useCallback((value: number) => formatCurrency(value, "CNY"), [formatCurrency]);
+  const formatRating = useCallback((value: number) => formatNumber(value, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }), [formatNumber]);
 
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -121,11 +133,11 @@ export function MallPage() {
         }
         console.error("Failed to load marketplace metadata", error);
         const fallbackCategories = Array.from(
-          new Map(fallbackProducts.map((item) => [item.category.id, item.category])).values(),
+          new Map(runtimeFallbackProducts.map((item) => [item.category.id, item.category])).values(),
         );
         setCategories(fallbackCategories);
-        setHotProducts([...fallbackProducts].sort((a, b) => b.sales - a.sales).slice(0, 6));
-        setNewProducts([...fallbackProducts].slice(0, 6));
+        setHotProducts([...runtimeFallbackProducts].sort((a, b) => b.sales - a.sales).slice(0, 6));
+        setNewProducts([...runtimeFallbackProducts].slice(0, 6));
       }
     }
 
@@ -133,7 +145,7 @@ export function MallPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [runtimeFallbackProducts]);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,8 +173,8 @@ export function MallPage() {
           return;
         }
         console.error("Failed to load products, fallback used", error);
-        setProducts(fallbackProducts);
-        setErrorText("Live product feed is unavailable. Fallback catalog is displayed.");
+        setProducts(runtimeFallbackProducts);
+        setErrorText(tr("Mall.Errors.ProductFeedUnavailable"));
       } finally {
         if (!cancelled) {
           setIsLoading(false);
@@ -174,7 +186,7 @@ export function MallPage() {
     return () => {
       cancelled = true;
     };
-  }, [categoryId, keyword, sortBy]);
+  }, [categoryId, keyword, runtimeFallbackProducts, sortBy, tr]);
 
   useEffect(() => {
     if (products.length === 0) {
@@ -221,13 +233,13 @@ export function MallPage() {
     try {
       const result = await CartResultService.addToCart({ productId, quantity: 1 });
       if (!result.success) {
-        setStatusText(result.error || result.message || "Failed to add product to cart.");
+        setStatusText(result.error || result.message || tr("Mall.Status.AddToCartFailed"));
         return;
       }
-      setStatusText("Product added to cart.");
+      setStatusText(tr("Mall.Status.ProductAdded"));
     } catch (error) {
       console.error("Failed to add product to cart", error);
-      setStatusText("Failed to add product to cart.");
+      setStatusText(tr("Mall.Status.AddToCartFailed"));
     } finally {
       setAddingProductId(null);
     }
@@ -238,16 +250,14 @@ export function MallPage() {
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-text-primary">Marketplace</h1>
-            <p className="mt-1 text-sm text-text-secondary">
-              Browse products and services with a desktop shopping workflow.
-            </p>
+            <h1 className="text-xl font-semibold text-text-primary">{tr("Mall.Header.Title")}</h1>
+            <p className="mt-1 text-sm text-text-secondary">{tr("Mall.Header.Subtitle")}</p>
           </div>
           <button
             onClick={() => navigate("/commerce/cart")}
             className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
           >
-            Open Cart
+            {tr("Mall.Action.OpenCart")}
           </button>
         </div>
       </header>
@@ -256,8 +266,8 @@ export function MallPage() {
         <div className="grid h-full min-h-[560px] gap-4 xl:grid-cols-[290px_minmax(0,1fr)]">
           <aside className="flex min-h-0 flex-col rounded-xl border border-border bg-bg-secondary">
             <div className="border-b border-border p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Categories</h2>
-              <p className="mt-1 text-xs text-text-secondary">Switch product channels quickly.</p>
+              <h2 className="text-sm font-semibold text-text-primary">{tr("Mall.Categories.Title")}</h2>
+              <p className="mt-1 text-xs text-text-secondary">{tr("Mall.Categories.Subtitle")}</p>
             </div>
 
             <div className="min-h-0 flex-1 overflow-auto p-3">
@@ -270,8 +280,10 @@ export function MallPage() {
                       : "border-border bg-bg-primary hover:bg-bg-hover"
                   }`}
                 >
-                  <p className="text-sm font-medium text-text-primary">All Products</p>
-                  <p className="mt-1 text-xs text-text-muted">{products.length} items</p>
+                  <p className="text-sm font-medium text-text-primary">{tr("Mall.Categories.All")}</p>
+                  <p className="mt-1 text-xs text-text-muted">
+                    {tr("Mall.Categories.Items", { count: products.length })}
+                  </p>
                 </button>
                 {categoryOptions.map((category) => (
                   <button
@@ -292,7 +304,7 @@ export function MallPage() {
             </div>
 
             <div className="border-t border-border p-4">
-              <h3 className="text-sm font-semibold text-text-primary">Hot Picks</h3>
+              <h3 className="text-sm font-semibold text-text-primary">{tr("Mall.HotProducts.Title")}</h3>
               <div className="mt-2 space-y-2">
                 {hotProducts.slice(0, 3).map((item) => (
                   <button
@@ -301,10 +313,14 @@ export function MallPage() {
                     className="w-full rounded-md border border-border bg-bg-primary px-2.5 py-2 text-left hover:bg-bg-hover"
                   >
                     <p className="line-clamp-1 text-xs font-medium text-text-primary">{item.name}</p>
-                    <p className="mt-1 text-[11px] text-text-muted">Sales {item.sales}</p>
+                    <p className="mt-1 text-[11px] text-text-muted" >
+                      {tr("Mall.HotProducts.Sales", { count: item.sales })}
+                    </p>
                   </button>
                 ))}
-                {hotProducts.length === 0 ? <p className="text-xs text-text-muted">No hot products.</p> : null}
+                {hotProducts.length === 0 ? (
+                  <p className="text-xs text-text-muted">{tr("Mall.HotProducts.Empty")}</p>
+                ) : null}
               </div>
             </div>
           </aside>
@@ -315,7 +331,7 @@ export function MallPage() {
                 <input
                   value={keyword}
                   onChange={(event) => setKeyword(event.target.value)}
-                  placeholder="Search products by name or tags"
+                  placeholder={tr("Mall.Search.Placeholder")}
                   className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
                 />
                 <select
@@ -323,7 +339,7 @@ export function MallPage() {
                   onChange={(event) => setCategoryId(event.target.value)}
                   className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                 >
-                  <option value="">All categories</option>
+                  <option value="">{tr("Mall.Search.AllCategories")}</option>
                   {categoryOptions.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.name}
@@ -335,9 +351,9 @@ export function MallPage() {
                   onChange={(event) => setSortBy(event.target.value as ProductSortType)}
                   className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                 >
-                  {(Object.keys(sortLabels) as ProductSortType[]).map((key) => (
+                  {(Object.keys(sortLabelKeys) as ProductSortType[]).map((key) => (
                     <option key={key} value={key}>
-                      {sortLabels[key]}
+                      {tr(sortLabelKeys[key])}
                     </option>
                   ))}
                 </select>
@@ -349,26 +365,26 @@ export function MallPage() {
                   }}
                   className="rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover"
                 >
-                  Reset
+                  {tr("Mall.Action.ResetFilters")}
                 </button>
               </div>
 
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-4">
                 <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                  <p className="text-[11px] text-text-muted">Results</p>
-                  <p className="text-sm font-semibold text-text-primary">{productStats.total}</p>
+                  <p className="text-[11px] text-text-muted">{tr("Mall.Stats.Results")}</p>
+                  <p className="text-sm font-semibold text-text-primary">{formatNumber(productStats.total)}</p>
                 </div>
                 <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                  <p className="text-[11px] text-text-muted">On Sale</p>
-                  <p className="text-sm font-semibold text-text-primary">{productStats.onSale}</p>
+                  <p className="text-[11px] text-text-muted">{tr("Mall.Stats.OnSale")}</p>
+                  <p className="text-sm font-semibold text-text-primary">{formatNumber(productStats.onSale)}</p>
                 </div>
                 <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                  <p className="text-[11px] text-text-muted">Average Price</p>
+                  <p className="text-[11px] text-text-muted">{tr("Mall.Stats.AveragePrice")}</p>
                   <p className="text-sm font-semibold text-text-primary">{formatPrice(productStats.avgPrice || 0)}</p>
                 </div>
                 <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                  <p className="text-[11px] text-text-muted">Average Rating</p>
-                  <p className="text-sm font-semibold text-text-primary">{productStats.avgRating.toFixed(1)}</p>
+                  <p className="text-[11px] text-text-muted">{tr("Mall.Stats.AverageRating")}</p>
+                  <p className="text-sm font-semibold text-text-primary">{formatRating(productStats.avgRating)}</p>
                 </div>
               </div>
 
@@ -384,11 +400,9 @@ export function MallPage() {
               <div className="grid h-full min-h-0 gap-4 2xl:grid-cols-[minmax(0,1fr)_340px]">
                 <div className="min-h-0 overflow-auto rounded-lg border border-border bg-bg-primary">
                   {isLoading ? (
-                    <div className="p-4 text-sm text-text-secondary">Loading products...</div>
+                    <div className="p-4 text-sm text-text-secondary">{tr("Mall.Status.LoadingProducts")}</div>
                   ) : products.length === 0 ? (
-                    <div className="p-4 text-sm text-text-secondary">
-                      No products found with the current filters.
-                    </div>
+                    <div className="p-4 text-sm text-text-secondary">{tr("Mall.Status.NoProductsFound")}</div>
                   ) : (
                     <div className="grid grid-cols-1 gap-3 p-3 md:grid-cols-2">
                       {products.map((product) => {
@@ -419,7 +433,7 @@ export function MallPage() {
                                 disabled={addingProductId === product.id}
                                 className="rounded-md bg-primary px-2.5 py-1.5 text-xs text-white disabled:opacity-60"
                               >
-                                {addingProductId === product.id ? "Adding..." : "Add"}
+                                {addingProductId === product.id ? tr("Mall.Action.Adding") : tr("Mall.Action.Add")}
                               </button>
                             </div>
                           </article>
@@ -437,12 +451,15 @@ export function MallPage() {
                         <h3 className="text-base font-semibold text-text-primary">{selectedProduct.name}</h3>
                         <p className="mt-2 text-sm leading-6 text-text-secondary">{selectedProduct.description}</p>
                         <div className="mt-3 space-y-1 text-xs text-text-muted">
-                          <p>Merchant: {selectedProduct.merchantName}</p>
-                          <p>Price: {formatPrice(selectedProduct.price)}</p>
-                          <p>Stock: {selectedProduct.stock}</p>
-                          <p>Sales: {selectedProduct.sales}</p>
+                          <p>{tr("Mall.ProductDetail.Merchant", { name: selectedProduct.merchantName })}</p>
+                          <p>{tr("Mall.ProductDetail.Price", { price: formatPrice(selectedProduct.price) })}</p>
+                          <p>{tr("Mall.ProductDetail.Stock", { count: selectedProduct.stock })}</p>
+                          <p>{tr("Mall.ProductDetail.Sales", { count: selectedProduct.sales })}</p>
                           <p>
-                            Rating: {selectedProduct.rating.toFixed(1)} ({selectedProduct.reviewCount} reviews)
+                            {tr("Mall.ProductDetail.Rating", {
+                              rating: formatRating(selectedProduct.rating),
+                              reviews: formatNumber(selectedProduct.reviewCount),
+                            })}
                           </p>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
@@ -457,7 +474,7 @@ export function MallPage() {
                         </div>
                         {Object.keys(selectedProduct.specifications).length > 0 ? (
                           <div className="mt-4 rounded-md border border-border bg-bg-secondary p-3">
-                            <p className="text-xs font-semibold text-text-primary">Specifications</p>
+                            <p className="text-xs font-semibold text-text-primary">{tr("Mall.ProductDetail.Specifications")}</p>
                             <div className="mt-2 space-y-1 text-xs text-text-secondary">
                               {Object.entries(selectedProduct.specifications).map(([key, value]) => (
                                 <p key={key}>
@@ -475,13 +492,15 @@ export function MallPage() {
                           disabled={addingProductId === selectedProduct.id}
                           className="w-full rounded-md bg-primary px-3 py-2 text-sm text-white disabled:opacity-60"
                         >
-                          {addingProductId === selectedProduct.id ? "Adding to Cart..." : "Add to Cart"}
+                          {addingProductId === selectedProduct.id
+                            ? tr("Mall.Action.AddingToCart")
+                            : tr("Mall.Action.AddToCart")}
                         </button>
                       </div>
                     </>
                   ) : (
                     <div className="flex h-full items-center justify-center px-4 text-sm text-text-muted">
-                      Select a product to inspect details.
+                      {tr("Mall.ProductDetail.NoSelection")}
                     </div>
                   )}
                 </aside>
@@ -490,7 +509,9 @@ export function MallPage() {
 
             {newProducts.length > 0 ? (
               <div className="border-t border-border p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">New Arrivals</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                  {tr("Mall.NewArrivals.Title")}
+                </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {newProducts.slice(0, 6).map((item) => (
                     <button

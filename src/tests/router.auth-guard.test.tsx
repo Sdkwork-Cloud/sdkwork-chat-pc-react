@@ -72,7 +72,7 @@ describe("router auth hardening", () => {
     );
 
     await waitFor(() => {
-      expect(container.textContent).toContain("登录");
+      expect(container.textContent).toContain("Login");
     });
   });
 

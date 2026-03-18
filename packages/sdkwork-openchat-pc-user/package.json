@@ -18,5 +18,8 @@
   "peerDependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
+  },
+  "dependencies": {
+    "@sdkwork/openchat-pc-i18n": "workspace:*"
   }
 }

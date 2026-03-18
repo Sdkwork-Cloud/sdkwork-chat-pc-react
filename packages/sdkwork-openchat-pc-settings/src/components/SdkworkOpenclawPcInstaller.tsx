@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { OpenClawInstallResultService } from "../services";
 import type {
   OpenClawInstallCatalog,
@@ -52,6 +53,7 @@ function countModeCommands(mode: OpenClawInstallMode): number {
 }
 
 export function SdkworkOpenclawPcInstaller() {
+  const { tr } = useAppTranslation();
   const [catalog, setCatalog] = useState<OpenClawInstallCatalog | null>(null);
   const [activeCategoryId, setActiveCategoryId] = useState<string>("official");
   const [keyword, setKeyword] = useState("");
@@ -153,7 +155,7 @@ export function SdkworkOpenclawPcInstaller() {
   if (loading) {
     return (
       <div className="rounded-xl border border-border bg-bg-secondary p-4 text-sm text-text-secondary">
-        Loading install modes...
+        {tr("Loading install modes...")}
       </div>
     );
   }
@@ -161,7 +163,7 @@ export function SdkworkOpenclawPcInstaller() {
   if (!catalog) {
     return (
       <div className="rounded-xl border border-error/40 bg-error/10 p-4 text-sm text-error">
-        {notice || "Install catalog unavailable."}
+        {tr(notice || "Install catalog unavailable.")}
       </div>
     );
   }
@@ -171,18 +173,18 @@ export function SdkworkOpenclawPcInstaller() {
       <header className="rounded-xl border border-border bg-bg-secondary p-4">
         <h2 className="text-base font-semibold text-text-primary">sdkwork-openclaw-pc-installer</h2>
         <p className="mt-1 text-sm text-text-secondary">
-          图形化覆盖 OpenClaw 全安装模式：官方安装器、手动、容器、自动化、托管平台和自管 VPS。
+          {tr("Interactive coverage for all OpenClaw install modes: official installer, manual, containers, automation, managed platforms, and self-managed VPS.")}
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-text-muted">
-          <span>Visible commands: {totalCommands}</span>
-          <span>Completed: {completedCommands}</span>
+          <span>{tr("Visible commands")}: {totalCommands}</span>
+          <span>{tr("Completed")}: {completedCommands}</span>
           <a
             href="https://docs.openclaw.ai/install"
             target="_blank"
             rel="noreferrer"
             className="text-primary hover:underline"
           >
-            Open docs/install
+            {tr("Open docs/install")}
           </a>
         </div>
       </header>
@@ -198,7 +200,7 @@ export function SdkworkOpenclawPcInstaller() {
                 : "bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
             }`}
           >
-            全部
+            {tr("All")}
           </button>
           {catalog.categories.map((category) => (
             <button
@@ -210,9 +212,9 @@ export function SdkworkOpenclawPcInstaller() {
                   ? "bg-primary-soft text-primary"
                   : "bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
               }`}
-              title={category.description}
+              title={tr(category.description)}
             >
-              {category.label}
+              {tr(category.label)}
             </button>
           ))}
         </div>
@@ -220,20 +222,20 @@ export function SdkworkOpenclawPcInstaller() {
         <input
           value={keyword}
           onChange={(event) => setKeyword(event.target.value)}
-          placeholder="搜索模式/平台/关键步骤，例如 Docker, Fly, install.ps1, Nix"
+          placeholder={tr("Search mode/platform/step, for example Docker, Fly, install.ps1, or Nix")}
           className="h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
         />
       </div>
 
       {notice ? (
         <div className="rounded-lg border border-border bg-bg-secondary px-3 py-2 text-xs text-text-secondary">
-          {notice}
+          {tr(notice)}
         </div>
       ) : null}
 
       {modes.length === 0 ? (
         <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-          当前筛选条件下没有匹配安装模式。
+          {tr("No install mode matches the current filters.")}
         </div>
       ) : (
         <div className="space-y-4">
@@ -251,10 +253,10 @@ export function SdkworkOpenclawPcInstaller() {
               <article key={mode.id} className="rounded-xl border border-border bg-bg-secondary p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-semibold text-text-primary">{mode.name}</h3>
-                    <p className="mt-1 text-sm text-text-secondary">{mode.summary}</p>
+                    <h3 className="text-sm font-semibold text-text-primary">{tr(mode.name)}</h3>
+                    <p className="mt-1 text-sm text-text-secondary">{tr(mode.summary)}</p>
                     <p className="mt-1 text-xs text-text-muted">
-                      Best for: {mode.bestFor} | Platforms: {mode.platforms.join(", ")}
+                      {tr("Best for")}: {tr(mode.bestFor)} | {tr("Platforms")}: {mode.platforms.join(", ")}
                     </p>
                   </div>
                   <a
@@ -263,7 +265,7 @@ export function SdkworkOpenclawPcInstaller() {
                     rel="noreferrer"
                     className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                   >
-                    文档
+                    {tr("Docs")}
                   </a>
                 </div>
 
@@ -271,7 +273,7 @@ export function SdkworkOpenclawPcInstaller() {
                   <div className="mt-3">
                     <div className="mb-1 flex items-center justify-between text-xs text-text-muted">
                       <span>
-                        {done}/{total} commands done
+                        {done}/{total} {tr("commands done")}
                       </span>
                       <span>{progressPercent}%</span>
                     </div>
@@ -287,8 +289,8 @@ export function SdkworkOpenclawPcInstaller() {
                 <div className="mt-4 space-y-3">
                   {mode.steps.map((step) => (
                     <div key={step.id} className="rounded-lg border border-border bg-bg-primary p-3">
-                      <h4 className="text-sm font-medium text-text-primary">{step.title}</h4>
-                      <p className="mt-1 text-xs text-text-secondary">{step.description}</p>
+                      <h4 className="text-sm font-medium text-text-primary">{tr(step.title)}</h4>
+                      <p className="mt-1 text-xs text-text-secondary">{tr(step.description)}</p>
 
                       {step.commands?.length ? (
                         <div className="mt-3 space-y-2">
@@ -299,8 +301,8 @@ export function SdkworkOpenclawPcInstaller() {
                               <div key={command.id} className="rounded-md border border-border bg-bg-secondary p-2.5">
                                 <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                                   <div className="text-xs text-text-secondary">
-                                    {command.title}
-                                    {command.description ? ` · ${command.description}` : ""}
+                                    {tr(command.title)}
+                                    {command.description ? ` - ${tr(command.description)}` : ""}
                                   </div>
                                   <span className="rounded bg-bg-tertiary px-2 py-0.5 text-[11px] text-text-muted">
                                     {shellBadge(command.shell)}
@@ -317,7 +319,7 @@ export function SdkworkOpenclawPcInstaller() {
                                     }}
                                     className="rounded border border-border bg-bg-tertiary px-2 py-1 text-[11px] text-text-secondary hover:bg-bg-hover"
                                   >
-                                    复制命令
+                                    {tr("Copy command")}
                                   </button>
                                   <label className="inline-flex items-center gap-1 text-[11px] text-text-secondary">
                                     <input
@@ -325,7 +327,7 @@ export function SdkworkOpenclawPcInstaller() {
                                       checked={checked}
                                       onChange={() => handleToggleDone(mode.id, command.id)}
                                     />
-                                    标记已执行
+                                    {tr("Mark as completed")}
                                   </label>
                                 </div>
                               </div>
@@ -337,7 +339,7 @@ export function SdkworkOpenclawPcInstaller() {
                       {step.notes?.length ? (
                         <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-text-muted">
                           {step.notes.map((note) => (
-                            <li key={note}>{note}</li>
+                            <li key={note}>{tr(note)}</li>
                           ))}
                         </ul>
                       ) : null}

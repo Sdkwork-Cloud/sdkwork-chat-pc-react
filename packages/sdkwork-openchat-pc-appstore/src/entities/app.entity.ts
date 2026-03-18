@@ -1,8 +1,4 @@
-﻿/**
- * App Store 瀹炰綋
- *
- * 瀹氫箟搴旂敤鍟嗗簵涓殑搴旂敤銆佹妧鑳姐€佸伐鍏风瓑瀹炰綋
- */
+
 
 export interface AppCategory {
   id: string;

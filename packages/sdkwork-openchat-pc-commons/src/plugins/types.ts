@@ -1,8 +1,4 @@
-/**
- * 插件系统类型定义
- *
- * 定义插件的基本结构、生命周期方法和扩展点
- */
+
 
 export type PluginStatus = 'loaded' | 'activated' | 'deactivated' | 'error';
 
@@ -57,54 +53,34 @@ export interface Plugin {
   hooks: PluginHook[];
   error?: string;
 
-  /**
-   * 初始化插件
-   */
+  
   initialize(context: PluginContext): Promise<void>;
 
-  /**
-   * 激活插件
-   */
+  
   activate(): Promise<void>;
 
-  /**
-   * 停用插件
-   */
+  
   deactivate(): Promise<void>;
 
-  /**
-   * 卸载插件
-   */
+  
   uninstall(): Promise<void>;
 
-  /**
-   * 处理配置变更
-   */
+  
   onConfigChange(config: PluginConfig): Promise<void>;
 
-  /**
-   * 注册钩子
-   */
+  
   registerHook(hook: PluginHook): void;
 
-  /**
-   * 获取 API
-   */
+  
   getApi(): PluginApi;
 
-  /**
-   * 获取当前状态
-   */
+  
   getStatus(): PluginStatus;
 
-  /**
-   * 设置错误
-   */
+  
   setError(error: string): void;
 
-  /**
-   * 清除错误
-   */
+  
   clearError(): void;
 }
 

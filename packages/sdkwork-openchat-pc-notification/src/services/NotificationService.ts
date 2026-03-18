@@ -1,4 +1,4 @@
-﻿import { getAppSdkClientWithSession, type PageQuery, type Result } from "@sdkwork/openchat-pc-kernel";
+import { getAppSdkClientWithSession, type PageQuery, type Result } from "@sdkwork/openchat-pc-kernel";
 import type {
   Notification,
   NotificationFilter,

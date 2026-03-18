@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { ToolMarketItem, ToolTestResult, UserTool } from "../entities/tool.entity";
 import { ToolResultService, ToolService } from "../services";
 import { buildToolWorkspaceLibrary } from "./tool.workspace.model";
@@ -11,6 +12,7 @@ interface MyToolItem {
 
 export function MyToolsPage() {
   const navigate = useNavigate();
+  const { tr, formatDate, formatNumber } = useAppTranslation();
   const [items, setItems] = useState<MyToolItem[]>([]);
   const [keyword, setKeyword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +29,7 @@ export function MyToolsPage() {
       const myToolsResult = await ToolResultService.getMyTools();
       if (!myToolsResult.success || !myToolsResult.data) {
         setItems([]);
-        setErrorText(myToolsResult.error || myToolsResult.message || "Failed to load enabled tools.");
+        setErrorText(myToolsResult.error || myToolsResult.message || tr("Failed to load enabled tools."));
         return;
       }
 
@@ -46,7 +48,7 @@ export function MyToolsPage() {
       setRecentToolIds(ToolService.getRecentToolIds());
     } catch (error) {
       setItems([]);
-      setErrorText(error instanceof Error ? error.message : "Failed to load enabled tools.");
+      setErrorText(error instanceof Error ? error.message : tr("Failed to load enabled tools."));
     } finally {
       setIsLoading(false);
     }
@@ -54,7 +56,7 @@ export function MyToolsPage() {
 
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [tr]);
 
   const enabledTools = useMemo(() => items.map((item) => item.tool), [items]);
   const toolItemMap = useMemo(() => new Map(items.map((item) => [item.tool.id, item])), [items]);
@@ -85,15 +87,15 @@ export function MyToolsPage() {
     try {
       const result = await ToolResultService.removeTool(toolId);
       if (!result.success) {
-        setErrorText(result.error || result.message || "Failed to remove tool.");
+        setErrorText(result.error || result.message || tr("Failed to remove tool."));
         return;
       }
       setItems((prev) => prev.filter((item) => item.tool.id !== toolId));
       setFavoriteToolIds(ToolService.getFavoriteToolIds());
       setRecentToolIds(ToolService.getRecentToolIds());
-      setStatusText("Tool removed.");
+      setStatusText(tr("Tool removed."));
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Failed to remove tool.");
+      setErrorText(error instanceof Error ? error.message : tr("Failed to remove tool."));
     }
   };
 
@@ -104,13 +106,15 @@ export function MyToolsPage() {
     try {
       const result = await ToolResultService.testTool(toolId);
       if (!result.success || !result.data) {
-        setErrorText(result.error || result.message || "Connectivity test failed.");
+        setErrorText(result.error || result.message || tr("Connectivity test failed."));
       } else {
         const testResult = result.data as ToolTestResult;
-        setStatusText(`Connectivity test passed in ${testResult.responseTime}ms.`);
+        setStatusText(
+          tr("Connectivity test passed in {{time}}ms.", { time: formatNumber(testResult.responseTime) }),
+        );
       }
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Connectivity test failed.");
+      setErrorText(error instanceof Error ? error.message : tr("Connectivity test failed."));
     } finally {
       setTestingToolId(null);
     }
@@ -125,32 +129,32 @@ export function MyToolsPage() {
   const handleToggleFavorite = (toolId: string) => {
     const favorited = ToolService.toggleFavoriteTool(toolId);
     setFavoriteToolIds(ToolService.getFavoriteToolIds());
-    setStatusText(favorited ? "Tool added to favorites." : "Tool removed from favorites.");
+    setStatusText(favorited ? tr("Tool added to favorites.") : tr("Tool removed from favorites."));
     setErrorText(null);
   };
 
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <h1 className="text-xl font-semibold text-text-primary">My Tools</h1>
+        <h1 className="text-xl font-semibold text-text-primary">{tr("My Tools")}</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Manage enabled integrations and run connectivity checks.
+          {tr("Manage enabled integrations and run connectivity checks.")}
         </p>
       </header>
 
       <div className="flex-1 overflow-auto p-6">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <article className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Enabled tools</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{library.enabled.length}</p>
+            <p className="text-xs text-text-muted">{tr("Enabled tools")}</p>
+            <p className="mt-1 text-xl font-semibold text-text-primary">{formatNumber(library.enabled.length)}</p>
           </article>
           <article className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Total calls</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{totalUsage.toLocaleString()}</p>
+            <p className="text-xs text-text-muted">{tr("Total calls")}</p>
+            <p className="mt-1 text-xl font-semibold text-text-primary">{formatNumber(totalUsage)}</p>
           </article>
           <article className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Favorites</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{library.favorites.length}</p>
+            <p className="text-xs text-text-muted">{tr("Favorites")}</p>
+            <p className="mt-1 text-xl font-semibold text-text-primary">{formatNumber(library.favorites.length)}</p>
           </article>
         </div>
 
@@ -158,20 +162,20 @@ export function MyToolsPage() {
           <input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
-            placeholder="Search tool name, endpoint, or description"
+            placeholder={tr("Search tool name, endpoint, or description")}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
           />
           <button
             onClick={() => navigate("/tools/api")}
             className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
           >
-            Browse Tool Market
+            {tr("Browse Tool Market")}
           </button>
         </div>
 
         {library.recent.length > 0 ? (
           <div className="mt-4 rounded-xl border border-border bg-bg-secondary p-4">
-            <h2 className="text-sm font-semibold text-text-primary">Recently Used</h2>
+            <h2 className="text-sm font-semibold text-text-primary">{tr("Recently Used")}</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               {library.recent.map((tool) => (
                 <button
@@ -188,7 +192,7 @@ export function MyToolsPage() {
 
         {library.favorites.length > 0 ? (
           <div className="mt-4 rounded-xl border border-border bg-bg-secondary p-4">
-            <h2 className="text-sm font-semibold text-text-primary">Favorites</h2>
+            <h2 className="text-sm font-semibold text-text-primary">{tr("Favorites")}</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               {library.favorites.map((tool) => (
                 <button
@@ -209,11 +213,11 @@ export function MyToolsPage() {
         <div className="mt-5">
           {isLoading ? (
             <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-              Loading enabled tools...
+              {tr("Loading enabled tools...")}
             </div>
           ) : filteredToolIds.length === 0 ? (
             <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-              No enabled tool matches current query.
+              {tr("No enabled tool matches current query.")}
             </div>
           ) : (
             <div className="space-y-3">
@@ -236,7 +240,12 @@ export function MyToolsPage() {
                         <div>
                           <h3 className="text-sm font-semibold text-text-primary">{tool.name}</h3>
                           <p className="text-xs text-text-muted">
-                            {tool.method} | success {(tool.successRate * 100).toFixed(1)}%
+                          {tool.method} | {tr("Success {{rate}}%", {
+                            rate: formatNumber(tool.successRate * 100, {
+                              minimumFractionDigits: 1,
+                              maximumFractionDigits: 1,
+                            }),
+                          })}
                           </p>
                         </div>
                       </div>
@@ -246,14 +255,14 @@ export function MyToolsPage() {
                           onClick={() => handleOpenConfig(tool.id)}
                           className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                         >
-                          Configure
+                          {tr("Configure")}
                         </button>
                         <button
                           onClick={() => void handleTest(tool.id)}
                           className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover disabled:opacity-60"
                           disabled={testingToolId === tool.id}
                         >
-                          {testingToolId === tool.id ? "Testing..." : "Test"}
+                          {testingToolId === tool.id ? tr("Testing...") : tr("Test")}
                         </button>
                         <button
                           onClick={() => handleToggleFavorite(tool.id)}
@@ -263,22 +272,22 @@ export function MyToolsPage() {
                               : "border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
                           }`}
                         >
-                          {favorited ? "Favorited" : "Add favorite"}
+                          {favorited ? tr("Favorited") : tr("Add favorite")}
                         </button>
                         <button
                           onClick={() => void handleRemove(tool.id)}
                           className="rounded-md bg-error px-3 py-1.5 text-xs text-white"
                         >
-                          Remove
+                          {tr("Remove")}
                         </button>
                       </div>
                     </div>
 
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-text-secondary md:grid-cols-4">
-                      <span>Calls: {profile.usageCount}</span>
-                      <span>Status: {profile.enabled ? "Enabled" : "Disabled"}</span>
-                      <span>Updated: {new Date(profile.updatedAt).toLocaleDateString()}</span>
-                      <span className="truncate">Endpoint: {tool.endpoint}</span>
+                      <span>{tr("Calls: {{count}}", { count: profile.usageCount })}</span>
+                      <span>{tr("Status: {{status}}", { status: profile.enabled ? tr("Enabled") : tr("Disabled") })}</span>
+                      <span>{tr("Updated: {{date}}", { date: formatDate(profile.updatedAt) })}</span>
+                      <span className="truncate">{tr("Endpoint: {{endpoint}}", { endpoint: tool.endpoint })}</span>
                     </div>
                   </article>
                 );

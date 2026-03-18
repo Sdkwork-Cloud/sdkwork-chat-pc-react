@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { type AppLanguage, useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { App } from "../entities/app.entity";
 import {
   AppstoreResultService,
@@ -15,22 +16,14 @@ import {
   resolveCapabilityPathByType,
 } from "./appstore.workspace.model";
 
-function formatDate(value: string): string {
+function formatDate(value: string, locale: AppLanguage): string {
   if (!value) {
     return "-";
   }
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
-}
-
-function formatCompactNumber(value: number): string {
-  if (value >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(1)}M`;
-  }
-  if (value >= 1_000) {
-    return `${(value / 1_000).toFixed(1)}K`;
-  }
-  return String(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(date);
 }
 
 function formatRating(value: number): string {
@@ -41,20 +34,8 @@ function formatRating(value: number): string {
 type DetailTab = "overview" | "preview" | "ratings" | "release";
 type ReviewSort = "newest" | "highest" | "lowest";
 
-const tabs: Array<{ key: DetailTab; label: string; hint: string }> = [
-  { key: "overview", label: "Overview", hint: "Product info" },
-  { key: "preview", label: "Preview", hint: "UI walkthrough" },
-  { key: "ratings", label: "Ratings", hint: "Score and feedback" },
-  { key: "release", label: "Version", hint: "Release notes" },
-];
-
-const reviewSortOptions: Array<{ key: ReviewSort; label: string }> = [
-  { key: "newest", label: "Newest first" },
-  { key: "highest", label: "Highest rating" },
-  { key: "lowest", label: "Lowest rating" },
-];
-
 export function AppStoreDetailPage() {
+  const { tr, language, formatCurrency, formatNumber } = useAppTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
   const [app, setApp] = useState<App | null>(null);
@@ -66,6 +47,25 @@ export function AppStoreDetailPage() {
   const [installState, setInstallState] = useState<AppInstallState | null>(null);
   const [statusText, setStatusText] = useState<string | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
+
+  const tabs = useMemo<Array<{ key: DetailTab; label: string; hint: string }>>(
+    () => [
+      { key: "overview", label: tr("Overview"), hint: tr("Product info") },
+      { key: "preview", label: tr("Preview"), hint: tr("UI walkthrough") },
+      { key: "ratings", label: tr("Ratings"), hint: tr("Score and feedback") },
+      { key: "release", label: tr("Version"), hint: tr("Release notes") },
+    ],
+    [tr],
+  );
+
+  const reviewSortOptions = useMemo<Array<{ key: ReviewSort; label: string }>>(
+    () => [
+      { key: "newest", label: tr("Newest first") },
+      { key: "highest", label: tr("Highest rating") },
+      { key: "lowest", label: tr("Lowest rating") },
+    ],
+    [tr],
+  );
 
   useEffect(() => {
     if (!id) {
@@ -80,7 +80,7 @@ export function AppStoreDetailPage() {
     AppstoreResultService.getAppById(id)
       .then((result) => {
         if (!result.success) {
-          throw new Error(result.error || "Failed to load app details.");
+          throw new Error(result.error || tr("Failed to load app details."));
         }
         const data = result.data ?? null;
         if (!mounted) {
@@ -93,7 +93,7 @@ export function AppStoreDetailPage() {
         if (!mounted) {
           return;
         }
-        setErrorText(error instanceof Error ? error.message : "Failed to load app details.");
+        setErrorText(error instanceof Error ? error.message : tr("Failed to load app details."));
       })
       .finally(() => {
         if (mounted) {
@@ -104,7 +104,17 @@ export function AppStoreDetailPage() {
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [id, tr]);
+
+  const compactNumberFormatter = useMemo(() => new Intl.NumberFormat(language, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }), [language]);
+  const formatCompactNumber = (value: number) => compactNumberFormatter.format(value);
+  const formatOneDecimal = (value: number) => formatNumber(value, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
 
   const launchPath = useMemo(() => (app ? resolveCapabilityPathByType(app.type) : "/appstore"), [app]);
   const previewTiles = useMemo(() => (app ? buildPreviewTiles(app) : []), [app]);
@@ -145,13 +155,13 @@ export function AppStoreDetailPage() {
     try {
       const result = await AppstoreResultService.installApp(app.id);
       if (!result.success || !result.data) {
-        throw new Error(result.error || "Failed to install app.");
+        throw new Error(result.error || tr("Failed to install app."));
       }
       const next = result.data;
       setInstallState(next);
-      setStatusText("Installed successfully. You can open this app now.");
+      setStatusText(tr("Installed successfully. You can open this app now."));
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Failed to install app.");
+      setErrorText(error instanceof Error ? error.message : tr("Failed to install app."));
     } finally {
       setIsActionLoading(false);
     }
@@ -168,12 +178,12 @@ export function AppStoreDetailPage() {
     try {
       const result = await AppstoreResultService.uninstallApp(app.id);
       if (!result.success) {
-        throw new Error(result.error || "Failed to remove app.");
+        throw new Error(result.error || tr("Failed to remove app."));
       }
       setInstallState(getAppInstallState(app.id));
-      setStatusText("App removed from current workspace.");
+      setStatusText(tr("App removed from current workspace."));
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Failed to remove app.");
+      setErrorText(error instanceof Error ? error.message : tr("Failed to remove app."));
     } finally {
       setIsActionLoading(false);
     }
@@ -238,7 +248,7 @@ export function AppStoreDetailPage() {
     return (
       <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary p-6">
         <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-          Loading app details...
+          {tr("Loading app details...")}
         </div>
       </section>
     );
@@ -248,10 +258,10 @@ export function AppStoreDetailPage() {
     return (
       <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary p-6">
         <Link to="/appstore" className="text-sm text-primary hover:underline">
-          Back to App Store
+          {tr("Back to App Store")}
         </Link>
         <p className="mt-4 text-sm text-text-secondary">
-          {errorText || "The app does not exist or is no longer available."}
+          {errorText || tr("The app does not exist or is no longer available.")}
         </p>
       </section>
     );
@@ -261,7 +271,7 @@ export function AppStoreDetailPage() {
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
         <Link to="/appstore" className="text-sm text-primary hover:underline">
-          Back to App Store
+          {tr("Back to App Store")}
         </Link>
       </header>
 
@@ -272,12 +282,12 @@ export function AppStoreDetailPage() {
               {app.icon}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">App Store</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">{tr("App Store")}</p>
               <h1 className="mt-1 truncate text-2xl font-bold text-text-primary">{app.name}</h1>
               <p className="mt-1 text-sm text-text-secondary">{app.shortDescription}</p>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-text-muted">
-                <span>{app.rating.average.toFixed(1)} rating</span>
-                <span>{formatCompactNumber(app.downloads)} downloads</span>
+                <span>{tr("{{value}} rating", { value: formatOneDecimal(app.rating.average) })}</span>
+                <span>{tr("{{count}} downloads", { count: app.downloads })}</span>
                 <span>{app.developer.name}</span>
                 <span>{app.type}</span>
               </div>
@@ -290,7 +300,7 @@ export function AppStoreDetailPage() {
                   disabled={isActionLoading}
                   className="rounded-full bg-primary px-5 py-2 text-center text-sm font-semibold text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  OPEN
+                  {tr("OPEN")}
                 </button>
               ) : (
                 <button
@@ -301,7 +311,7 @@ export function AppStoreDetailPage() {
                   disabled={isActionLoading}
                   className="rounded-full bg-primary px-5 py-2 text-center text-sm font-semibold text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {app.price > 0 ? `${app.currency} ${app.price.toFixed(2)}` : "GET"}
+                  {app.price > 0 ? formatCurrency(app.price, app.currency) : tr("GET")}
                 </button>
               )}
 
@@ -315,14 +325,14 @@ export function AppStoreDetailPage() {
                     disabled={isActionLoading}
                     className="rounded-full border border-warning/50 bg-warning/10 px-4 py-2 text-center text-xs text-warning transition-colors hover:bg-warning/20 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    REMOVE
+                    {tr("REMOVE")}
                   </button>
                 ) : null}
                 <Link
                   to="/appstore"
                   className="rounded-full border border-border bg-bg-tertiary px-5 py-2 text-center text-xs text-text-secondary transition-colors hover:bg-bg-hover"
                 >
-                  Back
+                  {tr("Back")}
                 </Link>
               </div>
             </div>
@@ -339,15 +349,18 @@ export function AppStoreDetailPage() {
           <section className="mt-4 rounded-2xl border border-border bg-bg-secondary p-4">
             <div className="grid grid-cols-1 gap-2 text-xs text-text-secondary md:grid-cols-3">
               <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                Install: <span className="font-semibold text-text-primary">{isInstalled ? "Installed" : "Not installed"}</span>
+                {tr("Install")}:{" "}
+                <span className="font-semibold text-text-primary">
+                  {isInstalled ? tr("Installed") : tr("Not installed")}
+                </span>
               </div>
               <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                Open Count: <span className="font-semibold text-text-primary">{installState.openCount}</span>
+                {tr("Open Count")}: <span className="font-semibold text-text-primary">{formatNumber(installState.openCount)}</span>
               </div>
               <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                Last Open:
+                {tr("Last Open")}:
                 <span className="ml-1 font-semibold text-text-primary">
-                  {installState.lastOpenedAt ? formatDate(installState.lastOpenedAt) : "-"}
+                  {installState.lastOpenedAt ? formatDate(installState.lastOpenedAt, language) : "-"}
                 </span>
               </div>
             </div>
@@ -377,14 +390,16 @@ export function AppStoreDetailPage() {
         {activeTab === "overview" ? (
           <section className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
             <article className="rounded-2xl border border-border bg-bg-secondary p-5">
-              <h2 className="text-lg font-semibold text-text-primary">About This App</h2>
+              <h2 className="text-lg font-semibold text-text-primary">{tr("About This App")}</h2>
               <p className="mt-2 text-sm leading-6 text-text-secondary">{app.description}</p>
 
-              <h3 className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Core Features</h3>
+              <h3 className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+                {tr("Core Features")}
+              </h3>
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 {(app.features.length > 0
                   ? app.features
-                  : [{ title: "Core Experience", description: "Main workflow and setup." }]
+                  : [{ title: tr("Core Experience"), description: tr("Main workflow and setup.") }]
                 ).map((feature) => (
                   <div
                     key={`${feature.title}-${feature.description}`}
@@ -406,16 +421,16 @@ export function AppStoreDetailPage() {
             </article>
 
             <aside className="rounded-2xl border border-border bg-bg-secondary p-5">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-text-muted">Information</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-text-muted">{tr("Information")}</h3>
               <div className="mt-3 space-y-2 text-sm text-text-secondary">
-                <div className="rounded-lg border border-border bg-bg-primary p-3">Developer: {app.developer.name}</div>
-                <div className="rounded-lg border border-border bg-bg-primary p-3">Category: {app.category.name}</div>
-                <div className="rounded-lg border border-border bg-bg-primary p-3">Version: {app.version}</div>
-                <div className="rounded-lg border border-border bg-bg-primary p-3">Updated: {formatDate(app.updated)}</div>
-                <div className="rounded-lg border border-border bg-bg-primary p-3">Released: {formatDate(app.released)}</div>
-                <div className="rounded-lg border border-border bg-bg-primary p-3">Size: {app.size}</div>
+                <div className="rounded-lg border border-border bg-bg-primary p-3">{tr("Developer")}: {app.developer.name}</div>
+                <div className="rounded-lg border border-border bg-bg-primary p-3">{tr("Category")}: {app.category.name}</div>
+                <div className="rounded-lg border border-border bg-bg-primary p-3">{tr("Version")}: {app.version}</div>
+                <div className="rounded-lg border border-border bg-bg-primary p-3">{tr("Updated")}: {formatDate(app.updated, language)}</div>
+                <div className="rounded-lg border border-border bg-bg-primary p-3">{tr("Released")}: {formatDate(app.released, language)}</div>
+                <div className="rounded-lg border border-border bg-bg-primary p-3">{tr("Size")}: {app.size}</div>
                 <div className="rounded-lg border border-border bg-bg-primary p-3">
-                  Languages: {app.languages.join(", ") || "-"}
+                  {tr("Languages")}: {app.languages.join(", ") || "-"}
                 </div>
               </div>
             </aside>
@@ -426,9 +441,9 @@ export function AppStoreDetailPage() {
           <section className="mt-5 rounded-2xl border border-border bg-bg-secondary p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-text-primary">Preview</h2>
+                <h2 className="text-lg font-semibold text-text-primary">{tr("Preview")}</h2>
                 <p className="mt-1 text-sm text-text-secondary">
-                  Explore key screens and workflows before installing. Use keyboard arrows for quick browsing.
+                  {tr("Explore key screens and workflows before installing. Use keyboard arrows for quick browsing.")}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -437,14 +452,14 @@ export function AppStoreDetailPage() {
                   disabled={previewTiles.length <= 1}
                   className="rounded-full border border-border bg-bg-primary px-3 py-1 text-xs text-text-secondary transition-colors hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Previous
+                  {tr("Previous")}
                 </button>
                 <button
                   onClick={() => handlePreviewStep(1)}
                   disabled={previewTiles.length <= 1}
                   className="rounded-full border border-border bg-bg-primary px-3 py-1 text-xs text-text-secondary transition-colors hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Next
+                  {tr("Next")}
                 </button>
               </div>
             </div>
@@ -468,7 +483,9 @@ export function AppStoreDetailPage() {
                   ) : null}
                 </div>
                 <div className="p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Selected Preview</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+                    {tr("Selected Preview")}
+                  </p>
                   <p className="mt-1 text-lg font-semibold text-text-primary">{selectedPreview.title}</p>
                   <p className="mt-1 text-sm text-text-secondary">{selectedPreview.subtitle}</p>
                 </div>
@@ -501,7 +518,9 @@ export function AppStoreDetailPage() {
                       }
                     />
                     <div className="p-2">
-                      <p className="text-[10px] uppercase tracking-wide text-text-muted">Screen {index + 1}</p>
+                      <p className="text-[10px] uppercase tracking-wide text-text-muted">
+                        {tr("Screen {{index}}", { index: index + 1 })}
+                      </p>
                       <p className="mt-1 truncate text-xs font-medium text-text-primary">{tile.title}</p>
                     </div>
                   </button>
@@ -514,14 +533,16 @@ export function AppStoreDetailPage() {
         {activeTab === "ratings" ? (
           <section className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
             <aside className="rounded-2xl border border-border bg-bg-secondary p-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Average Rating</p>
-              <p className="mt-2 text-4xl font-bold text-text-primary">{app.rating.average.toFixed(1)}</p>
-              <p className="mt-1 text-xs text-text-muted">{formatCompactNumber(app.rating.count)} ratings</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Average Rating")}</p>
+              <p className="mt-2 text-4xl font-bold text-text-primary">{formatOneDecimal(app.rating.average)}</p>
+              <p className="mt-1 text-xs text-text-muted">
+                          {tr("{{count}} ratings", { count: app.rating.count })}
+              </p>
             </aside>
 
             <article className="rounded-2xl border border-border bg-bg-secondary p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-lg font-semibold text-text-primary">Rating Distribution</h2>
+                <h2 className="text-lg font-semibold text-text-primary">{tr("Rating Distribution")}</h2>
                 <select
                   value={reviewSort}
                   onChange={(event) => setReviewSort(event.target.value as ReviewSort)}
@@ -540,7 +561,7 @@ export function AppStoreDetailPage() {
                   const percent = totalVotes > 0 ? Math.round((value / totalVotes) * 100) : 0;
                   return (
                     <div key={`star-${star}`} className="flex items-center gap-3">
-                      <span className="w-12 text-xs text-text-secondary">{star} stars</span>
+                      <span className="w-12 text-xs text-text-secondary">{tr("{{count}} stars", { count: star })}</span>
                       <div className="h-2 flex-1 overflow-hidden rounded-full bg-bg-tertiary">
                         <div className="h-full bg-primary" style={{ width: `${percent}%` }} />
                       </div>
@@ -551,14 +572,16 @@ export function AppStoreDetailPage() {
               </div>
 
               <div className="mt-5">
-                <h3 className="text-sm font-semibold text-text-primary">Recent Reviews</h3>
+                <h3 className="text-sm font-semibold text-text-primary">{tr("Recent Reviews")}</h3>
                 <div className="mt-3 space-y-3">
                   {sortedReviews.map((review) => (
                     <article key={review.id} className="rounded-xl border border-border bg-bg-primary p-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs font-semibold text-text-primary">{review.author}</span>
-                        <span className="text-xs text-warning">Rating {formatRating(review.rating)}</span>
-                        <span className="text-xs text-text-muted">{formatDate(review.date)}</span>
+                        <span className="text-xs text-warning">
+                          {tr("Rating {{value}}", { value: formatRating(review.rating) })}
+                        </span>
+                        <span className="text-xs text-text-muted">{formatDate(review.date, language)}</span>
                         <span className="rounded bg-bg-tertiary px-1.5 py-0.5 text-[10px] text-text-muted">
                           v{review.version}
                         </span>
@@ -576,11 +599,11 @@ export function AppStoreDetailPage() {
         {activeTab === "release" ? (
           <section className="mt-5 rounded-2xl border border-border bg-bg-secondary p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-semibold text-text-primary">Version {app.version}</h2>
-              <span className="text-xs text-text-muted">Updated {formatDate(app.updated)}</span>
+              <h2 className="text-lg font-semibold text-text-primary">{tr("Version {{value}}", { value: app.version })}</h2>
+              <span className="text-xs text-text-muted">{tr("Updated {{date}}", { date: formatDate(app.updated, language) })}</span>
             </div>
             <p className="mt-2 text-sm text-text-secondary">
-              This release improves performance, user workflow continuity, and operational observability.
+              {tr("This release improves performance, user workflow continuity, and operational observability.")}
             </p>
 
             <div className="mt-4 space-y-2">

@@ -1,30 +1,18 @@
-/**
- * OpenChat AI - 高端深色主题设计系统
- * 
- * 设计理念：
- * - 深邃优雅的深色基调
- * - 舒适柔和的蓝色主调
- * - 精致的层次感和空间感
- * - 高端商务风格
- * - 高对比度确保可读性
- */
 
-/* 字体引入 - 使用本地系统字体作为后备，避免网络加载失败 */
-/* Google Fonts 备用：@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap'); */
 
-/* xterm.js 样式 */
+
+
+
+
 @import "xterm/css/xterm.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ==================== 高端深色主题设计令牌 ==================== */
+
 :root {
-  /* 
-   * 主色调 - 深海蓝
-   * 比之前的亮蓝色更沉稳、更高端
-   */
+  
   --ai-primary: #3b82f6;
   --ai-primary-hover: #2563eb;
   --ai-primary-light: #60a5fa;
@@ -33,26 +21,17 @@
   --ai-primary-medium: rgba(59, 130, 246, 0.25);
   --ai-primary-glow: rgba(59, 130, 246, 0.4);
 
-  /* 
-   * 辅助色 - 优雅青
-   * 与主色调形成和谐搭配
-   */
+  
   --ai-cyan: #06b6d4;
   --ai-cyan-soft: rgba(6, 182, 212, 0.15);
   --ai-cyan-glow: rgba(6, 182, 212, 0.3);
 
-  /* 
-   * 强调色 - 尊贵紫
-   * 用于特殊强调和VIP标识
-   */
+  
   --ai-purple: #8b5cf6;
   --ai-purple-soft: rgba(139, 92, 246, 0.15);
   --ai-purple-glow: rgba(139, 92, 246, 0.3);
 
-  /* 
-   * 状态色 - 柔和自然
-   * 降低饱和度，更加舒适
-   */
+  
   --ai-success: #22c55e;
   --ai-success-soft: rgba(34, 197, 94, 0.15);
   --ai-success-glow: rgba(34, 197, 94, 0.25);
@@ -67,26 +46,20 @@
   --ai-info: #3b82f6;
   --ai-info-soft: rgba(59, 130, 246, 0.15);
 
-  /* 
-   * 背景色 - 极致纯黑
-   * 真正的暗黑主题，深邃神秘
-   */
+  
   --bg-primary: #000000;
   --bg-secondary: #0a0a0a;
   --bg-tertiary: #141414;
   --bg-elevated: #1c1c1c;
   --bg-overlay: rgba(0, 0, 0, 0.85);
 
-  /* 交互状态背景 - 增强对比度 */
+  
   --bg-hover: rgba(255, 255, 255, 0.08);
   --bg-active: rgba(59, 130, 246, 0.2);
   --bg-selected: rgba(59, 130, 246, 0.25);
   --bg-disabled: rgba(255, 255, 255, 0.05);
 
-  /* 
-   * 文字色 - 暗黑主题适配
-   * 在纯黑背景上的精致层次 - 增强对比度
-   */
+  
   --text-primary: #ffffff;
   --text-secondary: #e5e7eb;
   --text-tertiary: #9ca3af;
@@ -95,10 +68,7 @@
   --text-inverse: #000000;
   --text-disabled: rgba(255, 255, 255, 0.3);
 
-  /* 
-   * 边框 - 暗黑主题
-   * 在纯黑背景上的细腻分割 - 增强可见性
-   */
+  
   --border-color: rgba(255, 255, 255, 0.12);
   --border-light: rgba(255, 255, 255, 0.06);
   --border-medium: rgba(255, 255, 255, 0.18);
@@ -107,10 +77,7 @@
   --border-error: rgba(239, 68, 68, 0.6);
   --border-success: rgba(34, 197, 94, 0.6);
 
-  /* 
-   * 阴影 - 暗黑主题
-   * 在纯黑背景上的微妙深度
-   */
+  
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-md:
     0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -2px rgba(0, 0, 0, 0.5);
@@ -121,26 +88,14 @@
   --shadow-focus: 0 0 0 3px rgba(59, 130, 246, 0.25);
   --shadow-glow: 0 0 25px rgba(59, 130, 246, 0.35);
 
-  /* 
-   * 发光效果 - 暗黑主题增强
-   * 在纯黑背景上更明显的光晕
-   */
+  
   --glow-primary: 0 0 30px rgba(59, 130, 246, 0.5);
   --glow-success: 0 0 30px rgba(34, 197, 94, 0.4);
   --glow-error: 0 0 30px rgba(239, 68, 68, 0.4);
   --glow-cyan: 0 0 30px rgba(6, 182, 212, 0.4);
   --glow-purple: 0 0 30px rgba(139, 92, 246, 0.4);
 
-  /* 
-   * 圆角系统 - 统一使用规范
-   * --radius-xs: 4px - 徽章、小标签
-   * --radius-sm: 6px - 输入框、小按钮
-   * --radius-md: 8px - 中等组件
-   * --radius-lg: 12px - 卡片、主要按钮（统一标准）
-   * --radius-xl: 16px - 模态框、大卡片
-   * --radius-2xl: 20px - 特殊组件
-   * --radius-full: 9999px - 圆形组件
-   */
+  
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -149,9 +104,7 @@
   --radius-2xl: 20px;
   --radius-full: 9999px;
 
-  /* 
-   * 间距 - 8px 基准
-   */
+  
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -162,10 +115,7 @@
   --space-10: 40px;
   --space-12: 48px;
 
-  /*
-   * 字体 - 使用系统字体栈，确保在所有平台上都有良好的显示效果
-   * 优先使用 Inter 和 JetBrains Mono（如果已安装），否则使用系统后备字体
-   */
+  
   --font-sans:
     "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial,
@@ -174,9 +124,7 @@
     "JetBrains Mono", "Fira Code", "SF Mono", "Consolas", "Monaco",
     "Inconsolata", monospace;
 
-  /* 
-   * 字体大小
-   */
+  
   --text-xs: 12px;
   --text-sm: 14px;
   --text-base: 16px;
@@ -185,33 +133,25 @@
   --text-2xl: 24px;
   --text-3xl: 30px;
 
-  /* 
-   * 行高
-   */
+  
   --leading-tight: 1.25;
   --leading-normal: 1.5;
   --leading-relaxed: 1.625;
 
-  /* 
-   * 字重
-   */
+  
   --font-light: 300;
   --font-normal: 400;
   --font-medium: 500;
   --font-semibold: 600;
   --font-bold: 700;
 
-  /* 
-   * 过渡 - 丝滑流畅
-   */
+  
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slower: 500ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* 
-   * 缓动函数
-   */
+  
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
@@ -219,16 +159,14 @@
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* 
-   * 布局尺寸
-   */
+  
   --sidebar-width: 72px;
   --conversation-list-width: 320px;
   --header-height: 64px;
   --input-height: 72px;
 }
 
-/* ==================== 基础重置 ==================== */
+
 * {
   margin: 0;
   padding: 0;
@@ -254,13 +192,13 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* ==================== 选择文本样式 ==================== */
+
 ::selection {
   background: var(--ai-primary-soft);
   color: var(--ai-primary-light);
 }
 
-/* ==================== 滚动条样式 ==================== */
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -280,13 +218,7 @@ body {
   background: var(--text-muted);
 }
 
-/* Firefox */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-medium) transparent;
-}
 
-/* ==================== 动画 ==================== */
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -371,7 +303,7 @@ body {
   }
 }
 
-/* ==================== 工具类 ==================== */
+
 .skeleton-shimmer {
   background: linear-gradient(
     90deg,
@@ -418,7 +350,7 @@ body {
   animation: messagePop 0.4s var(--ease-spring) forwards;
 }
 
-/* 页面过渡动画 */
+
 .page-enter {
   opacity: 0;
   transform: translateY(10px);
@@ -438,7 +370,7 @@ body {
   transition: opacity 0.2s ease-in;
 }
 
-/* 交错动画 - 用于列表项 */
+
 .stagger-item {
   opacity: 0;
   animation: fadeIn 0.4s ease-out forwards;
@@ -468,7 +400,7 @@ body {
   animation-delay: 350ms;
 }
 
-/* 微交互 */
+
 .hover-lift {
   transition:
     transform var(--transition-fast),
@@ -488,7 +420,7 @@ body {
   transform: scale(0.97);
 }
 
-/* ==================== Tiptap 编辑器样式 ==================== */
+
 .ProseMirror {
   outline: none;
   min-height: 60px;
@@ -551,7 +483,7 @@ body {
   text-decoration: underline;
 }
 
-/* ==================== 响应式断点 ==================== */
+
 @media (max-width: 768px) {
   :root {
     --sidebar-width: 64px;
@@ -559,7 +491,7 @@ body {
   }
 }
 
-/* ==================== 减少动效 ==================== */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -570,7 +502,7 @@ body {
   }
 }
 
-/* ==================== 高对比度模式 ==================== */
+
 @media (prefers-contrast: high) {
   :root {
     --border-color: rgba(255, 255, 255, 0.25);

@@ -1,4 +1,4 @@
-﻿import React, { useState, createContext, useContext } from "react";
+import React, { useState, createContext, useContext } from "react";
 import { cn } from "../../../lib/utils";
 
 interface TooltipContextValue {
@@ -11,9 +11,7 @@ const TooltipContext = createContext<TooltipContextValue | null>(null);
 function useTooltip() {
   const context = useContext(TooltipContext);
   if (!context) {
-    throw new Error(
-      "Tooltip components must be used within a Tooltip provider",
-    );
+    throw new Error("Tooltip components must be used within a Tooltip provider");
   }
   return context;
 }
@@ -53,7 +51,7 @@ export const TooltipTrigger = React.forwardRef<
 >(({ children, className, asChild, ...props }, ref) => {
   const { setOpen } = useTooltip();
 
-  // 濡傛灉asChild涓簍rue锛屽皢浜嬩欢澶勭悊绋嬪簭浼犻€掔粰瀛愬厓绱?  if (asChild && React.isValidElement(children)) {
+  if (asChild && React.isValidElement(children)) {
     return React.cloneElement(children, {
       ...props,
       onMouseEnter: () => setOpen(true),
@@ -110,4 +108,3 @@ export const TooltipContent = React.forwardRef<
 TooltipContent.displayName = "TooltipContent";
 
 export default Tooltip;
-

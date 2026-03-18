@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { WalletResultService, WalletService } from "../services";
 import type {
   PaymentMethod,
@@ -13,25 +14,14 @@ import {
   filterWalletWorkspaceTransactions,
 } from "./wallet.workspace.model";
 
-function formatCurrency(value: number, currency = "CNY"): string {
-  return `${currency} ${value.toFixed(2)}`;
-}
-
-function formatTime(timestamp?: number): string {
-  if (!timestamp) {
-    return "-";
-  }
-  return new Date(timestamp).toLocaleString();
-}
-
-function formatStatus(status: Transaction["status"]): string {
+function translateStatus(status: Transaction["status"], tr: (key: string) => string): string {
   switch (status) {
     case "pending":
-      return "Pending";
+      return tr("Pending");
     case "failed":
-      return "Failed";
+      return tr("Failed");
     default:
-      return "Completed";
+      return tr("Completed");
   }
 }
 
@@ -64,6 +54,8 @@ export function WalletPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [statusText, setStatusText] = useState("");
+
+  const { tr, formatCurrency, formatTime } = useAppTranslation();
 
   const categories = useMemo(() => WalletService.getCategories(), []);
 
@@ -98,7 +90,7 @@ export function WalletPage() {
             transactionsRes.message ||
             statsRes.message ||
             paymentRes.message ||
-            "Some wallet data could not be loaded.",
+            tr("Some wallet data could not be loaded."),
         );
       }
     } catch (error) {
@@ -106,7 +98,7 @@ export function WalletPage() {
       setTransactions([]);
       setStats(null);
       setPaymentMethods([]);
-      setErrorText(error instanceof Error ? error.message : "Failed to load wallet data.");
+      setErrorText(error instanceof Error ? error.message : tr("Failed to load wallet data."));
     } finally {
       setIsLoading(false);
     }
@@ -173,7 +165,7 @@ export function WalletPage() {
   const handleTransfer = async () => {
     const amount = Number(transferAmount);
     if (!transferName.trim() || Number.isNaN(amount) || amount <= 0) {
-      setStatusText("Provide a valid recipient and amount.");
+      setStatusText(tr("Provide a valid recipient and amount."));
       return;
     }
 
@@ -186,13 +178,13 @@ export function WalletPage() {
         transferMessage.trim() || undefined,
       );
       if (!result.success) {
-        setStatusText(result.message || "Transfer failed.");
+        setStatusText(result.message || tr("Transfer failed."));
         return;
       }
-      setStatusText("Transfer completed.");
+      setStatusText(tr("Transfer completed."));
       await loadData();
     } catch (error) {
-      setStatusText(error instanceof Error ? error.message : "Transfer failed.");
+      setStatusText(error instanceof Error ? error.message : tr("Transfer failed."));
     } finally {
       setIsSubmitting(false);
     }
@@ -202,7 +194,7 @@ export function WalletPage() {
     const amount = Number(redPacketAmount);
     const count = Number(redPacketCount);
     if (Number.isNaN(amount) || amount <= 0 || Number.isNaN(count) || count <= 0) {
-      setStatusText("Provide valid red packet amount and count.");
+      setStatusText(tr("Provide valid red packet amount and count."));
       return;
     }
 
@@ -215,13 +207,17 @@ export function WalletPage() {
         redPacketMessage.trim() || "Team bonus",
       );
       if (!result.success) {
-        setStatusText(result.message || "Failed to create red packet.");
+        setStatusText(result.message || tr("Failed to create red packet."));
         return;
       }
-      setStatusText(`Red packet created: ${formatCurrency(result.data?.amount || amount)}`);
+      setStatusText(
+        tr("Red packet created: {{amount}}", {
+          amount: formatCurrency(result.data?.amount || amount),
+        }),
+      );
       await loadData();
     } catch (error) {
-      setStatusText(error instanceof Error ? error.message : "Failed to create red packet.");
+      setStatusText(error instanceof Error ? error.message : tr("Failed to create red packet."));
     } finally {
       setIsSubmitting(false);
     }
@@ -232,13 +228,13 @@ export function WalletPage() {
     try {
       const result = await WalletResultService.setDefaultPaymentMethod(id);
       if (!result.success) {
-        setStatusText(result.message || "Failed to update default payment method.");
+        setStatusText(result.message || tr("Failed to update default payment method."));
         return;
       }
-      setStatusText("Default payment method updated.");
+      setStatusText(tr("Default payment method updated."));
       await loadData();
     } catch (error) {
-      setStatusText(error instanceof Error ? error.message : "Failed to update default payment method.");
+      setStatusText(error instanceof Error ? error.message : tr("Failed to update default payment method."));
     }
   };
 
@@ -247,9 +243,9 @@ export function WalletPage() {
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <h1 className="text-xl font-semibold text-text-primary">Wallet</h1>
+        <h1 className="text-xl font-semibold text-text-primary">{tr("Wallet")}</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Operate transfers and payment methods while reviewing transactions in a dedicated workspace.
+          {tr("Operate transfers and payment methods while reviewing transactions in a dedicated workspace.")}
         </p>
       </header>
 
@@ -257,13 +253,15 @@ export function WalletPage() {
         <div className="grid h-full min-h-[540px] gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
           <aside className="flex min-h-0 flex-col rounded-xl border border-border bg-bg-secondary">
             <div className="border-b border-border p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Transactions</h2>
-              <p className="mt-1 text-xs text-text-secondary">Filter and select records for detail review.</p>
+              <h2 className="text-sm font-semibold text-text-primary">{tr("Transactions")}</h2>
+              <p className="mt-1 text-xs text-text-secondary">
+                {tr("Filter and select records for detail review.")}
+              </p>
               <div className="mt-3 space-y-2">
                 <input
                   value={keyword}
                   onChange={(event) => setKeyword(event.target.value)}
-                  placeholder="Search title, category, description"
+                  placeholder={tr("Search title, category, description")}
                   className="h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
                 />
                 <div className="grid grid-cols-2 gap-2">
@@ -272,16 +270,16 @@ export function WalletPage() {
                     onChange={(event) => setTypeFilter(event.target.value as "all" | TransactionType)}
                     className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                   >
-                    <option value="all">All types</option>
-                    <option value="income">Income</option>
-                    <option value="expense">Expense</option>
+                    <option value="all">{tr("All types")}</option>
+                    <option value="income">{tr("Income")}</option>
+                    <option value="expense">{tr("Expense")}</option>
                   </select>
                   <select
                     value={categoryFilter}
                     onChange={(event) => setCategoryFilter(event.target.value)}
                     className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                   >
-                    <option value="all">All categories</option>
+                    <option value="all">{tr("All categories")}</option>
                     {categories.map((category) => (
                       <option key={category} value={category}>
                         {category}
@@ -293,16 +291,16 @@ export function WalletPage() {
             </div>
 
             <div className="grid grid-cols-3 gap-2 border-b border-border p-3">
-              <div className="rounded-md border border-border bg-bg-primary px-2 py-1.5">
-                <p className="text-[11px] text-text-muted">Records</p>
+                <div className="rounded-md border border-border bg-bg-primary px-2 py-1.5">
+                  <p className="text-[11px] text-text-muted">{tr("Records")}</p>
                 <p className="text-sm font-semibold text-text-primary">{workspaceSummary.total}</p>
               </div>
-              <div className="rounded-md border border-border bg-bg-primary px-2 py-1.5">
-                <p className="text-[11px] text-text-muted">Income</p>
+                <div className="rounded-md border border-border bg-bg-primary px-2 py-1.5">
+                  <p className="text-[11px] text-text-muted">{tr("Income")}</p>
                 <p className="text-sm font-semibold text-success">{formatCurrency(workspaceSummary.income, currency)}</p>
               </div>
-              <div className="rounded-md border border-border bg-bg-primary px-2 py-1.5">
-                <p className="text-[11px] text-text-muted">Expense</p>
+                <div className="rounded-md border border-border bg-bg-primary px-2 py-1.5">
+                  <p className="text-[11px] text-text-muted">{tr("Expense")}</p>
                 <p className="text-sm font-semibold text-error">{formatCurrency(workspaceSummary.expense, currency)}</p>
               </div>
             </div>
@@ -311,7 +309,7 @@ export function WalletPage() {
               <div className="grid grid-cols-1 gap-3">
                 <div>
                   <div className="mb-1 flex items-center justify-between">
-                    <p className="text-xs font-semibold text-text-primary">Favorites</p>
+                    <p className="text-xs font-semibold text-text-primary">{tr("Favorites")}</p>
                     <span className="text-[11px] text-text-muted">{workspaceLibrary.favorites.length}</span>
                   </div>
                   <div className="space-y-1">
@@ -325,14 +323,14 @@ export function WalletPage() {
                       </button>
                     ))}
                     {workspaceLibrary.favorites.length === 0 ? (
-                      <p className="text-[11px] text-text-muted">No favorites yet.</p>
+                      <p className="text-[11px] text-text-muted">{tr("No favorites yet.")}</p>
                     ) : null}
                   </div>
                 </div>
 
                 <div>
                   <div className="mb-1 flex items-center justify-between">
-                    <p className="text-xs font-semibold text-text-primary">Recent Opened</p>
+                    <p className="text-xs font-semibold text-text-primary">{tr("Recent Opened")}</p>
                     <span className="text-[11px] text-text-muted">{workspaceLibrary.recent.length}</span>
                   </div>
                   <div className="space-y-1">
@@ -346,7 +344,7 @@ export function WalletPage() {
                       </button>
                     ))}
                     {workspaceLibrary.recent.length === 0 ? (
-                      <p className="text-[11px] text-text-muted">No recent history.</p>
+                      <p className="text-[11px] text-text-muted">{tr("No recent history.")}</p>
                     ) : null}
                   </div>
                 </div>
@@ -355,9 +353,11 @@ export function WalletPage() {
 
             <div className="min-h-0 flex-1 overflow-auto">
               {isLoading ? (
-                <div className="p-4 text-sm text-text-secondary">Loading wallet transactions...</div>
+                <div className="p-4 text-sm text-text-secondary">
+                  {tr("Loading wallet transactions...")}
+                </div>
               ) : workspaceTransactions.length === 0 ? (
-                <div className="p-4 text-sm text-text-secondary">No transactions found.</div>
+                <div className="p-4 text-sm text-text-secondary">{tr("No transactions found.")}</div>
               ) : (
                 <div className="divide-y divide-border">
                   {workspaceTransactions.map((item) => {
@@ -376,7 +376,7 @@ export function WalletPage() {
                             <p className="line-clamp-1 text-sm font-semibold text-text-primary">{item.title}</p>
                             {favoriteSet.has(item.id) ? (
                               <span className="rounded bg-warning/20 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
-                                Fav
+                                {tr("Fav")}
                               </span>
                             ) : null}
                           </div>
@@ -386,7 +386,7 @@ export function WalletPage() {
                           </p>
                         </div>
                         <p className="mt-1 line-clamp-1 text-xs text-text-muted">
-                          {item.category} | {formatTime(item.createTime)}
+                          {item.category} | {item.createTime ? formatTime(item.createTime) : tr("Unknown")}
                         </p>
                       </button>
                     );
@@ -400,25 +400,25 @@ export function WalletPage() {
             <div className="border-b border-border p-4">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
                 <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                  <p className="text-xs text-text-muted">Available Balance</p>
+                  <p className="text-xs text-text-muted">{tr("Available Balance")}</p>
                   <p className="mt-1 text-lg font-semibold text-text-primary">
                     {walletData ? formatCurrency(walletData.balance, currency) : "-"}
                   </p>
                 </div>
                 <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                  <p className="text-xs text-text-muted">Frozen</p>
+                  <p className="text-xs text-text-muted">{tr("Frozen")}</p>
                   <p className="mt-1 text-lg font-semibold text-text-primary">
                     {walletData ? formatCurrency(walletData.frozen, currency) : "-"}
                   </p>
                 </div>
                 <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                  <p className="text-xs text-text-muted">Today Income</p>
+                  <p className="text-xs text-text-muted">{tr("Today Income")}</p>
                   <p className="mt-1 text-lg font-semibold text-success">
                     {walletData ? formatCurrency(walletData.dailyIncome, currency) : "-"}
                   </p>
                 </div>
                 <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                  <p className="text-xs text-text-muted">Monthly Expense</p>
+                  <p className="text-xs text-text-muted">{tr("Monthly Expense")}</p>
                   <p className="mt-1 text-lg font-semibold text-error">
                     {walletData ? formatCurrency(walletData.monthlyExpense, currency) : "-"}
                   </p>
@@ -438,24 +438,24 @@ export function WalletPage() {
                 <div className="min-h-0 overflow-auto space-y-4">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="rounded-lg border border-border bg-bg-primary p-4">
-                      <h3 className="text-sm font-semibold text-text-primary">Transfer</h3>
+                      <h3 className="text-sm font-semibold text-text-primary">{tr("Transfer")}</h3>
                       <div className="mt-3 space-y-2">
                         <input
                           value={transferName}
                           onChange={(event) => setTransferName(event.target.value)}
-                          placeholder="Recipient"
+                          placeholder={tr("Recipient")}
                           className="h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                         />
                         <input
                           value={transferAmount}
                           onChange={(event) => setTransferAmount(event.target.value)}
-                          placeholder="Amount"
+                          placeholder={tr("Amount")}
                           className="h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                         />
                         <input
                           value={transferMessage}
                           onChange={(event) => setTransferMessage(event.target.value)}
-                          placeholder="Message"
+                          placeholder={tr("Message")}
                           className="h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                         />
                         <button
@@ -463,30 +463,30 @@ export function WalletPage() {
                           disabled={isSubmitting}
                           className="w-full rounded-md bg-primary px-3 py-2 text-xs text-white disabled:opacity-60"
                         >
-                          Send Transfer
+                          {tr("Send Transfer")}
                         </button>
                       </div>
                     </div>
 
                     <div className="rounded-lg border border-border bg-bg-primary p-4">
-                      <h3 className="text-sm font-semibold text-text-primary">Red Packet</h3>
+                      <h3 className="text-sm font-semibold text-text-primary">{tr("Red Packet")}</h3>
                       <div className="mt-3 space-y-2">
                         <input
                           value={redPacketAmount}
                           onChange={(event) => setRedPacketAmount(event.target.value)}
-                          placeholder="Total amount"
+                          placeholder={tr("Total amount")}
                           className="h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                         />
                         <input
                           value={redPacketCount}
                           onChange={(event) => setRedPacketCount(event.target.value)}
-                          placeholder="Count"
+                          placeholder={tr("Count")}
                           className="h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                         />
                         <input
                           value={redPacketMessage}
                           onChange={(event) => setRedPacketMessage(event.target.value)}
-                          placeholder="Greeting"
+                          placeholder={tr("Greeting")}
                           className="h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                         />
                         <button
@@ -494,7 +494,7 @@ export function WalletPage() {
                           disabled={isSubmitting}
                           className="w-full rounded-md bg-warning px-3 py-2 text-xs text-white disabled:opacity-60"
                         >
-                          Create Red Packet
+                          {tr("Create Red Packet")}
                         </button>
                       </div>
                     </div>
@@ -502,12 +502,14 @@ export function WalletPage() {
 
                   <div className="rounded-lg border border-border bg-bg-primary p-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-text-primary">Payment Methods</h3>
-                      <span className="text-xs text-text-muted">{paymentMethods.length} methods</span>
+                      <h3 className="text-sm font-semibold text-text-primary">{tr("Payment Methods")}</h3>
+                      <span className="text-xs text-text-muted">
+                        {paymentMethods.length} {tr("methods")}
+                      </span>
                     </div>
                     <div className="mt-3 space-y-2">
                       {paymentMethods.length === 0 ? (
-                        <p className="text-xs text-text-muted">No payment methods available.</p>
+                        <p className="text-xs text-text-muted">{tr("No payment methods available.")}</p>
                       ) : (
                         paymentMethods.map((method) => (
                           <div key={method.id} className="rounded-md border border-border bg-bg-secondary p-3">
@@ -529,7 +531,7 @@ export function WalletPage() {
                                     : "bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
                                 }`}
                               >
-                                {method.isDefault ? "Default" : "Set Default"}
+                                {method.isDefault ? tr("Default") : tr("Set Default")}
                               </button>
                             </div>
                           </div>
@@ -542,7 +544,7 @@ export function WalletPage() {
                 <aside className="flex min-h-0 flex-col rounded-lg border border-border bg-bg-primary">
                   <div className="border-b border-border p-4">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-sm font-semibold text-text-primary">Transaction Detail</h3>
+                      <h3 className="text-sm font-semibold text-text-primary">{tr("Transaction Detail")}</h3>
                       {selectedTransaction ? (
                         <button
                           type="button"
@@ -553,23 +555,25 @@ export function WalletPage() {
                               : "border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
                           }`}
                         >
-                          {favoriteSet.has(selectedTransaction.id) ? "Favorited" : "Favorite"}
+                          {favoriteSet.has(selectedTransaction.id) ? tr("Favorited") : tr("Favorite")}
                         </button>
                       ) : null}
                     </div>
                     <p className="mt-1 text-xs text-text-secondary">
-                      {selectedTransaction ? "Selected record details and diagnostics." : "Select one record on the left."}
+                      {selectedTransaction
+                        ? tr("Selected record details and diagnostics.")
+                        : tr("Select one record on the left.")}
                     </p>
                   </div>
                   <div className="min-h-0 flex-1 overflow-auto p-4">
                     {selectedTransaction ? (
                       <div className="space-y-3 text-sm">
                         <div>
-                          <p className="text-xs text-text-muted">Title</p>
+                          <p className="text-xs text-text-muted">{tr("Title")}</p>
                           <p className="mt-1 font-medium text-text-primary">{selectedTransaction.title}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-text-muted">Amount</p>
+                          <p className="text-xs text-text-muted">{tr("Amount")}</p>
                           <p
                             className={`mt-1 font-semibold ${
                               selectedTransaction.type === "income" ? "text-success" : "text-error"
@@ -580,47 +584,54 @@ export function WalletPage() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-text-muted">Category</p>
+                          <p className="text-xs text-text-muted">{tr("Category")}</p>
                           <p className="mt-1 text-text-primary">{selectedTransaction.category}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-text-muted">Status</p>
-                          <p className="mt-1 text-text-primary">{formatStatus(selectedTransaction.status)}</p>
+                          <p className="text-xs text-text-muted">{tr("Status")}</p>
+                          <p className="mt-1 text-text-primary">
+                            {translateStatus(selectedTransaction.status, tr)}
+                          </p>
                         </div>
                         <div>
-                          <p className="text-xs text-text-muted">Created At</p>
-                          <p className="mt-1 text-text-primary">{formatTime(selectedTransaction.createTime)}</p>
+                          <p className="text-xs text-text-muted">{tr("Created At")}</p>
+                          <p className="mt-1 text-text-primary">
+                            {selectedTransaction.createTime ? formatTime(selectedTransaction.createTime) : tr("Unknown")}
+                          </p>
                         </div>
                         <div>
-                          <p className="text-xs text-text-muted">Description</p>
+                          <p className="text-xs text-text-muted">{tr("Description")}</p>
                           <p className="mt-1 whitespace-pre-wrap text-text-secondary">
-                            {selectedTransaction.description || "No description."}
+                            {selectedTransaction.description || tr("No description.")}
                           </p>
                         </div>
                       </div>
                     ) : (
                       <div className="flex h-full items-center justify-center text-sm text-text-muted">
-                        No transaction selected.
+                        {tr("No transaction selected.")}
                       </div>
                     )}
                   </div>
                   <div className="border-t border-border p-4">
-                    <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Global Stats</h4>
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                      {tr("Global Stats")}
+                    </h4>
                     <div className="mt-2 space-y-2 text-xs">
                       <p className="text-text-secondary">
-                        Total Income:{" "}
+                        {tr("Total Income")}:{" "}
                         <span className="font-semibold text-success">
                           {formatCurrency(stats?.totalIncome || 0, currency)}
                         </span>
                       </p>
                       <p className="text-text-secondary">
-                        Total Expense:{" "}
+                        {tr("Total Expense")}:{" "}
                         <span className="font-semibold text-error">
                           {formatCurrency(stats?.totalExpense || 0, currency)}
                         </span>
                       </p>
                       <p className="text-text-secondary">
-                        Transactions: <span className="font-semibold text-text-primary">{stats?.transactionCount || 0}</span>
+                        {tr("Transactions")}:{" "}
+                        <span className="font-semibold text-text-primary">{stats?.transactionCount || 0}</span>
                       </p>
                     </div>
                   </div>

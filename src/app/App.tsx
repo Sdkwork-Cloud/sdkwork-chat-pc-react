@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter } from "react-router-dom";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { initializePlatform } from "../platform";
 import { createWebPlatform } from "../platform-impl/web";
 import { AppProvider, useAuthContext } from "./AppProvider";
@@ -32,9 +33,10 @@ function FullScreenLoading({ label }: { label: string }) {
 
 function AppContent() {
   const { isLoading } = useAuthContext();
+  const { tr } = useAppTranslation();
 
   if (isLoading) {
-    return <FullScreenLoading label="Initializing..." />;
+    return <FullScreenLoading label={tr("Initializing...")} />;
   }
 
   return <AppRouter />;
@@ -43,6 +45,7 @@ function AppContent() {
 export function App() {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const { tr } = useAppTranslation();
 
   useEffect(() => {
     initPlatform()
@@ -54,14 +57,14 @@ export function App() {
   }, []);
 
   if (!isReady && !error) {
-    return <FullScreenLoading label="Initializing..." />;
+    return <FullScreenLoading label={tr("Initializing...")} />;
   }
 
   if (error) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-primary">
         <div className="text-center">
-          <div className="mb-2 text-lg text-error">Initialization failed</div>
+          <div className="mb-2 text-lg text-error">{tr("Initialization failed")}</div>
           <div className="text-sm text-text-secondary">{error.message}</div>
         </div>
       </div>

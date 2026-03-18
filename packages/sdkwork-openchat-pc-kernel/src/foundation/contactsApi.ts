@@ -1,4 +1,4 @@
-﻿import { getAppSdkClientWithSession } from "./apiClient";
+import { getAppSdkClientWithSession } from "./apiClient";
 
 export interface Friend {
   id: string;

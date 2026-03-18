@@ -18,9 +18,7 @@ export interface ServiceTemplateOptions {
 }
 
 export class CodeGenerator {
-  /**
-   * 生成React组件模板
-   */
+  
   generateComponent(options: ComponentTemplateOptions): {
     component: string;
     test?: string;
@@ -34,7 +32,6 @@ export class CodeGenerator {
     let testCode = '';
     let styleCode = '';
 
-    // 生成组件代码
     if (type === 'functional') {
       componentCode = this.generateFunctionalComponent({
         name: componentName,
@@ -53,12 +50,10 @@ export class CodeGenerator {
       });
     }
 
-    // 生成测试代码
     if (withTests) {
       testCode = this.generateComponentTest(componentName, fileName);
     }
 
-    // 生成样式代码
     if (withStyles) {
       styleCode = this.generateComponentStyles(fileName);
     }
@@ -70,9 +65,7 @@ export class CodeGenerator {
     };
   }
 
-  /**
-   * 生成服务模板
-   */
+  
   generateService(options: ServiceTemplateOptions): {
     interface?: string;
     implementation: string;
@@ -86,17 +79,14 @@ export class CodeGenerator {
     let implementationCode = '';
     let testCode = '';
 
-    // 生成接口代码
     if (withInterface) {
       interfaceCode = this.generateServiceInterface(serviceName);
     }
 
-    // 生成实现代码
     if (withImplementation) {
       implementationCode = this.generateServiceImplementation(serviceName, withInterface);
     }
 
-    // 生成测试代码
     if (withTests) {
       testCode = this.generateServiceTest(serviceName, fileName);
     }
@@ -108,9 +98,7 @@ export class CodeGenerator {
     };
   }
 
-  /**
-   * 生成功能组件
-   */
+  
   private generateFunctionalComponent(options: {
     name: string;
     withProps: boolean;
@@ -162,12 +150,10 @@ export class CodeGenerator {
     const propsParam = withProps ? 'props: ' + name + 'Props' : 'props: { className = "" }';
     const _className = withProps ? 'props.className' : 'className';
 
-    return `${imports}${propsInterface}\n/**\n * ${name} Component\n */\nexport const ${name}: React.FC<${withProps ? name + 'Props' : 'any'}> = (${propsParam}) => {\n${componentBody}};\n`;
+    return `${imports}${propsInterface}\nexport const ${name}: React.FC<${withProps ? name + 'Props' : 'any'}> = (${propsParam}) => {
+  const className = ${_className};
+${componentBody}};\n`;
   }
-
-  /**
-   * 生成类组件
-   */
   private generateClassComponent(options: {
     name: string;
     withProps: boolean;
@@ -227,12 +213,9 @@ export class CodeGenerator {
     const stateType = withState ? name + 'State' : 'any';
     const initialState = withState ? '  state: ' + name + 'State = {\n    count: 0\n  };\n\n' : '';
 
-    return `${imports}${propsInterface}${stateInterface}\n/**\n * ${name} Component\n */\nexport class ${name} extends Component<${propsType}, ${stateType}> {\n${initialState}${componentBody}}\n`;
+    return `${imports}${propsInterface}${stateInterface}\nexport class ${name} extends Component<${propsType}, ${stateType}> {
+${initialState}${componentBody}}\n`;
   }
-
-  /**
-   * 生成组件测试
-   */
   private generateComponentTest(componentName: string, fileName: string): string {
     return `import { describe, it, expect, render } from 'vitest';
 import { ${componentName} } from '../${fileName}';
@@ -252,9 +235,7 @@ describe('${componentName}', () => {
 `;
   }
 
-  /**
-   * 生成组件样式
-   */
+  
   private generateComponentStyles(fileName: string): string {
     return `.${fileName} {
   padding: 16px;
@@ -284,9 +265,7 @@ describe('${componentName}', () => {
 `;
   }
 
-  /**
-   * 生成服务接口
-   */
+  
   private generateServiceInterface(serviceName: string): string {
     return `export interface ${serviceName} {
   initialize(): void;
@@ -297,9 +276,7 @@ describe('${componentName}', () => {
 `;
   }
 
-  /**
-   * 生成服务实现
-   */
+  
   private generateServiceImplementation(serviceName: string, withInterface: boolean): string {
     const interfaceImport = withInterface ? `import { ${serviceName} } from './${this.toKebabCase(serviceName)}.interface';\n` : '';
     const implementsClause = withInterface ? ` implements ${serviceName}` : '';
@@ -329,9 +306,7 @@ export const ${this.toCamelCase(serviceName)} = new ${serviceName}Impl();
 `;
   }
 
-  /**
-   * 生成服务测试
-   */
+  
   private generateServiceTest(serviceName: string, fileName: string): string {
     const instanceName = this.toCamelCase(serviceName);
 
@@ -367,9 +342,7 @@ describe('${serviceName}', () => {
 `;
   }
 
-  /**
-   * 转换为 PascalCase
-   */
+  
   private toPascalCase(str: string): string {
     return str
       .split(/[-_\s]+/)
@@ -377,17 +350,13 @@ describe('${serviceName}', () => {
       .join('');
   }
 
-  /**
-   * 转换为 camelCase
-   */
+  
   private toCamelCase(str: string): string {
     const pascal = this.toPascalCase(str);
     return pascal.charAt(0).toLowerCase() + pascal.slice(1);
   }
 
-  /**
-   * 转换为 kebab-case
-   */
+  
   private toKebabCase(str: string): string {
     return str
       .split(/[-_\s]+/)
@@ -396,5 +365,4 @@ describe('${serviceName}', () => {
   }
 }
 
-// 导出单例实例
 export const codeGenerator = new CodeGenerator();

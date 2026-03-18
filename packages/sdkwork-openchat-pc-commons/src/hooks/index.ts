@@ -1,4 +1,4 @@
-﻿export * from "./useToast";
+export * from "./useToast";
 export * from "./useA11y";
 export * from "./useMarkdownWorker";
 export * from "./useObjectURL";

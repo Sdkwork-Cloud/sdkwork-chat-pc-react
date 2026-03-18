@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { createClient, type SdkworkAppClient, type SdkworkAppConfig } from "@sdkwork/app-sdk";
+import { getAppLanguage } from "@sdkwork/openchat-pc-i18n";
 
 export type AppRuntimeEnv = "development" | "staging" | "production" | "test";
 
@@ -22,6 +23,7 @@ export const APP_SDK_REFRESH_TOKEN_STORAGE_KEY = "sdkwork_refresh_token";
 
 let appSdkClient: SdkworkAppClient | null = null;
 let appSdkConfig: AppSdkClientConfig | null = null;
+let appSdkLanguage: string | null = null;
 
 function readEnv(name: string): string | undefined {
   const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
@@ -115,6 +117,7 @@ export function createAppSdkClientConfig(
   overrides: Partial<SdkworkAppConfig> = {},
 ): AppSdkClientConfig {
   const env = resolveRuntimeEnv(readEnv("VITE_APP_ENV") || readEnv("MODE") || readEnv("NODE_ENV"));
+  const language = getAppLanguage();
   return {
     env,
     baseUrl: normalizeBaseUrl(
@@ -143,18 +146,22 @@ export function createAppSdkClientConfig(
     platform: overrides.platform ?? firstDefined(readEnv("VITE_PLATFORM"), readEnv("SDKWORK_PLATFORM")) ?? "pc",
     tokenManager: overrides.tokenManager,
     authMode: overrides.authMode,
-    headers: overrides.headers,
+    headers: {
+      ...(overrides.headers || {}),
+      "Accept-Language": language,
+    },
   };
 }
 
 export function initAppSdkClient(overrides: Partial<SdkworkAppConfig> = {}): SdkworkAppClient {
   appSdkConfig = createAppSdkClientConfig(overrides);
+  appSdkLanguage = getAppLanguage();
   appSdkClient = createClient(appSdkConfig);
   return appSdkClient;
 }
 
 export function getAppSdkClient(): SdkworkAppClient {
-  if (!appSdkClient) {
+  if (!appSdkClient || appSdkLanguage !== getAppLanguage()) {
     return initAppSdkClient();
   }
   return appSdkClient;
@@ -185,6 +192,7 @@ export function resolveAppSdkAccessToken(): string {
 export function resetAppSdkClient(): void {
   appSdkClient = null;
   appSdkConfig = null;
+  appSdkLanguage = null;
 }
 
 export function applyAppSdkSessionTokens(tokens: {

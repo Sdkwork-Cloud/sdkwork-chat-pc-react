@@ -1,4 +1,4 @@
-﻿export class CountingBloomFilter {
+export class CountingBloomFilter {
   private size: number;
   private hashCount: number;
   private counts: number[];

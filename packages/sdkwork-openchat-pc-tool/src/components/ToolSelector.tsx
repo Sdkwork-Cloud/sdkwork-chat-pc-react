@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Input } from "@sdkwork/openchat-pc-ui";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { ToolMarketItem } from "../entities/tool.entity";
 import { ToolResultService } from "../services";
 
@@ -15,6 +16,7 @@ interface ToolCategoryOption {
 }
 
 export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps) {
+  const { tr, formatNumber } = useAppTranslation();
   const [tools, setTools] = useState<ToolMarketItem[]>([]);
   const [categories, setCategories] = useState<ToolCategoryOption[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
@@ -33,7 +35,7 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
         }
         if (!result.success || !result.data) {
           setCategories([{ id: "all", name: "All", icon: "ALL" }]);
-          setErrorText(result.error || result.message || "Failed to load tool categories.");
+          setErrorText(result.error || result.message || tr("Failed to load tool categories."));
           return;
         }
         setCategories(result.data);
@@ -42,7 +44,7 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
           return;
         }
         setCategories([{ id: "all", name: "All", icon: "ALL" }]);
-        setErrorText(error instanceof Error ? error.message : "Failed to load tool categories.");
+        setErrorText(error instanceof Error ? error.message : tr("Failed to load tool categories."));
       }
     }
 
@@ -51,7 +53,7 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [tr]);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,7 +71,7 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
         }
         if (!result.success || !result.data) {
           setTools([]);
-          setErrorText(result.error || result.message || "Failed to load tools.");
+          setErrorText(result.error || result.message || tr("Failed to load tools."));
           return;
         }
         setTools(result.data);
@@ -78,7 +80,7 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
           return;
         }
         setTools([]);
-        setErrorText(error instanceof Error ? error.message : "Failed to load tools.");
+        setErrorText(error instanceof Error ? error.message : tr("Failed to load tools."));
       } finally {
         if (!cancelled) {
           setIsLoading(false);
@@ -91,7 +93,7 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
     return () => {
       cancelled = true;
     };
-  }, [activeCategory, searchKeyword]);
+  }, [activeCategory, searchKeyword, tr]);
 
   const toggleTool = (toolId: string) => {
     if (selectedTools.includes(toolId)) {
@@ -121,7 +123,7 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <Input
-          placeholder="Search tools..."
+          placeholder={tr("Search tools...")}
           value={searchKeyword}
           onChange={setSearchKeyword}
           className="flex-1"
@@ -149,7 +151,7 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
                 : "bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
             }`}
           >
-            {category.icon} {category.name}
+            {category.icon} {tr(category.name)}
           </button>
         ))}
       </div>
@@ -166,7 +168,7 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
         </div>
       ) : tools.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-bg-secondary p-6 text-center text-sm text-text-muted">
-          No tools found.
+          {tr("No tools found.")}
         </div>
       ) : (
         <div className="grid max-h-[300px] grid-cols-1 gap-3 overflow-y-auto">
@@ -211,7 +213,9 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
 
       {selectedTools.length > 0 ? (
         <div className="border-t border-border pt-2">
-          <p className="text-sm text-text-muted">Selected tools: {selectedTools.length}</p>
+          <p className="text-sm text-text-muted">
+            {tr("Selected tools: {{count}}", { count: selectedTools.length })}
+          </p>
         </div>
       ) : null}
     </div>

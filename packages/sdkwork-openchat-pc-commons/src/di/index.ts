@@ -1,6 +1,4 @@
-/**
- * 依赖注入系统
- */
+
 
 import container from './container';
 import type { Token, Factory } from './types';

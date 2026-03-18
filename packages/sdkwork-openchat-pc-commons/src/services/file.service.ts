@@ -1,17 +1,8 @@
-﻿/**
- * 鏂囦欢鏈嶅姟
- *
- * 鍔熻兘锛? * 1. 澶ф枃浠跺垎鐗囦笂浼? * 2. 鏂偣缁紶
- * 3. 鏂囦欢涓婁紶杩涘害鐩戞帶
- * 4. 鏂囦欢涓嬭浇
- * 5. 鏂囦欢绠＄悊
- * 6. 鏂囦欢棰勮
- */
+
 
 import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
 import { errorService } from './error.service';
 
-// 娴忚鍣ㄥ吋瀹圭殑 EventEmitter 瀹炵幇
 class EventEmitter {
   private events: Map<string, Function[]>;
 
@@ -173,23 +164,19 @@ export class FileService extends EventEmitter {
     return FileService.instance;
   }
 
-  /**
-   * 鍒濆鍖栨枃浠舵湇鍔?   */
+  
   initialize(): void {
     if (this.isInitialized) {
       return;
     }
 
-    // 鎭㈠鏈畬鎴愮殑涓婁紶浼氳瘽
     this.restoreUploadSessions();
     
     this.isInitialized = true;
     console.log('[FileService] Initialized');
   }
 
-  /**
-   * 涓婁紶鏂囦欢
-   */
+  
   async uploadFile(file: File, options: FileUploadOptions = {}): Promise<string> {
     const {
       chunkSize = 1024 * 1024, // 1MB
@@ -199,12 +186,10 @@ export class FileService extends EventEmitter {
     } = options;
 
     try {
-      // 鍒涘缓涓婁紶浼氳瘽
       const session = await this.createUploadSession(file, chunkSize);
       this.uploadSessions.set(session.id, session);
       this.saveUploadSessions();
 
-      // 鍒嗙墖涓婁紶
       await this.uploadChunks(session, {
         concurrentChunks,
         retryAttempts,
@@ -213,14 +198,11 @@ export class FileService extends EventEmitter {
         onChunkComplete: options.onChunkComplete,
       });
 
-      // 瀹屾垚涓婁紶
       const fileUrl = await this.completeUpload(session);
       
-      // 娓呯悊浼氳瘽
       this.uploadSessions.delete(session.id);
       this.saveUploadSessions();
 
-      // 瑙﹀彂瀹屾垚浜嬩欢
       options.onComplete?.(session.fileId, fileUrl);
       this.emit('uploadComplete', session.fileId, fileUrl);
 
@@ -237,9 +219,7 @@ export class FileService extends EventEmitter {
     }
   }
 
-  /**
-   * 鍒涘缓涓婁紶浼氳瘽
-   */
+  
   private async createUploadSession(file: File, chunkSize: number): Promise<UploadSession> {
     try {
       const response = await getAppSdkClientWithSession().upload.initChunk({
@@ -267,9 +247,7 @@ export class FileService extends EventEmitter {
     }
   }
 
-  /**
-   * 涓婁紶鍒嗙墖
-   */
+  
   private async uploadChunks(session: UploadSession, options: {
     concurrentChunks: number;
     retryAttempts: number;
@@ -282,15 +260,12 @@ export class FileService extends EventEmitter {
     const totalChunks = chunks.length;
     let uploadedBytes = Array.from(uploadedChunks).reduce((sum, index) => sum + chunks[index].size, 0);
 
-    // 杩囨护宸蹭笂浼犵殑鍒嗙墖
     const pendingChunks = chunks.filter((_, index) => !uploadedChunks.has(index));
 
-    // 骞跺彂涓婁紶
     const chunkQueue = [...pendingChunks];
     const activeUploads: Promise<void>[] = [];
 
     while (chunkQueue.length > 0 || activeUploads.length > 0) {
-      // 鍚姩鏂扮殑涓婁紶浠诲姟
       while (activeUploads.length < options.concurrentChunks && chunkQueue.length > 0) {
         const chunk = chunkQueue.shift()!;
         const uploadPromise = this.uploadChunk(session, chunk, options.retryAttempts, options.retryDelay)
@@ -299,12 +274,10 @@ export class FileService extends EventEmitter {
             uploadedBytes += chunk.size;
             const progress = Math.min((uploadedBytes / session.fileSize) * 100, 100);
             
-            // 鏇存柊杩涘害
             session.progress = progress;
             session.lastActivity = Date.now();
             this.saveUploadSessions();
 
-            // 瑙﹀彂浜嬩欢
             options.onProgress?.(progress, uploadedBytes, session.fileSize);
             options.onChunkComplete?.(chunk.index, totalChunks);
             this.emit('chunkUploaded', session.id, chunk.index, progress);
@@ -319,15 +292,12 @@ export class FileService extends EventEmitter {
         activeUploads.push(uploadPromise);
       }
 
-      // 绛夊緟鑷冲皯涓€涓笂浼犲畬鎴?      if (activeUploads.length > 0) {
         await Promise.race(activeUploads);
       }
     }
   }
 
-  /**
-   * 涓婁紶鍗曚釜鍒嗙墖
-   */
+  
   private async uploadChunk(session: UploadSession, chunk: FileChunk, retryAttempts: number, retryDelay: number): Promise<void> {
     let attempts = 0;
 
@@ -352,9 +322,7 @@ export class FileService extends EventEmitter {
     }
   }
 
-  /**
-   * 瀹屾垚涓婁紶
-   */
+  
   private async completeUpload(session: UploadSession): Promise<string> {
     try {
       const response = await getAppSdkClientWithSession().upload.mergeChunks({
@@ -368,9 +336,7 @@ export class FileService extends EventEmitter {
     }
   }
 
-  /**
-   * 鍒涘缓鍒嗙墖
-   */
+  
   private createChunks(session: UploadSession): FileChunk[] {
     const chunks: FileChunk[] = [];
     const { fileSize, chunkSize } = session;
@@ -385,15 +351,13 @@ export class FileService extends EventEmitter {
         start,
         end,
         size,
-        data: new Blob([], { type: 'application/octet-stream' }), // 瀹為檯鏁版嵁浼氬湪涓婁紶鏃惰鍙?      });
+        data: new Blob([], { type: 'application/octet-stream' }), 
     }
 
     return chunks;
   }
 
-  /**
-   * 鏆傚仠涓婁紶
-   */
+  
   pauseUpload(sessionId: string): void {
     const session = this.uploadSessions.get(sessionId);
     if (session) {
@@ -401,9 +365,7 @@ export class FileService extends EventEmitter {
     }
   }
 
-  /**
-   * 鎭㈠涓婁紶
-   */
+  
   async resumeUpload(sessionId: string, options?: FileUploadOptions): Promise<void> {
     const session = this.uploadSessions.get(sessionId);
     if (!session) {
@@ -411,10 +373,8 @@ export class FileService extends EventEmitter {
     }
 
     try {
-      // 妫€鏌ュ凡涓婁紶鐨勫垎鐗?      const uploadedChunks = await this.getUploadedChunks(session.id);
       session.uploadedChunks = new Set(uploadedChunks);
 
-      // 缁х画涓婁紶
       await this.uploadChunks(session, {
         concurrentChunks: options?.concurrentChunks || 3,
         retryAttempts: options?.retryAttempts || 3,
@@ -423,14 +383,11 @@ export class FileService extends EventEmitter {
         onChunkComplete: options?.onChunkComplete,
       });
 
-      // 瀹屾垚涓婁紶
       const fileUrl = await this.completeUpload(session);
       
-      // 娓呯悊浼氳瘽
       this.uploadSessions.delete(session.id);
       this.saveUploadSessions();
 
-      // 瑙﹀彂瀹屾垚浜嬩欢
       options?.onComplete?.(session.fileId, fileUrl);
       this.emit('uploadComplete', session.fileId, fileUrl);
     } catch (error: any) {
@@ -440,9 +397,7 @@ export class FileService extends EventEmitter {
     }
   }
 
-  /**
-   * 鑾峰彇宸蹭笂浼犵殑鍒嗙墖
-   */
+  
   private async getUploadedChunks(sessionId: string): Promise<number[]> {
     try {
       const response = await getAppSdkClientWithSession().upload.getChunkStatus({ sessionId } as any);
@@ -453,9 +408,7 @@ export class FileService extends EventEmitter {
     }
   }
 
-  /**
-   * 涓嬭浇鏂囦欢
-   */
+  
   async downloadFile(fileUrl: string, fileName: string): Promise<void> {
     try {
       const response = await fetch(fileUrl, { method: 'GET' });
@@ -486,9 +439,7 @@ export class FileService extends EventEmitter {
     }
   }
 
-  /**
-   * 鑾峰彇鏂囦欢淇℃伅
-   */
+  
   async getFileInfo(fileId: string): Promise<FileInfo> {
     try {
       const response = await getAppSdkClientWithSession().upload.getFileDetail(fileId);
@@ -514,9 +465,7 @@ export class FileService extends EventEmitter {
     }
   }
 
-  /**
-   * 鍒犻櫎鏂囦欢
-   */
+  
   async deleteFile(fileId: string): Promise<void> {
     try {
       await getAppSdkClientWithSession().upload.deleteFile(fileId);
@@ -532,9 +481,7 @@ export class FileService extends EventEmitter {
     }
   }
 
-  /**
-   * 鑾峰彇鏂囦欢鍒楄〃
-   */
+  
   async getFileList(options?: {
     page?: number;
     pageSize?: number;
@@ -575,9 +522,7 @@ export class FileService extends EventEmitter {
     }
   }
 
-  /**
-   * 淇濆瓨涓婁紶浼氳瘽
-   */
+  
   private saveUploadSessions(): void {
     try {
       const sessions = Array.from(this.uploadSessions.values()).map(session => ({
@@ -590,9 +535,7 @@ export class FileService extends EventEmitter {
     }
   }
 
-  /**
-   * 鍔犺浇涓婁紶浼氳瘽
-   */
+  
   private restoreUploadSessions(): void {
     try {
       const sessionsData = localStorage.getItem('file_upload_sessions');
@@ -611,28 +554,23 @@ export class FileService extends EventEmitter {
     }
   }
 
-  /**
-   * 鑾峰彇涓婁紶浼氳瘽
-   */
+  
   getUploadSession(sessionId: string): UploadSession | null {
     return this.uploadSessions.get(sessionId) || null;
   }
 
-  /**
-   * 鑾峰彇鎵€鏈変笂浼犱細璇?   */
+  
   getUploadSessions(): UploadSession[] {
     return Array.from(this.uploadSessions.values());
   }
 
-  /**
-   * 娓呯悊杩囨湡浼氳瘽
-   */
+  
   cleanupExpiredSessions(): void {
     const now = Date.now();
     const expiredSessions: string[] = [];
 
     for (const [sessionId, session] of this.uploadSessions) {
-      if (now - session.lastActivity > 24 * 60 * 60 * 1000) { // 24灏忔椂杩囨湡
+      if (now - session.lastActivity > 24 * 60 * 60 * 1000) { 
         expiredSessions.push(sessionId);
       }
     }
@@ -647,8 +585,7 @@ export class FileService extends EventEmitter {
     }
   }
 
-  /**
-   * 鑾峰彇鏂囦欢鏈嶅姟鐘舵€?   */
+  
   getStatus() {
     return {
       initialized: this.isInitialized,

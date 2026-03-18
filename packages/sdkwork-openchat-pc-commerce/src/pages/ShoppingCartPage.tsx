@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { useNavigate } from "react-router-dom";
 import { CartResultService, type CartSummary } from "../services";
 
@@ -12,12 +13,9 @@ function createFallbackCart(): CartSummary {
   };
 }
 
-function formatPrice(value: number): string {
-  return `CNY ${value.toFixed(2)}`;
-}
-
 export function ShoppingCartPage() {
   const navigate = useNavigate();
+  const { tr, formatCurrency } = useAppTranslation();
 
   const [cart, setCart] = useState<CartSummary>(createFallbackCart());
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -35,14 +33,14 @@ export function ShoppingCartPage() {
       const result = await CartResultService.getCart();
       if (!result.success || !result.data) {
         setCart(createFallbackCart());
-        setErrorText(result.error || result.message || "Failed to load cart data.");
+        setErrorText(result.error || result.message || tr("Failed to load cart data."));
         return;
       }
       setCart(result.data);
     } catch (error) {
       console.error("Failed to load cart", error);
       setCart(createFallbackCart());
-      setErrorText("Failed to load cart data.");
+      setErrorText(tr("Failed to load cart data."));
     } finally {
       setIsLoading(false);
     }
@@ -88,13 +86,13 @@ export function ShoppingCartPage() {
     try {
       const result = await CartResultService.updateCartItem({ itemId, quantity });
       if (!result.success) {
-        setStatusText(result.error || result.message || "Failed to update quantity.");
+        setStatusText(result.error || result.message || tr("Failed to update quantity."));
         return;
       }
       await loadCart();
     } catch (error) {
       console.error("Failed to update quantity", error);
-      setStatusText("Failed to update quantity.");
+      setStatusText(tr("Failed to update quantity."));
     } finally {
       setProcessingItemId(null);
     }
@@ -107,13 +105,13 @@ export function ShoppingCartPage() {
     try {
       const result = await CartResultService.selectItem(itemId, selected);
       if (!result.success) {
-        setStatusText(result.error || result.message || "Failed to update selected state.");
+        setStatusText(result.error || result.message || tr("Failed to update selected state."));
         return;
       }
       await loadCart();
     } catch (error) {
       console.error("Failed to update selected state", error);
-      setStatusText("Failed to update selected state.");
+      setStatusText(tr("Failed to update selected state."));
     } finally {
       setProcessingItemId(null);
     }
@@ -124,13 +122,13 @@ export function ShoppingCartPage() {
     try {
       const result = await CartResultService.selectAll(!allSelected);
       if (!result.success) {
-        setStatusText(result.error || result.message || "Failed to toggle select all.");
+        setStatusText(result.error || result.message || tr("Failed to toggle select all."));
         return;
       }
       await loadCart();
     } catch (error) {
       console.error("Failed to toggle select all", error);
-      setStatusText("Failed to toggle select all.");
+      setStatusText(tr("Failed to toggle select all."));
     }
   };
 
@@ -141,14 +139,14 @@ export function ShoppingCartPage() {
     try {
       const result = await CartResultService.removeFromCart(itemId);
       if (!result.success) {
-        setStatusText(result.error || result.message || "Failed to remove item.");
+        setStatusText(result.error || result.message || tr("Failed to remove item."));
         return;
       }
-      setStatusText("Item removed.");
+      setStatusText(tr("Item removed."));
       await loadCart();
     } catch (error) {
       console.error("Failed to remove item", error);
-      setStatusText("Failed to remove item.");
+      setStatusText(tr("Failed to remove item."));
     } finally {
       setProcessingItemId(null);
     }
@@ -159,14 +157,14 @@ export function ShoppingCartPage() {
     try {
       const result = await CartResultService.clearSelected();
       if (!result.success) {
-        setStatusText(result.error || result.message || "Failed to clear selected items.");
+        setStatusText(result.error || result.message || tr("Failed to clear selected items."));
         return;
       }
-      setStatusText("Selected items removed.");
+      setStatusText(tr("Selected items removed."));
       await loadCart();
     } catch (error) {
       console.error("Failed to clear selected items", error);
-      setStatusText("Failed to clear selected items.");
+      setStatusText(tr("Failed to clear selected items."));
     }
   };
 
@@ -175,14 +173,14 @@ export function ShoppingCartPage() {
     try {
       const result = await CartResultService.clearCart();
       if (!result.success) {
-        setStatusText(result.error || result.message || "Failed to clear cart.");
+        setStatusText(result.error || result.message || tr("Failed to clear cart."));
         return;
       }
-      setStatusText("Cart cleared.");
+      setStatusText(tr("Cart cleared."));
       await loadCart();
     } catch (error) {
       console.error("Failed to clear cart", error);
-      setStatusText("Failed to clear cart.");
+      setStatusText(tr("Failed to clear cart."));
     }
   };
 
@@ -191,16 +189,16 @@ export function ShoppingCartPage() {
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-text-primary">Shopping Cart</h1>
+            <h1 className="text-xl font-semibold text-text-primary">{tr("Shopping Cart")}</h1>
             <p className="mt-1 text-sm text-text-secondary">
-              Manage selected products and quantities in a checkout-ready workspace.
+              {tr("Manage selected products and quantities in a checkout-ready workspace.")}
             </p>
           </div>
           <button
             onClick={() => navigate("/commerce/mall")}
             className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
           >
-            Back to Marketplace
+            {tr("Back to Marketplace")}
           </button>
         </div>
       </header>
@@ -209,46 +207,50 @@ export function ShoppingCartPage() {
         <div className="grid h-full min-h-[560px] gap-4 xl:grid-cols-[420px_minmax(0,1fr)]">
           <aside className="flex min-h-0 flex-col rounded-xl border border-border bg-bg-secondary">
             <div className="border-b border-border p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Cart Items</h2>
-              <p className="mt-1 text-xs text-text-secondary">Select, update quantity, and remove products.</p>
+              <h2 className="text-sm font-semibold text-text-primary">{tr("Cart Items")}</h2>
+              <p className="mt-1 text-xs text-text-secondary">
+                {tr("Select, update quantity, and remove products.")}
+              </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   onClick={() => void handleSelectAll()}
                   className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                 >
-                  {allSelected ? "Unselect All" : "Select All"}
+                  {allSelected ? tr("Unselect All") : tr("Select All")}
                 </button>
                 <button
                   onClick={() => void handleClearSelected()}
                   className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                 >
-                  Remove Selected
+                  {tr("Remove Selected")}
                 </button>
                 <button
                   onClick={() => void handleClearCart()}
                   className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                 >
-                  Clear Cart
+                  {tr("Clear Cart")}
                 </button>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 border-b border-border p-3">
               <div className="rounded-md border border-border bg-bg-primary px-2 py-1.5">
-                <p className="text-[11px] text-text-muted">Total Items</p>
+                <p className="text-[11px] text-text-muted">{tr("Total Items")}</p>
                 <p className="text-sm font-semibold text-text-primary">{cart.totalCount}</p>
               </div>
               <div className="rounded-md border border-border bg-bg-primary px-2 py-1.5">
-                <p className="text-[11px] text-text-muted">Selected</p>
+                <p className="text-[11px] text-text-muted">{tr("Selected")}</p>
                 <p className="text-sm font-semibold text-text-primary">{cart.selectedCount}</p>
               </div>
             </div>
 
             <div className="min-h-0 flex-1 overflow-auto">
               {isLoading ? (
-                <div className="p-4 text-sm text-text-secondary">Loading cart...</div>
+                <div className="p-4 text-sm text-text-secondary">{tr("Loading cart...")}</div>
               ) : cart.items.length === 0 ? (
-                <div className="p-4 text-sm text-text-secondary">Cart is empty. Add products from marketplace.</div>
+                <div className="p-4 text-sm text-text-secondary">
+                  {tr("Cart is empty. Add products from marketplace.")}
+                </div>
               ) : (
                 <div className="divide-y divide-border">
                   {cart.items.map((item) => {
@@ -277,7 +279,7 @@ export function ShoppingCartPage() {
                           />
                           <div className="min-w-0 flex-1">
                             <p className="line-clamp-1 text-sm font-semibold text-text-primary">{item.product.name}</p>
-                            <p className="mt-1 text-xs text-text-muted">{formatPrice(item.product.price)}</p>
+                            <p className="mt-1 text-xs text-text-muted">{formatCurrency(item.product.price, "CNY")}</p>
                             <div className="mt-2 flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
                               <button
                                 onClick={() => void handleChangeQuantity(item.id, item.quantity - 1)}
@@ -296,7 +298,7 @@ export function ShoppingCartPage() {
                                 onClick={() => void handleRemove(item.id)}
                                 className="ml-2 rounded-md border border-border bg-bg-tertiary px-2 py-0.5 text-[11px] text-text-secondary"
                               >
-                                Remove
+                                {tr("Remove")}
                               </button>
                             </div>
                           </div>
@@ -313,16 +315,22 @@ export function ShoppingCartPage() {
             <div className="border-b border-border p-4">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                  <p className="text-[11px] text-text-muted">Cart Total</p>
-                  <p className="text-base font-semibold text-text-primary">{formatPrice(cart.totalAmount)}</p>
+                  <p className="text-[11px] text-text-muted">{tr("Cart Total")}</p>
+                  <p className="text-base font-semibold text-text-primary">
+                    {formatCurrency(cart.totalAmount, "CNY")}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                  <p className="text-[11px] text-text-muted">Selected Total</p>
-                  <p className="text-base font-semibold text-text-primary">{formatPrice(cart.selectedAmount)}</p>
+                  <p className="text-[11px] text-text-muted">{tr("Selected Total")}</p>
+                  <p className="text-base font-semibold text-text-primary">
+                    {formatCurrency(cart.selectedAmount, "CNY")}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                  <p className="text-[11px] text-text-muted">Calculated Subtotal</p>
-                  <p className="text-base font-semibold text-text-primary">{formatPrice(selectedSubtotal)}</p>
+                  <p className="text-[11px] text-text-muted">{tr("Calculated Subtotal")}</p>
+                  <p className="text-base font-semibold text-text-primary">
+                    {formatCurrency(selectedSubtotal, "CNY")}
+                  </p>
                 </div>
               </div>
 
@@ -350,23 +358,23 @@ export function ShoppingCartPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div className="rounded-md border border-border bg-bg-secondary px-3 py-2">
-                          <p className="text-text-muted">Unit Price</p>
+                          <p className="text-text-muted">{tr("Unit Price")}</p>
                           <p className="mt-1 font-semibold text-text-primary">
-                            {formatPrice(selectedItem.product.price)}
+                            {formatCurrency(selectedItem.product.price, "CNY")}
                           </p>
                         </div>
                         <div className="rounded-md border border-border bg-bg-secondary px-3 py-2">
-                          <p className="text-text-muted">Quantity</p>
+                          <p className="text-text-muted">{tr("Quantity")}</p>
                           <p className="mt-1 font-semibold text-text-primary">{selectedItem.quantity}</p>
                         </div>
                         <div className="rounded-md border border-border bg-bg-secondary px-3 py-2">
-                          <p className="text-text-muted">Line Amount</p>
+                          <p className="text-text-muted">{tr("Line Amount")}</p>
                           <p className="mt-1 font-semibold text-text-primary">
-                            {formatPrice(selectedItem.product.price * selectedItem.quantity)}
+                            {formatCurrency(selectedItem.product.price * selectedItem.quantity, "CNY")}
                           </p>
                         </div>
                         <div className="rounded-md border border-border bg-bg-secondary px-3 py-2">
-                          <p className="text-text-muted">Stock</p>
+                          <p className="text-text-muted">{tr("Stock")}</p>
                           <p className="mt-1 font-semibold text-text-primary">{selectedItem.product.stock}</p>
                         </div>
                       </div>
@@ -383,30 +391,30 @@ export function ShoppingCartPage() {
                     </div>
                   ) : (
                     <div className="flex h-full items-center justify-center text-sm text-text-muted">
-                      Select an item to inspect details.
+                      {tr("Select an item to inspect details.")}
                     </div>
                   )}
                 </div>
 
                 <aside className="flex min-h-0 flex-col rounded-lg border border-border bg-bg-primary p-4">
-                  <h3 className="text-sm font-semibold text-text-primary">Checkout Summary</h3>
+                  <h3 className="text-sm font-semibold text-text-primary">{tr("Checkout Summary")}</h3>
                   <div className="mt-3 space-y-2 text-sm">
                     <div className="flex items-center justify-between text-text-secondary">
-                      <span>Selected Items</span>
+                      <span>{tr("Selected Items")}</span>
                       <span>{cart.selectedCount}</span>
                     </div>
                     <div className="flex items-center justify-between text-text-secondary">
-                      <span>Selected Amount</span>
-                      <span>{formatPrice(cart.selectedAmount)}</span>
+                      <span>{tr("Selected Amount")}</span>
+                      <span>{formatCurrency(cart.selectedAmount, "CNY")}</span>
                     </div>
                     <div className="flex items-center justify-between text-text-secondary">
-                      <span>Estimated Discount</span>
-                      <span>- {formatPrice(Math.max(0, cart.selectedAmount * 0.05))}</span>
+                      <span>{tr("Estimated Discount")}</span>
+                      <span>- {formatCurrency(Math.max(0, cart.selectedAmount * 0.05), "CNY")}</span>
                     </div>
                     <div className="border-t border-border pt-2 text-base font-semibold text-text-primary">
                       <div className="flex items-center justify-between">
-                        <span>Estimated Payable</span>
-                        <span>{formatPrice(Math.max(0, cart.selectedAmount * 0.95))}</span>
+                        <span>{tr("Estimated Payable")}</span>
+                        <span>{formatCurrency(Math.max(0, cart.selectedAmount * 0.95), "CNY")}</span>
                       </div>
                     </div>
                   </div>
@@ -417,18 +425,18 @@ export function ShoppingCartPage() {
                       disabled={cart.selectedCount === 0}
                       className="w-full rounded-md bg-primary px-3 py-2 text-sm text-white disabled:opacity-60"
                     >
-                      Remove Selected Items
+                      {tr("Remove Selected Items")}
                     </button>
                     <button
                       onClick={() => navigate("/commerce/mall")}
                       className="w-full rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover"
                     >
-                      Add More Products
+                      {tr("Add More Products")}
                     </button>
                   </div>
 
                   <p className="mt-3 text-xs text-text-muted">
-                    Checkout APIs are managed by the backend order module. This cart page keeps item state and totals consistent.
+                    {tr("Checkout APIs are managed by the backend order module. This cart page keeps item state and totals consistent.")}
                   </p>
                 </aside>
               </div>

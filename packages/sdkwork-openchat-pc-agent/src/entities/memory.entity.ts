@@ -1,9 +1,4 @@
-/**
- * Memory 实体定义
- *
- * 与后端 API 对齐的记忆管理领域模型
- * 参考: src/modules/agent/memory/memory.entity.ts, memory.interface.ts
- */
+
 
 export enum MemoryType {
   EPISODIC = 'episodic',

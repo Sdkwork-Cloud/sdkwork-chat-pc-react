@@ -13,6 +13,7 @@ const commonsAllowedWorkspaceDeps = new Set([
   "@sdkwork/openchat-pc-ui",
   "@sdkwork/openchat-pc-kernel",
   "@sdkwork/openchat-pc-contracts",
+  "@sdkwork/openchat-pc-i18n",
 ]);
 const compatibilityPackage = "@sdkwork/openchat-pc-commons";
 

@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   AIAgentIcon,
@@ -125,12 +126,15 @@ function SidebarLink({
   onClick?: () => void;
   rotateOnHover?: boolean;
 }) {
+  const { tr } = useAppTranslation();
+  const localizedLabel = tr(item.label);
+
   return (
     <NavLink
       to={item.path}
       onClick={onClick}
-      aria-label={item.label}
-      title={item.label}
+      aria-label={localizedLabel}
+      title={localizedLabel}
       className="group relative flex h-12 w-12 items-center justify-center rounded-xl p-2.5 transition-all duration-200"
     >
       <div
@@ -156,13 +160,14 @@ function SidebarLink({
       ) : null}
 
       <div className="pointer-events-none absolute left-full z-50 ml-3 translate-x-2 whitespace-nowrap rounded-lg border border-border bg-bg-elevated px-3 py-1.5 text-xs text-text-secondary opacity-0 shadow-xl transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
-        {item.label}
+        {localizedLabel}
       </div>
     </NavLink>
   );
 }
 
 export function Sidebar() {
+  const { tr } = useAppTranslation();
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
   const [morePopupPosition, setMorePopupPosition] = useState({ left: 0, top: 0 });
@@ -250,7 +255,7 @@ export function Sidebar() {
       style={{ left: `${morePopupPosition.left}px`, top: `${morePopupPosition.top}px` }}
       className="fixed z-[2147483647] w-[320px] max-h-[70vh] overflow-hidden rounded-2xl border border-border bg-bg-elevated p-3 shadow-2xl"
     >
-      <div className="mb-2 px-1 text-xs font-medium text-text-secondary">More Features</div>
+      <div className="mb-2 px-1 text-xs font-medium text-text-secondary">{tr("More Features")}</div>
       <div className="grid max-h-[62vh] grid-cols-2 gap-2 overflow-y-auto pr-1">
         {moreNavItems.map((item) => {
           const active = isPathActive(pathname, item.path);
@@ -270,7 +275,7 @@ export function Sidebar() {
                   {item.icon(active)}
                 </div>
                 <div className="min-w-0">
-                  <div className="truncate text-xs font-medium text-text-primary">{item.label}</div>
+                  <div className="truncate text-xs font-medium text-text-primary">{tr(item.label)}</div>
                   <div className="truncate text-[11px] text-text-muted">{item.path}</div>
                 </div>
               </div>
@@ -306,7 +311,7 @@ export function Sidebar() {
             </div>
             <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 animate-pulse-slow rounded-full border-2 border-bg-secondary bg-success" />
             <div className="pointer-events-none absolute left-full z-50 ml-3 translate-x-2 whitespace-nowrap rounded-lg border border-border bg-bg-elevated px-3 py-1.5 text-xs font-medium text-primary opacity-0 shadow-xl transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
-              OpenChat AI
+              {tr("OpenChat AI")}
             </div>
           </div>
         </div>
@@ -320,8 +325,8 @@ export function Sidebar() {
             ref={moreButtonRef}
             type="button"
             onClick={() => setMoreOpen((open) => !open)}
-            aria-label="More"
-            title="More"
+            aria-label={tr("More")}
+            title={tr("More")}
             className="group relative flex h-12 w-12 items-center justify-center rounded-xl p-2.5 transition-all duration-200"
           >
             <div
@@ -335,7 +340,7 @@ export function Sidebar() {
               <AIMoreIcon active={moreActive} />
             </div>
             <div className="pointer-events-none absolute left-full z-50 ml-3 translate-x-2 whitespace-nowrap rounded-lg border border-border bg-bg-elevated px-3 py-1.5 text-xs text-text-secondary opacity-0 shadow-xl transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
-              More
+              {tr("More")}
             </div>
           </button>
         </nav>

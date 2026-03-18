@@ -1,28 +1,17 @@
-/**
- * Web Platform 实现
- * 
- * 基于浏览器 API 的 Platform 实现
- * 用于 Web 环境
- */
+
 
 import type { PlatformAPI, FileFilter } from '../../platform';
 
-/**
- * 生成设备ID
- */
+
 function generateDeviceId(): string {
   return 'web_' + Math.random().toString(36).substring(2, 15);
 }
 
-/**
- * 创建 Web Platform 实现
- */
+
 export function createWebPlatform(): PlatformAPI {
-  // 设备ID缓存
   let deviceId: string | null = null;
 
   return {
-    // ==================== 平台信息 ====================
     
     getPlatform(): 'web' | 'desktop' {
       return 'web';
@@ -39,7 +28,6 @@ export function createWebPlatform(): PlatformAPI {
       return deviceId;
     },
     
-    // ==================== 存储 ====================
     
     async setStorage(key: string, value: string): Promise<void> {
       localStorage.setItem(key, value);
@@ -53,7 +41,6 @@ export function createWebPlatform(): PlatformAPI {
       localStorage.removeItem(key);
     },
     
-    // ==================== 剪贴板 ====================
     
     async copy(text: string): Promise<void> {
       await navigator.clipboard.writeText(text);
@@ -63,13 +50,11 @@ export function createWebPlatform(): PlatformAPI {
       return await navigator.clipboard.readText();
     },
     
-    // ==================== 外部链接 ====================
     
     async openExternal(url: string): Promise<void> {
       window.open(url, '_blank');
     },
     
-    // ==================== 文件系统 ====================
     
     async selectFile(options?: { multiple?: boolean; filters?: FileFilter[] }): Promise<string[]> {
       return new Promise((resolve) => {
@@ -111,7 +96,6 @@ export function createWebPlatform(): PlatformAPI {
       throw new Error('Web platform does not support writeFile. Use saveFile instead.');
     },
     
-    // ==================== 窗口控制 ====================
     
     async minimizeWindow(): Promise<void> {
       console.warn('Web platform does not support window controls');
@@ -135,7 +119,6 @@ export function createWebPlatform(): PlatformAPI {
       }
     },
     
-    // ==================== 终端 ====================
     
     async createPty(_id: string, _shell?: string): Promise<void> {
       console.warn('Web platform does not support PTY');
@@ -158,7 +141,6 @@ export function createWebPlatform(): PlatformAPI {
       return () => {};
     },
     
-    // ==================== 通知 ====================
     
     async showNotification(options: { title: string; body: string; icon?: string }): Promise<void> {
       if ('Notification' in window) {
@@ -172,7 +154,6 @@ export function createWebPlatform(): PlatformAPI {
       }
     },
     
-    // ==================== 网络 ====================
     
     isOnline(): boolean {
       return navigator.onLine;

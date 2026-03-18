@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { useNavigate } from "react-router-dom";
 import { ContactDetail } from "../components/ContactDetail";
 import { ContactSidebar } from "../components/ContactSidebar";
@@ -17,105 +18,113 @@ import {
   processFriendRequest,
 } from "../services";
 
-const fallbackFriends: Friend[] = [
-  {
-    id: "f-1",
-    name: "Alex",
-    avatar: "A",
-    isOnline: true,
-    status: "online",
-    initial: "A",
-    region: "Beijing",
-    signature: "Stay focused and keep shipping.",
-    remark: "Product manager",
-  },
-  {
-    id: "f-2",
-    name: "Bella",
-    avatar: "B",
-    isOnline: false,
-    status: "offline",
-    initial: "B",
-    region: "Shanghai",
-    signature: "Design is communication.",
-    remark: "UI designer",
-  },
-  {
-    id: "f-3",
-    name: "Chen",
-    avatar: "C",
-    isOnline: true,
-    status: "busy",
-    initial: "C",
-    region: "Shenzhen",
-    signature: "Reliability first.",
-    remark: "Backend engineer",
-  },
-  {
-    id: "f-4",
-    name: "Dora",
-    avatar: "D",
-    isOnline: true,
-    status: "online",
-    initial: "D",
-    region: "Hangzhou",
-    signature: "Quality through automation.",
-    remark: "QA engineer",
-  },
-];
+type Translate = (key: string) => string;
 
-const fallbackGroups: Group[] = [
-  {
-    id: "g-1",
-    name: "OpenChat Product",
-    avatar: "P",
-    memberCount: 3,
-    memberIds: ["f-1", "f-2", "f-3"],
-    description: "Product planning and review.",
-  },
-  {
-    id: "g-2",
-    name: "Frontend Team",
-    avatar: "F",
-    memberCount: 2,
-    memberIds: ["f-2", "f-4"],
-    description: "Client architecture and UX optimization.",
-  },
-  {
-    id: "g-3",
-    name: "Delivery Squad",
-    avatar: "D",
-    memberCount: 4,
-    memberIds: ["f-1", "f-2", "f-3", "f-4"],
-    description: "Release tracking and issue follow-up.",
-  },
-];
+function createFallbackFriends(tr: Translate): Friend[] {
+  return [
+    {
+      id: "f-1",
+      name: tr("Alex"),
+      avatar: "A",
+      isOnline: true,
+      status: "online",
+      initial: "A",
+      region: tr("Beijing"),
+      signature: tr("Stay focused and keep shipping."),
+      remark: tr("Product manager"),
+    },
+    {
+      id: "f-2",
+      name: tr("Bella"),
+      avatar: "B",
+      isOnline: false,
+      status: "offline",
+      initial: "B",
+      region: tr("Shanghai"),
+      signature: tr("Design is communication."),
+      remark: tr("UI designer"),
+    },
+    {
+      id: "f-3",
+      name: tr("Chen"),
+      avatar: "C",
+      isOnline: true,
+      status: "busy",
+      initial: "C",
+      region: tr("Shenzhen"),
+      signature: tr("Reliability first."),
+      remark: tr("Backend engineer"),
+    },
+    {
+      id: "f-4",
+      name: tr("Dora"),
+      avatar: "D",
+      isOnline: true,
+      status: "online",
+      initial: "D",
+      region: tr("Hangzhou"),
+      signature: tr("Quality through automation."),
+      remark: tr("QA engineer"),
+    },
+  ];
+}
 
-const fallbackRequests: FriendRequest[] = [
-  {
-    id: "req-1",
-    fromId: "f-10",
-    fromName: "Mia",
-    fromAvatar: "M",
-    toId: "current-user",
-    status: "pending",
-    message: "Hi, let's connect for product sync.",
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "req-2",
-    fromId: "f-11",
-    fromName: "Noah",
-    fromAvatar: "N",
-    toId: "current-user",
-    status: "pending",
-    message: "We are in the same project group.",
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
+function createFallbackGroups(tr: Translate): Group[] {
+  return [
+    {
+      id: "g-1",
+      name: tr("OpenChat Product"),
+      avatar: "P",
+      memberCount: 3,
+      memberIds: ["f-1", "f-2", "f-3"],
+      description: tr("Product planning and review."),
+    },
+    {
+      id: "g-2",
+      name: tr("Frontend Team"),
+      avatar: "F",
+      memberCount: 2,
+      memberIds: ["f-2", "f-4"],
+      description: tr("Client architecture and UX optimization."),
+    },
+    {
+      id: "g-3",
+      name: tr("Delivery Squad"),
+      avatar: "D",
+      memberCount: 4,
+      memberIds: ["f-1", "f-2", "f-3", "f-4"],
+      description: tr("Release tracking and issue follow-up."),
+    },
+  ];
+}
 
-function normalizeFriend(friend: Friend): Friend {
-  const displayName = friend.remark || friend.nickname || friend.name || friend.username || "Contact";
+function createFallbackRequests(tr: Translate): FriendRequest[] {
+  return [
+    {
+      id: "req-1",
+      fromId: "f-10",
+      fromName: tr("Mia"),
+      fromAvatar: "M",
+      toId: "current-user",
+      status: "pending",
+      message: tr("Hi, let's connect for product sync."),
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "req-2",
+      fromId: "f-11",
+      fromName: tr("Noah"),
+      fromAvatar: "N",
+      toId: "current-user",
+      status: "pending",
+      message: tr("We are in the same project group."),
+      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    },
+  ];
+}
+
+function normalizeFriend(friend: Friend, tr: Translate): Friend {
+  const displayName = friend.remark || friend.nickname || friend.name || friend.username || tr("Contact");
   return {
     ...friend,
     name: displayName,
@@ -132,8 +141,8 @@ function mapContactGroupToGroup(item: {
   memberIds?: string[];
   description?: string;
   createdAt?: string;
-}): Group {
-  const title = item.name || "Untitled Group";
+}, tr: Translate): Group {
+  const title = item.name || tr("Untitled Group");
   const memberIds = Array.isArray(item.memberIds) ? item.memberIds : [];
   return {
     id: item.id,
@@ -148,6 +157,11 @@ function mapContactGroupToGroup(item: {
 
 export function ContactsPage() {
   const navigate = useNavigate();
+  const { tr } = useAppTranslation();
+
+  const fallbackFriends = useMemo(() => createFallbackFriends(tr), [tr]);
+  const fallbackGroups = useMemo(() => createFallbackGroups(tr), [tr]);
+  const fallbackRequests = useMemo(() => createFallbackRequests(tr), [tr]);
 
   const [friends, setFriends] = useState<Friend[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -175,7 +189,7 @@ export function ContactsPage() {
         }
 
         const normalizedFriends =
-          apiFriends.length > 0 ? apiFriends.map(normalizeFriend) : fallbackFriends;
+          apiFriends.length > 0 ? apiFriends.map((item) => normalizeFriend(item, tr)) : fallbackFriends;
 
         const normalizedGroups =
           apiGroups.length > 0
@@ -186,7 +200,7 @@ export function ContactsPage() {
                   memberIds?: string[];
                   description?: string;
                   createdAt?: string;
-                }),
+                }, tr),
               )
             : fallbackGroups;
 
@@ -208,7 +222,7 @@ export function ContactsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fallbackFriends, fallbackGroups, fallbackRequests, tr]);
 
   const visibleFriends = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase();
@@ -313,7 +327,7 @@ export function ContactsPage() {
           isOnline: false,
           status: "offline",
           initial: request.fromName.slice(0, 1).toUpperCase(),
-        });
+        }, tr);
         setFriends((prev) => [newFriend, ...prev]);
       }
     } catch (error) {
@@ -350,7 +364,7 @@ export function ContactsPage() {
   };
 
   const handleStartChat = (friend: Friend) => {
-    const contactName = friend.remark || friend.name || friend.nickname || "Contact";
+    const contactName = friend.remark || friend.name || friend.nickname || tr("Contact");
     const params = new URLSearchParams({
       contactId: friend.id,
       contactName,
@@ -359,7 +373,7 @@ export function ContactsPage() {
   };
 
   const handleCreateGroup = async () => {
-    const rawName = window.prompt("Group name");
+    const rawName = window.prompt(tr("Group name"));
     if (rawName === null) {
       return;
     }

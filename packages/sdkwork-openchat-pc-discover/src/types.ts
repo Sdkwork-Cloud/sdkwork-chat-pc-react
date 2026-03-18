@@ -1,4 +1,4 @@
-﻿import type { BaseEntity } from '@sdkwork/openchat-pc-contracts';
+import type { BaseEntity } from '@sdkwork/openchat-pc-contracts';
 
 export type ContentType = 'article' | 'video' | 'image' | 'audio';
 

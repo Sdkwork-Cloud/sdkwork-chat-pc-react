@@ -1,6 +1,4 @@
-/**
- * 核心服务模块
- */
+
 
 import { Module } from '../types';
 import {
@@ -19,7 +17,6 @@ import { pluginManager } from '../../plugins/plugin-manager';
 
 export class CoreModule implements Module {
   configure(container: any): void {
-    // 注册核心服务
     container.registerSingleton('errorService', () => errorService);
     container.registerSingleton('securityService', () => securityService);
     container.registerSingleton('fileService', () => fileService);
@@ -32,7 +29,6 @@ export class CoreModule implements Module {
     container.registerSingleton('featureService', () => featureService);
     container.registerSingleton('toolchainService', () => toolchainService);
 
-    // 注册服务类型
     container.registerSingleton('ErrorService', () => errorService);
     container.registerSingleton('SecurityService', () => securityService);
     container.registerSingleton('FileService', () => fileService);

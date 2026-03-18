@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { DiscoverResultService, DiscoverService } from "../services";
 import type { ContentType, DiscoverBanner, DiscoverCategory, DiscoverItem } from "../types";
 import {
@@ -22,13 +23,6 @@ const sortOptions: Array<{ value: SortType; label: string }> = [
   { value: "hot", label: "Most Popular" },
   { value: "new", label: "Newest" },
 ];
-
-function formatTime(timestamp?: number): string {
-  if (!timestamp) {
-    return "-";
-  }
-  return new Date(timestamp).toLocaleString();
-}
 
 function scoreOf(item: DiscoverItem): number {
   return item.reads + item.likes * 10;
@@ -54,6 +48,7 @@ export function DiscoverPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
+  const { tr, formatDateTime, formatNumber } = useAppTranslation();
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +70,9 @@ export function DiscoverPage() {
         }
         setBanners([]);
         setCategories([]);
-        setErrorText(error instanceof Error ? error.message : "Failed to load discover metadata.");
+        setErrorText(
+          error instanceof Error ? error.message : tr("Failed to load discover metadata."),
+        );
       }
     }
 
@@ -83,7 +80,7 @@ export function DiscoverPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [tr]);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,7 +118,7 @@ export function DiscoverPage() {
         }
         setFeed([]);
         setTrending([]);
-        setErrorText(error instanceof Error ? error.message : "Failed to load discover content.");
+        setErrorText(error instanceof Error ? error.message : tr("Failed to load discover content."));
       } finally {
         if (!cancelled) {
           setIsLoading(false);
@@ -133,7 +130,7 @@ export function DiscoverPage() {
     return () => {
       cancelled = true;
     };
-  }, [keyword, category, type, sortBy]);
+  }, [keyword, category, type, sortBy, tr]);
 
   useEffect(() => {
     const merged = [...feed, ...trending];
@@ -184,10 +181,16 @@ export function DiscoverPage() {
   const categoryOptions = useMemo(() => {
     const normalized = categories.filter((item) => item.id !== "all");
     return [
-      { id: "all", name: "All", icon: "ALL", color: "#6b7280", count: workspaceFeed.length },
+      {
+        id: "all",
+        name: tr("All"),
+        icon: "ALL",
+        color: "#6b7280",
+        count: workspaceFeed.length,
+      },
       ...normalized,
     ];
-  }, [categories, workspaceFeed.length]);
+  }, [categories, workspaceFeed.length, tr]);
 
   const favoriteSet = useMemo(() => new Set(favoriteItemIds), [favoriteItemIds]);
 
@@ -214,9 +217,9 @@ export function DiscoverPage() {
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <h1 className="text-xl font-semibold text-text-primary">Discover</h1>
+        <h1 className="text-xl font-semibold text-text-primary">{tr("Discover")}</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Curate trends, inspect details, and keep discovery workflow in one place.
+          {tr("Curate trends, inspect details, and keep discovery workflow in one place.")}
         </p>
       </header>
 
@@ -224,8 +227,8 @@ export function DiscoverPage() {
         <div className="grid h-full min-h-[520px] gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="flex min-h-0 flex-col rounded-xl border border-border bg-bg-secondary">
             <div className="border-b border-border px-4 py-3">
-              <h2 className="text-sm font-semibold text-text-primary">Categories</h2>
-              <p className="mt-1 text-xs text-text-secondary">Quickly switch topic channels.</p>
+              <h2 className="text-sm font-semibold text-text-primary">{tr("Categories")}</h2>
+              <p className="mt-1 text-xs text-text-secondary">{tr("Quickly switch topic channels.")}</p>
             </div>
             <div className="min-h-0 flex-1 overflow-auto p-3">
               <div className="space-y-2">
@@ -242,7 +245,9 @@ export function DiscoverPage() {
                     <p className="truncate text-sm font-medium text-text-primary">
                       {item.icon} {item.name}
                     </p>
-                    <p className="mt-1 text-xs text-text-muted">{item.count ?? 0} items</p>
+                    <p className="mt-1 text-xs text-text-muted">
+                      {tr("{{count}} items", { count: item.count ?? 0 })}
+                    </p>
                   </button>
                 ))}
               </div>
@@ -250,7 +255,7 @@ export function DiscoverPage() {
 
             <div className="border-t border-border px-4 py-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-text-primary">Favorites</h3>
+                <h3 className="text-sm font-semibold text-text-primary">{tr("Favorites")}</h3>
                 <span className="text-xs text-text-muted">{workspaceLibrary.favorites.length}</span>
               </div>
               <div className="mt-2 space-y-2">
@@ -268,14 +273,14 @@ export function DiscoverPage() {
                   </button>
                 ))}
                 {workspaceLibrary.favorites.length === 0 ? (
-                  <p className="text-xs text-text-muted">No favorite content.</p>
+                  <p className="text-xs text-text-muted">{tr("No favorite content.")}</p>
                 ) : null}
               </div>
             </div>
 
             <div className="border-t border-border px-4 py-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-text-primary">Recent Viewed</h3>
+                <h3 className="text-sm font-semibold text-text-primary">{tr("Recent Viewed")}</h3>
                 <span className="text-xs text-text-muted">{workspaceLibrary.recent.length}</span>
               </div>
               <div className="mt-2 space-y-2">
@@ -293,14 +298,14 @@ export function DiscoverPage() {
                   </button>
                 ))}
                 {workspaceLibrary.recent.length === 0 ? (
-                  <p className="text-xs text-text-muted">No recent history.</p>
+                  <p className="text-xs text-text-muted">{tr("No recent history.")}</p>
                 ) : null}
               </div>
             </div>
 
             <div className="border-t border-border px-4 py-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-text-primary">Top Trending</h3>
+                <h3 className="text-sm font-semibold text-text-primary">{tr("Top Trending")}</h3>
                 <span className="text-xs text-text-muted">{workspaceLibrary.trending.length}</span>
               </div>
               <div className="mt-3 space-y-2">
@@ -317,11 +322,13 @@ export function DiscoverPage() {
                     <p className="line-clamp-1 text-xs font-semibold text-text-primary">
                       #{index + 1} {item.title}
                     </p>
-                    <p className="mt-1 text-[11px] text-text-muted">{scoreOf(item).toLocaleString()} score</p>
+                    <p className="mt-1 text-[11px] text-text-muted">
+                      {tr("{{score}} score", { score: formatNumber(scoreOf(item)) })}
+                    </p>
                   </button>
                 ))}
                 {workspaceLibrary.trending.length === 0 ? (
-                  <p className="text-xs text-text-muted">No trending data.</p>
+                  <p className="text-xs text-text-muted">{tr("No trending data.")}</p>
                 ) : null}
               </div>
             </div>
@@ -352,7 +359,7 @@ export function DiscoverPage() {
                 <input
                   value={keyword}
                   onChange={(event) => setKeyword(event.target.value)}
-                  placeholder="Search title, summary, tags"
+                  placeholder={tr("Search title, summary, tags")}
                   className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
                 />
                 <select
@@ -373,7 +380,7 @@ export function DiscoverPage() {
                 >
                   {contentTypeOptions.map((item) => (
                     <option key={item.value} value={item.value}>
-                      {item.label}
+                      {tr(item.label)}
                     </option>
                   ))}
                 </select>
@@ -384,7 +391,7 @@ export function DiscoverPage() {
                 >
                   {sortOptions.map((item) => (
                     <option key={item.value} value={item.value}>
-                      {item.label}
+                      {tr(item.label)}
                     </option>
                   ))}
                 </select>
@@ -397,22 +404,22 @@ export function DiscoverPage() {
                   }}
                   className="rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover"
                 >
-                  Reset
+                  {tr("Reset")}
                 </button>
               </div>
 
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                  <p className="text-[11px] text-text-muted">Current Results</p>
-                  <p className="text-sm font-semibold text-text-primary">{aggregatedStats.total}</p>
+                  <p className="text-[11px] text-text-muted">{tr("Current Results")}</p>
+                  <p className="text-sm font-semibold text-text-primary">{formatNumber(aggregatedStats.total)}</p>
                 </div>
                 <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                  <p className="text-[11px] text-text-muted">Total Reads</p>
-                  <p className="text-sm font-semibold text-text-primary">{aggregatedStats.reads.toLocaleString()}</p>
+                  <p className="text-[11px] text-text-muted">{tr("Total Reads")}</p>
+                  <p className="text-sm font-semibold text-text-primary">{formatNumber(aggregatedStats.reads)}</p>
                 </div>
                 <div className="rounded-lg border border-border bg-bg-primary px-3 py-2">
-                  <p className="text-[11px] text-text-muted">Total Likes</p>
-                  <p className="text-sm font-semibold text-text-primary">{aggregatedStats.likes.toLocaleString()}</p>
+                  <p className="text-[11px] text-text-muted">{tr("Total Likes")}</p>
+                  <p className="text-sm font-semibold text-text-primary">{formatNumber(aggregatedStats.likes)}</p>
                 </div>
               </div>
 
@@ -441,9 +448,11 @@ export function DiscoverPage() {
               <div className="grid h-full min-h-0 gap-4 2xl:grid-cols-[minmax(0,1fr)_320px]">
                 <div className="min-h-0 overflow-auto rounded-lg border border-border bg-bg-primary">
                   {isLoading ? (
-                    <div className="p-4 text-sm text-text-secondary">Loading discover feed...</div>
+                    <div className="p-4 text-sm text-text-secondary">{tr("Loading discover feed...")}</div>
                   ) : workspaceFeed.length === 0 ? (
-                    <div className="p-4 text-sm text-text-secondary">No content matches current filters.</div>
+                    <div className="p-4 text-sm text-text-secondary">
+                      {tr("No content matches current filters.")}
+                    </div>
                   ) : (
                     <div className="divide-y divide-border">
                       {workspaceFeed.map((item) => (
@@ -465,13 +474,17 @@ export function DiscoverPage() {
                                 <p className="line-clamp-1 text-sm font-semibold text-text-primary">{item.title}</p>
                                 {favoriteSet.has(item.id) ? (
                                   <span className="rounded bg-warning/20 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
-                                    Fav
+                                    {tr("Fav")}
                                   </span>
                                 ) : null}
                               </div>
                               <p className="mt-1 line-clamp-2 text-xs text-text-secondary">{item.summary}</p>
                               <p className="mt-2 text-[11px] text-text-muted">
-                                {item.source} | {item.reads.toLocaleString()} views | {item.likes.toLocaleString()} likes
+                                {item.source} |{" "}
+                                {tr("{{reads}} views | {{likes}} likes", {
+                                  reads: formatNumber(item.reads),
+                                  likes: formatNumber(item.likes),
+                                })}
                               </p>
                             </div>
                           </div>
@@ -501,15 +514,28 @@ export function DiscoverPage() {
                                 : "border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
                             }`}
                           >
-                            {favoriteSet.has(selectedItem.id) ? "Favorited" : "Favorite"}
+                            {favoriteSet.has(selectedItem.id) ? tr("Favorited") : tr("Favorite")}
                           </button>
                         </div>
                         <p className="mt-2 text-sm leading-6 text-text-secondary">{selectedItem.summary}</p>
                         <div className="mt-3 space-y-1 text-xs text-text-muted">
-                          <p>Source: {selectedItem.source}</p>
-                          <p>Type: {selectedItem.type}</p>
-                          <p>Published: {formatTime(selectedItem.createTime)}</p>
-                          <p>Score: {scoreOf(selectedItem).toLocaleString()}</p>
+                          <p>
+                            {tr("Source")}: {selectedItem.source}
+                          </p>
+                          <p>
+                            {tr("Type")}: {selectedItem.type}
+                          </p>
+                          <p>
+                            {tr("Published")}: {selectedItem.createTime
+                              ? formatDateTime(selectedItem.createTime, {
+                                  dateStyle: "medium",
+                                  timeStyle: "short",
+                                })
+                              : "-"}
+                          </p>
+                          <p>
+                            {tr("Score")}: {formatNumber(scoreOf(selectedItem))}
+                          </p>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
                           {selectedItem.tags.map((tag) => (
@@ -520,29 +546,29 @@ export function DiscoverPage() {
                         </div>
                       </div>
                       <div className="border-t border-border p-3">
-                        {selectedItem.url ? (
-                          <a
-                            href={selectedItem.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block rounded-md bg-primary px-3 py-2 text-center text-sm text-white"
-                          >
-                            Open Original
-                          </a>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled
-                            className="block w-full cursor-not-allowed rounded-md bg-bg-tertiary px-3 py-2 text-center text-sm text-text-muted"
-                          >
-                            Source Link Unavailable
-                          </button>
-                        )}
+                          {selectedItem.url ? (
+                            <a
+                              href={selectedItem.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block rounded-md bg-primary px-3 py-2 text-center text-sm text-white"
+                            >
+                              {tr("Open Original")}
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              className="block w-full cursor-not-allowed rounded-md bg-bg-tertiary px-3 py-2 text-center text-sm text-text-muted"
+                            >
+                              {tr("Source Link Unavailable")}
+                            </button>
+                          )}
                       </div>
                     </>
                   ) : (
                     <div className="flex flex-1 items-center justify-center px-4 text-sm text-text-muted">
-                      Select an item from feed or trending list.
+                      {tr("Select an item from feed or trending list.")}
                     </div>
                   )}
                 </aside>

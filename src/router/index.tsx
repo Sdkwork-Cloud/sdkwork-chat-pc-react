@@ -10,6 +10,7 @@ import {
 } from "react";
 import { AuthPage } from "@sdkwork/openchat-pc-auth";
 import { MainLayout } from "@sdkwork/openchat-pc-commons";
+import { translate } from "@sdkwork/openchat-pc-i18n";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { ROUTES } from "./constants";
 import { authGuard, executeGuards, type RouteGuard } from "./guards";
@@ -194,7 +195,7 @@ function RouteLoading() {
     <div className="flex h-full min-h-[220px] items-center justify-center bg-bg-primary">
       <div className="flex items-center gap-3 text-sm text-text-secondary">
         <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        Loading page...
+        {translate("Loading page...")}
       </div>
     </div>
   );
@@ -221,7 +222,7 @@ class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, RouteErrorBo
   static getDerivedStateFromError(error: Error): RouteErrorBoundaryState {
     return {
       hasError: true,
-      errorMessage: error.message || "Unknown route error",
+      errorMessage: error.message || translate("An unexpected route error occurred."),
     };
   }
 
@@ -240,9 +241,9 @@ class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, RouteErrorBo
     if (this.state.hasError) {
       return (
         <div className="flex h-full min-h-[260px] flex-col items-center justify-center gap-4 bg-bg-primary px-6 text-center">
-          <div className="text-base font-medium text-text-primary">Page failed to render</div>
+          <div className="text-base font-medium text-text-primary">{translate("Page failed to render")}</div>
           <div className="max-w-xl text-sm text-text-secondary">
-            {this.state.errorMessage || "An unexpected route error occurred."}
+            {this.state.errorMessage || translate("An unexpected route error occurred.")}
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -250,14 +251,14 @@ class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, RouteErrorBo
               onClick={this.handleReset}
               className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
             >
-              Retry
+              {translate("Retry")}
             </button>
             <button
               type="button"
               onClick={() => window.location.assign(ROUTES.CHAT)}
               className="rounded-md bg-primary px-3 py-1.5 text-xs text-white hover:brightness-110"
             >
-              Back to Chat
+              {translate("Back to Chat")}
             </button>
           </div>
         </div>

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { NotificationResultService } from "../services";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { Notification, NotificationStats, NotificationType } from "../types";
 import {
   buildNotificationFeedSummary,
@@ -9,7 +10,7 @@ import {
 
 type NotificationFilterType = NotificationType | "all";
 
-const typeLabels: Record<NotificationFilterType, string> = {
+const notificationFilterLabelKeys: Record<NotificationFilterType, string> = {
   all: "All",
   system: "System",
   social: "Social",
@@ -18,19 +19,8 @@ const typeLabels: Record<NotificationFilterType, string> = {
   message: "Message",
 };
 
-function formatDateTime(timestamp?: number): string {
-  if (!timestamp) {
-    return "-";
-  }
-  return new Date(timestamp).toLocaleString(undefined, {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 export function NotificationsPage() {
+  const { tr, formatDateTime, formatNumber } = useAppTranslation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [stats, setStats] = useState<NotificationStats | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -43,7 +33,7 @@ export function NotificationsPage() {
   const [errorText, setErrorText] = useState<string | null>(null);
   const [statusText, setStatusText] = useState("");
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     setErrorText(null);
 
@@ -60,29 +50,39 @@ export function NotificationsPage() {
       setStats(statsRes.data || null);
 
       if (!listRes.success || !statsRes.success) {
-        setErrorText(listRes.message || statsRes.message || "Notification data loaded with warnings.");
+        setErrorText(tr(listRes.message || statsRes.message || "Notification data loaded with warnings."));
       }
     } catch (error) {
       setNotifications([]);
       setStats(null);
-      setErrorText(error instanceof Error ? error.message : "Failed to load notifications.");
+      setErrorText(error instanceof Error ? tr(error.message) : tr("Failed to load notifications."));
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filterType, onlyUnread, tr]);
 
   useEffect(() => {
     void loadData();
-  }, [filterType, onlyUnread]);
+  }, [loadData]);
+
+  const localizedNotifications = useMemo(
+    () =>
+      notifications.map((item) => ({
+        ...item,
+        title: tr(item.title),
+        content: tr(item.content),
+      })),
+    [notifications, tr],
+  );
 
   const filteredNotifications = useMemo(
     () =>
-      filterNotificationFeed(notifications, {
+      filterNotificationFeed(localizedNotifications, {
         keyword,
         type: filterType,
         onlyUnread,
       }),
-    [notifications, keyword, filterType, onlyUnread],
+    [localizedNotifications, keyword, filterType, onlyUnread],
   );
 
   const summary = useMemo(
@@ -123,14 +123,14 @@ export function NotificationsPage() {
         : await NotificationResultService.markRead(item.id);
 
       if (!result.success) {
-        setErrorText(result.message || "Failed to update read state.");
+        setErrorText(tr(result.message || "Failed to update read state."));
         return;
       }
 
-      setStatusText(item.isRead ? "Marked as unread." : "Marked as read.");
+      setStatusText(item.isRead ? tr("Marked as unread.") : tr("Marked as read."));
       await loadData();
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Failed to update read state.");
+      setErrorText(error instanceof Error ? tr(error.message) : tr("Failed to update read state."));
     }
   };
 
@@ -140,13 +140,13 @@ export function NotificationsPage() {
     try {
       const result = await NotificationResultService.deleteNotification(notificationId);
       if (!result.success) {
-        setErrorText(result.message || "Failed to delete notification.");
+        setErrorText(tr(result.message || "Failed to delete notification."));
         return;
       }
-      setStatusText("Notification deleted.");
+      setStatusText(tr("Notification deleted."));
       await loadData();
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Failed to delete notification.");
+      setErrorText(error instanceof Error ? tr(error.message) : tr("Failed to delete notification."));
     }
   };
 
@@ -158,14 +158,14 @@ export function NotificationsPage() {
         filterType === "all" ? undefined : filterType,
       );
       if (!result.success) {
-        setErrorText(result.message || "Failed to mark all as read.");
+        setErrorText(tr(result.message || "Failed to mark all as read."));
         return;
       }
 
-      setStatusText("All matching notifications marked as read.");
+      setStatusText(tr("All matching notifications marked as read."));
       await loadData();
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Failed to mark all as read.");
+      setErrorText(error instanceof Error ? tr(error.message) : tr("Failed to mark all as read."));
     }
   };
 
@@ -177,14 +177,14 @@ export function NotificationsPage() {
         filterType === "all" ? undefined : filterType,
       );
       if (!result.success) {
-        setErrorText(result.message || "Failed to clear read notifications.");
+        setErrorText(tr(result.message || "Failed to clear read notifications."));
         return;
       }
 
-      setStatusText("Read notifications cleared.");
+      setStatusText(tr("Read notifications cleared."));
       await loadData();
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Failed to clear read notifications.");
+      setErrorText(error instanceof Error ? tr(error.message) : tr("Failed to clear read notifications."));
     }
   };
 
@@ -193,48 +193,48 @@ export function NotificationsPage() {
     setErrorText(null);
     try {
       const result = await NotificationResultService.pushNotification(
-        "Workspace sync complete",
-        "Your latest workspace settings have been synchronized successfully.",
+        tr("Workspace sync complete"),
+        tr("Your latest workspace settings have been synchronized successfully."),
         "system",
       );
       if (!result.success) {
-        setErrorText(result.message || "Failed to create demo notification.");
+        setErrorText(tr(result.message || "Failed to create demo notification."));
         return;
       }
 
-      setStatusText("Demo notification created.");
+      setStatusText(tr("Demo notification created."));
       await loadData();
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Failed to create demo notification.");
+      setErrorText(error instanceof Error ? tr(error.message) : tr("Failed to create demo notification."));
     }
   };
 
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <h1 className="text-xl font-semibold text-text-primary">Notification Center</h1>
+        <h1 className="text-xl font-semibold text-text-primary">{tr("Notification Center")}</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Review system, social, and workflow alerts in one consistent workspace.
+          {tr("Review system, social, and workflow alerts in one consistent workspace.")}
         </p>
       </header>
 
       <div className="flex-1 overflow-hidden p-6">
         <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Current total</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{summary.total}</p>
+            <p className="text-xs text-text-muted">{tr("Current total")}</p>
+            <p className="mt-1 text-xl font-semibold text-text-primary">{formatNumber(summary.total)}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Current unread</p>
-            <p className="mt-1 text-xl font-semibold text-primary">{summary.unread}</p>
+            <p className="text-xs text-text-muted">{tr("Current unread")}</p>
+            <p className="mt-1 text-xl font-semibold text-primary">{formatNumber(summary.unread)}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Unread lane</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{library.unread.length}</p>
+            <p className="text-xs text-text-muted">{tr("Unread lane")}</p>
+            <p className="mt-1 text-xl font-semibold text-text-primary">{formatNumber(library.unread.length)}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Global total</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{stats?.total ?? 0}</p>
+            <p className="text-xs text-text-muted">{tr("Global total")}</p>
+            <p className="mt-1 text-xl font-semibold text-text-primary">{formatNumber(stats?.total ?? 0)}</p>
           </div>
         </div>
 
@@ -242,7 +242,7 @@ export function NotificationsPage() {
           <input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
-            placeholder="Search title or content"
+            placeholder={tr("Search title or content")}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
           />
           <div className="flex flex-wrap items-center gap-2">
@@ -254,31 +254,31 @@ export function NotificationsPage() {
                   : "border border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
               }`}
             >
-              Unread only
+              {tr("Unread only")}
             </button>
             <button
               onClick={() => void handleMarkAllRead()}
               className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
             >
-              Mark all read
+              {tr("Mark all read")}
             </button>
             <button
               onClick={() => void handleClearRead()}
               className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
             >
-              Clear read
+              {tr("Clear read")}
             </button>
             <button
               onClick={() => void handlePushDemo()}
               className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
             >
-              Push demo
+              {tr("Push demo")}
             </button>
           </div>
         </div>
 
         <div className="mb-4 flex flex-wrap gap-2">
-          {(Object.keys(typeLabels) as NotificationFilterType[]).map((type) => (
+          {(Object.keys(notificationFilterLabelKeys) as NotificationFilterType[]).map((type) => (
             <button
               key={type}
               onClick={() => setFilterType(type)}
@@ -288,7 +288,7 @@ export function NotificationsPage() {
                   : "bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
               }`}
             >
-              {typeLabels[type]}
+              {tr(notificationFilterLabelKeys[type])}
             </button>
           ))}
         </div>
@@ -309,9 +309,11 @@ export function NotificationsPage() {
           <aside className="w-[380px] border-r border-border bg-bg-secondary/90">
             <div className="h-full overflow-auto">
               {isLoading ? (
-                <div className="p-4 text-sm text-text-secondary">Loading notifications...</div>
+                <div className="p-4 text-sm text-text-secondary">{tr("Loading notifications...")}</div>
               ) : filteredNotifications.length === 0 ? (
-                <div className="p-4 text-sm text-text-secondary">No notifications match current filters.</div>
+                <div className="p-4 text-sm text-text-secondary">
+                  {tr("No notifications match current filters.")}
+                </div>
               ) : (
                 filteredNotifications.map((item) => {
                   const selected = item.id === selectedId;
@@ -333,7 +335,7 @@ export function NotificationsPage() {
                       </div>
                       <p className="mt-1 line-clamp-2 text-xs text-text-secondary">{item.content}</p>
                       <p className="mt-1 text-[11px] text-text-muted">
-                        {formatDateTime(item.createTime)} | {typeLabels[item.type]}
+                        {item.createTime ? formatDateTime(item.createTime) : tr("Unknown")} | {tr(notificationFilterLabelKeys[item.type])}
                       </p>
                     </button>
                   );
@@ -352,8 +354,8 @@ export function NotificationsPage() {
                         {selectedNotification.icon || "SYS"} {selectedNotification.title}
                       </h2>
                       <p className="mt-1 text-xs text-text-muted">
-                        {formatDateTime(selectedNotification.createTime)} |{" "}
-                        {typeLabels[selectedNotification.type]}
+                        {selectedNotification.createTime ? formatDateTime(selectedNotification.createTime) : tr("Unknown")} |{" "}
+                        {tr(notificationFilterLabelKeys[selectedNotification.type])}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -361,13 +363,13 @@ export function NotificationsPage() {
                         onClick={() => void handleToggleRead(selectedNotification)}
                         className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                       >
-                        {selectedNotification.isRead ? "Mark unread" : "Mark read"}
+                      {selectedNotification.isRead ? tr("Mark unread") : tr("Mark read")}
                       </button>
                       <button
                         onClick={() => void handleDelete(selectedNotification.id)}
                         className="rounded-md border border-error/50 bg-error/10 px-2.5 py-1 text-xs text-error hover:bg-error/20"
                       >
-                        Delete
+                      {tr("Delete")}
                       </button>
                     </div>
                   </div>
@@ -387,16 +389,16 @@ export function NotificationsPage() {
                       rel="noreferrer"
                       className="inline-flex rounded-md bg-primary px-3 py-1.5 text-xs text-white hover:brightness-110"
                     >
-                      Open related page
+                      {tr("Open related page")}
                     </a>
                   ) : (
-                    <span className="text-xs text-text-muted">No related link.</span>
+                    <span className="text-xs text-text-muted">{tr("No related link.")}</span>
                   )}
                 </div>
               </>
             ) : (
               <div className="flex flex-1 items-center justify-center text-sm text-text-muted">
-                Select a notification to view details.
+                {tr("Select a notification to view details.")}
               </div>
             )}
           </section>

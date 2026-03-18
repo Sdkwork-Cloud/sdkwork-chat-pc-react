@@ -1,4 +1,4 @@
-﻿import type { BaseEntity } from '@sdkwork/openchat-pc-contracts';
+import type { BaseEntity } from '@sdkwork/openchat-pc-contracts';
 
 export type NotificationType = 'system' | 'social' | 'order' | 'promotion' | 'message';
 

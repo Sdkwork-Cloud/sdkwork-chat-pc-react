@@ -1,4 +1,4 @@
-﻿export { SearchPalette, type SearchPaletteProps } from "./components/SearchPalette";
+export { SearchPalette, type SearchPaletteProps } from "./components/SearchPalette";
 export * from "./services";
 export type {
   SearchResultType,

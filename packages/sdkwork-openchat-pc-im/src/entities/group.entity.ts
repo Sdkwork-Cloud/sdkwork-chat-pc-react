@@ -1,8 +1,4 @@
-/**
- * 群聊实体
- *
- * 职责：定义群聊相关的领域模型
- */
+
 
 export type GroupRole = 'owner' | 'admin' | 'member';
 
@@ -13,7 +9,7 @@ export interface GroupMember {
   role: GroupRole;
   isOnline?: boolean;
   joinTime?: string;
-  muteEndTime?: string; // 禁言结束时间
+  muteEndTime?: string; 
 }
 
 export interface GroupNotice {
@@ -27,10 +23,10 @@ export interface GroupNotice {
 }
 
 export interface GroupSettings {
-  allowInvite: boolean; // 允许成员邀请
-  allowMemberModify: boolean; // 允许成员修改群信息
-  needVerify: boolean; // 入群需要验证
-  showMemberCount: boolean; // 显示成员数量
+  allowInvite: boolean; 
+  allowMemberModify: boolean; 
+  needVerify: boolean; 
+  showMemberCount: boolean; 
 }
 
 export interface Group {

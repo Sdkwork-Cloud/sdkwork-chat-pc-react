@@ -1,2 +1,2 @@
-﻿export { AppStorePage } from "./AppStorePage";
+export { AppStorePage } from "./AppStorePage";
 export { AppStoreDetailPage } from "./AppStoreDetailPage";

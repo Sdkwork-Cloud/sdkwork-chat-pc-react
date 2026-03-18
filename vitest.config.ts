@@ -1,8 +1,4 @@
-/**
- * Vitest 测试配置
- * 
- * 职责：配置单元测试和集成测试环境
- */
+
 
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
@@ -21,6 +17,7 @@ const modulePackageNames = [
   'contacts',
   'content',
   'core',
+  'i18n',
   'creation',
   'device',
   'discover',
@@ -79,9 +76,7 @@ export default defineConfig({
         statements: 80,
       },
     },
-    // 测试超时
     testTimeout: 10000,
-    // 钩子超时
     hookTimeout: 10000,
   },
   resolve: {

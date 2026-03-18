@@ -1,8 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./app/App";
+import { initializeI18n } from "./i18n";
 import "./index.css";
-import "./i18n";
 
 const SW_CLEANUP_RELOAD_FLAG = "openchat-sw-cleanup-reload-v1";
 
@@ -97,6 +97,7 @@ function renderApp() {
 }
 
 async function bootstrap() {
+  await initializeI18n();
   normalizeSecurityMetaTags();
   const reloading = await cleanupLegacyServiceWorkers();
   if (reloading) {

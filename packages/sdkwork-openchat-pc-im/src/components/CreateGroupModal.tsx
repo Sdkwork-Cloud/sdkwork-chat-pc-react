@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { Friend } from "@sdkwork/openchat-pc-contacts";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { IS_DEV } from "@sdkwork/openchat-pc-kernel";
 import { Modal, ModalButtonGroup } from "@sdkwork/openchat-pc-ui";
 import { GroupResultService } from "../services";
@@ -31,6 +32,7 @@ export function CreateGroupModal({
   isFriendsLoading = false,
   friendLoadError = null,
 }: CreateGroupModalProps) {
+  const { tr } = useAppTranslation();
   const [keyword, setKeyword] = useState("");
   const [groupName, setGroupName] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -90,7 +92,7 @@ export function CreateGroupModal({
         memberIds: Array.from(selectedIds),
       });
       if (!responseResult.success) {
-        setSubmitError(responseResult.error || "Failed to create group.");
+        setSubmitError(responseResult.error || tr("Failed to create group."));
         return;
       }
 
@@ -105,7 +107,7 @@ export function CreateGroupModal({
           handleClose();
           return;
         }
-        setSubmitError(response.error || "Failed to create group.");
+        setSubmitError(response.error || tr("Failed to create group."));
         return;
       }
 
@@ -115,7 +117,7 @@ export function CreateGroupModal({
       });
       handleClose();
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Failed to create group.");
+      setSubmitError(error instanceof Error ? error.message : tr("Failed to create group."));
     } finally {
       setIsCreating(false);
     }
@@ -125,16 +127,18 @@ export function CreateGroupModal({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Create Group Chat"
+      title={tr("Create Group Chat")}
       size="xl"
       bodyClassName="p-0"
       footer={
         <div className="flex items-center justify-between">
-          <span className="text-xs text-text-muted">Selected members: {selectedIds.size}</span>
+          <span className="text-xs text-text-muted">
+            {tr("Selected members: {{count}}", { count: selectedIds.size })}
+          </span>
           <ModalButtonGroup
             onCancel={handleClose}
             onConfirm={handleCreate}
-            confirmText="Create Group"
+            confirmText={tr("Create Group")}
             confirmVariant="success"
             isLoading={isCreating}
             disabled={!canSubmit}
@@ -146,20 +150,20 @@ export function CreateGroupModal({
         <div className="flex w-1/2 min-w-0 flex-col border-r border-border bg-bg-secondary">
           <div className="space-y-3 border-b border-border p-4">
             <div className="space-y-2">
-              <label className="text-xs text-text-muted">Group name</label>
+              <label className="text-xs text-text-muted">{tr("Group name")}</label>
               <input
                 value={groupName}
                 onChange={(event) => setGroupName(event.target.value)}
-                placeholder="Example: Product Review Team"
+                placeholder={tr("Example: Product Review Team")}
                 className="h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary outline-none focus:border-primary"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs text-text-muted">Find members</label>
+              <label className="text-xs text-text-muted">{tr("Find members")}</label>
               <input
                 value={keyword}
                 onChange={(event) => setKeyword(event.target.value)}
-                placeholder="Search by id or name"
+                placeholder={tr("Search by id or name")}
                 className="h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary outline-none focus:border-primary"
               />
             </div>
@@ -168,13 +172,13 @@ export function CreateGroupModal({
           <div className="flex-1 space-y-1 overflow-y-auto p-3">
             {isFriendsLoading ? (
               <div className="rounded-lg border border-border p-6 text-center text-sm text-text-muted">
-                Loading contacts...
+                {tr("Loading contacts...")}
               </div>
             ) : null}
 
             {!isFriendsLoading && friendLoadError ? (
               <div className="rounded-lg border border-error/40 bg-error/10 p-3 text-sm text-error">
-                {friendLoadError}
+                {tr(friendLoadError)}
               </div>
             ) : null}
 
@@ -182,7 +186,7 @@ export function CreateGroupModal({
             !friendLoadError &&
             filteredFriends.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-text-muted">
-                No contacts available for group creation.
+                {tr("No contacts available for group creation.")}
               </div>
             ) : null}
 
@@ -218,12 +222,12 @@ export function CreateGroupModal({
 
         <div className="flex w-1/2 min-w-0 flex-col bg-bg-tertiary/30">
           <div className="border-b border-border p-4 text-sm font-medium text-text-secondary">
-            Selected list
+            {tr("Selected members")}
           </div>
           <div className="flex-1 space-y-2 overflow-y-auto p-3">
             {selectedFriends.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-text-muted">
-                Select at least two contacts.
+                {tr("Select at least two contacts.")}
               </div>
             ) : (
               selectedFriends.map((friend) => (
@@ -241,7 +245,7 @@ export function CreateGroupModal({
                     onClick={() => toggleMember(friend.id)}
                     className="rounded px-2 py-1 text-xs text-text-tertiary hover:bg-bg-hover hover:text-error"
                   >
-                    Remove
+                    {tr("Remove")}
                   </button>
                 </div>
               ))
@@ -252,7 +256,7 @@ export function CreateGroupModal({
 
       {submitError ? (
         <div className="border-t border-border bg-error/10 px-5 py-3 text-sm text-error">
-          {submitError}
+          {tr(submitError)}
         </div>
       ) : null}
     </Modal>

@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "./env";
 import { createClient, type SdkworkAppClient } from "@sdkwork/app-sdk";
+import { getAppLanguage } from "@sdkwork/openchat-pc-i18n";
 
 type QueryValue = string | number | boolean | undefined | null;
 type QueryParams = Record<string, QueryValue>;
@@ -48,6 +49,7 @@ interface ClientTokens {
 }
 
 let sdkClient: SdkworkAppClient | null = null;
+let sdkClientLanguage: string | null = null;
 
 function readEnvAccessToken(): string | null {
   return normalizeStoredToken(
@@ -104,10 +106,15 @@ function normalizeSdkBaseUrl(baseUrl: string): string {
 }
 
 function getSdkClient(): SdkworkAppClient {
-  if (!sdkClient) {
+  const language = getAppLanguage();
+  if (!sdkClient || sdkClientLanguage !== language) {
+    sdkClientLanguage = language;
     sdkClient = createClient({
       baseUrl: normalizeSdkBaseUrl(API_BASE_URL),
       accessToken: readEnvAccessToken() || undefined,
+      headers: {
+        "Accept-Language": language,
+      },
       platform: "pc",
     });
   }

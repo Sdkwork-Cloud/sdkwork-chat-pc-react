@@ -1,4 +1,4 @@
-﻿import type { BaseEntity } from '@sdkwork/openchat-pc-contracts';
+import type { BaseEntity } from '@sdkwork/openchat-pc-contracts';
 
 export type TransactionType = 'income' | 'expense';
 export type TransactionStatus = 'pending' | 'completed' | 'failed';

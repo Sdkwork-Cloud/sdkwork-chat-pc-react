@@ -1,4 +1,4 @@
-﻿export class SkipListNode<K, V> {
+export class SkipListNode<K, V> {
   key: K;
   value: V;
   forward: SkipListNode<K, V>[];

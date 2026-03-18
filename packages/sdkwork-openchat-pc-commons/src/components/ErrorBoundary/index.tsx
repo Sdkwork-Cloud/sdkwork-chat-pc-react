@@ -1,10 +1,5 @@
-﻿/**
- * 閿欒杈圭晫缁勪欢
- *
- * 鑱岃矗锛氭崟鑾?React 缁勪欢鏍戜腑鐨勯敊璇紝闃叉搴旂敤宕╂簝
- */
-
-import { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 
 interface Props {
   children: ReactNode;
@@ -19,12 +14,7 @@ interface State {
   errorInfo: ErrorInfo | null;
 }
 
-/**
- * 閿欒杈圭晫缁勪欢
- */
 export class ErrorBoundary extends Component<Props, State> {
-  private resetTimeout: NodeJS.Timeout | null = null;
-
   constructor(props: Props) {
     super(props);
     this.state = {
@@ -43,42 +33,31 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('[ErrorBoundary] Caught error:', error, errorInfo);
-
+    console.error("[ErrorBoundary] Caught error:", error, errorInfo);
     this.setState({ errorInfo });
-
-    // 璋冪敤澶栭儴閿欒澶勭悊
     this.props.onError?.(error, errorInfo);
 
-    // 涓婃姤閿欒锛堢敓浜х幆澧冿級
-    if (import.meta.env.MODE === 'production') {
+    if (import.meta.env.MODE === "production") {
       this.reportError(error, errorInfo);
     }
   }
 
   componentDidUpdate(prevProps: Props) {
-    // 褰?resetKeys 鍙樺寲鏃堕噸缃敊璇姸鎬?    if (this.state.hasError && this.props.resetKeys) {
-      const hasResetKeyChanged = this.props.resetKeys.some(
-        (key, index) => key !== prevProps.resetKeys?.[index]
-      );
+    if (!this.state.hasError || !this.props.resetKeys || !prevProps.resetKeys) {
+      return;
+    }
 
-      if (hasResetKeyChanged) {
-        this.reset();
-      }
+    const hasResetKeyChanged = this.props.resetKeys.some(
+      (key, index) => key !== prevProps.resetKeys?.[index],
+    );
+
+    if (hasResetKeyChanged) {
+      this.reset();
     }
   }
 
-  componentWillUnmount() {
-    if (this.resetTimeout) {
-      clearTimeout(this.resetTimeout);
-    }
-  }
-
-  /**
-   * 涓婃姤閿欒
-   */
   private reportError(error: Error, errorInfo: ErrorInfo) {
-    // 杩欓噷鍙互鎺ュ叆閿欒涓婃姤鏈嶅姟锛堝 Sentry锛?    console.error('[ErrorBoundary] Report error:', {
+    console.error("[ErrorBoundary] Reporting error", {
       error: error.toString(),
       stack: error.stack,
       componentStack: errorInfo.componentStack,
@@ -88,8 +67,6 @@ export class ErrorBoundary extends Component<Props, State> {
     });
   }
 
-  /**
-   * 閲嶇疆閿欒鐘舵€?   */
   reset = () => {
     this.setState({
       hasError: false,
@@ -100,12 +77,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      // 鑷畾涔?fallback
       if (this.props.fallback) {
         return this.props.fallback;
       }
-
-      // 榛樿閿欒 UI
       return <DefaultErrorFallback error={this.state.error} onReset={this.reset} />;
     }
 
@@ -113,9 +87,6 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-/**
- * 榛樿閿欒闄嶇骇 UI
- */
 function DefaultErrorFallback({
   error,
   onReset,
@@ -123,16 +94,13 @@ function DefaultErrorFallback({
   error: Error | null;
   onReset: () => void;
 }) {
+  const { tr } = useAppTranslation();
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0F172A] p-4">
-      <div className="max-w-md w-full bg-[#1E293B] rounded-xl p-6 border border-[rgba(255,255,255,0.08)]">
-        <div className="flex items-center justify-center w-16 h-16 bg-[rgba(239,68,68,0.1)] rounded-full mb-4 mx-auto">
-          <svg
-            className="w-8 h-8 text-[#EF4444]"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+    <div className="flex min-h-screen items-center justify-center bg-[#0F172A] p-4">
+      <div className="w-full max-w-md rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#1E293B] p-6">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[rgba(239,68,68,0.1)]">
+          <svg className="h-8 w-8 text-[#EF4444]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -142,32 +110,29 @@ function DefaultErrorFallback({
           </svg>
         </div>
 
-        <h2 className="text-xl font-semibold text-[#F8FAFC] text-center mb-2">
-          鍑洪敊浜?        </h2>
+        <h2 className="mb-2 text-center text-xl font-semibold text-[#F8FAFC]">{tr("Something went wrong")}</h2>
+        <p className="mb-4 text-center text-[#94A3B8]">
+          {tr("The application encountered an unexpected issue. Please try again.")}
+        </p>
 
-        <p className="text-[#94A3B8] text-center mb-4">
-          搴旂敤閬囧埌浜嗕竴浜涢棶棰橈紝璇峰皾璇曞埛鏂伴〉闈?        </p>
-
-        {import.meta.env.MODE === 'development' && error && (
-          <div className="bg-[#0F172A] rounded-lg p-3 mb-4 overflow-auto">
-            <p className="text-[#EF4444] text-sm font-mono break-all">
-              {error.message}
-            </p>
+        {import.meta.env.MODE === "development" && error ? (
+          <div className="mb-4 overflow-auto rounded-lg bg-[#0F172A] p-3">
+            <p className="break-all font-mono text-sm text-[#EF4444]">{error.message}</p>
           </div>
-        )}
+        ) : null}
 
         <div className="flex gap-3">
           <button
             onClick={onReset}
-            className="flex-1 px-4 py-2 bg-[#0EA5E9] hover:bg-[#0284C7] text-white rounded-lg transition-colors"
+            className="flex-1 rounded-lg bg-[#0EA5E9] px-4 py-2 text-white transition-colors hover:bg-[#0284C7]"
           >
-            閲嶈瘯
+            {tr("Retry")}
           </button>
           <button
             onClick={() => window.location.reload()}
-            className="flex-1 px-4 py-2 bg-[#1E293B] hover:bg-[#334155] text-[#F8FAFC] border border-[rgba(255,255,255,0.1)] rounded-lg transition-colors"
+            className="flex-1 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[#1E293B] px-4 py-2 text-[#F8FAFC] transition-colors hover:bg-[#334155]"
           >
-            鍒锋柊椤甸潰
+            {tr("Reload page")}
           </button>
         </div>
       </div>
@@ -176,4 +141,3 @@ function DefaultErrorFallback({
 }
 
 export default ErrorBoundary;
-

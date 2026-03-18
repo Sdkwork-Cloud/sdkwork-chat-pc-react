@@ -1,12 +1,4 @@
-/**
- * SDK适配器层
- * 
- * 职责：
- * 1. 将TypeScript SDK接口映射到前端数据模型
- * 2. 处理数据格式转换
- * 3. 提供统一的事件处理
- * 4. 管理SDK实例生命周期
- */
+
 
 import {
   OpenChatClient,
@@ -20,12 +12,12 @@ import {
   MessageStatus as SDKMessageStatus,
   OpenChatEvent,
 } from '@openchat/typescript-sdk';
+import { formatDate as formatAppDate, translate } from "@sdkwork/openchat-pc-i18n";
 
 import type { Message, MessageStatus } from '../entities/message.entity';
 import type { Conversation } from '../entities/conversation.entity';
 import type { Group, GroupMember } from '../entities/group.entity';
 
-// SDK配置
 export interface SDKAdapterConfig {
   apiBaseUrl: string;
   imWsUrl: string;
@@ -34,11 +26,9 @@ export interface SDKAdapterConfig {
   deviceId?: string;
 }
 
-// 单例实例
 let sdkClient: OpenChatClient | null = null;
 let sdkInitializing: Promise<OpenChatClient> | null = null;
 
-// SDK状态
 interface SDKState {
   initialized: boolean;
   connecting: boolean;
@@ -53,13 +43,9 @@ let sdkState: SDKState = {
   error: null,
 };
 
-// 状态变化回调
 let stateChangeCallbacks: Array<(state: SDKState) => void> = [];
 
-/**
- * 获取SDK客户端实例（单例模式）
- * @param throwIfNotInitialized 如果为true且SDK未初始化，则抛出错误；否则返回null
- */
+
 export function getSDKClient(throwIfNotInitialized: boolean = true): OpenChatClient | null {
   if (!sdkClient && throwIfNotInitialized) {
     throw new Error('SDK client not initialized. Call initializeSDK first.');
@@ -67,9 +53,7 @@ export function getSDKClient(throwIfNotInitialized: boolean = true): OpenChatCli
   return sdkClient;
 }
 
-/**
- * 初始化SDK
- */
+
 export async function initializeSDK(config: SDKAdapterConfig): Promise<OpenChatClient> {
   if (sdkClient) {
     console.warn('SDK already initialized');
@@ -102,7 +86,6 @@ export async function initializeSDK(config: SDKAdapterConfig): Promise<OpenChatC
 
       sdkClient = createOpenChatClient(sdkConfig);
       
-      // 注册连接状态事件
       sdkClient.on(OpenChatEvent.CONNECTED, () => {
         updateSDKState({ connected: true, error: null });
       });
@@ -135,9 +118,7 @@ export async function initializeSDK(config: SDKAdapterConfig): Promise<OpenChatC
   return sdkInitializing;
 }
 
-/**
- * 销毁SDK实例
- */
+
 export function destroySDK(): void {
   if (sdkClient) {
     sdkClient.destroy();
@@ -152,27 +133,20 @@ export function destroySDK(): void {
   stateChangeCallbacks = [];
 }
 
-/**
- * 检查SDK是否已初始化
- */
+
 export function isSDKInitialized(): boolean {
   return sdkState.initialized;
 }
 
-/**
- * 获取SDK状态
- */
+
 export function getSDKState(): SDKState {
   return { ...sdkState };
 }
 
-/**
- * 订阅SDK状态变化
- */
+
 export function subscribeToSDKState(callback: (state: SDKState) => void): () => void {
   stateChangeCallbacks.push(callback);
   
-  // 立即触发一次当前状态
   callback(getSDKState());
   
   return () => {
@@ -180,19 +154,14 @@ export function subscribeToSDKState(callback: (state: SDKState) => void): () => 
   };
 }
 
-/**
- * 更新SDK状态
- */
+
 function updateSDKState(updates: Partial<SDKState>): void {
   sdkState = { ...sdkState, ...updates };
   stateChangeCallbacks.forEach(callback => callback(getSDKState()));
 }
 
-// ==================== 消息适配器 ====================
 
-/**
- * 将SDK消息转换为前端消息格式
- */
+
 export function convertSDKMessageToFrontend(sdkMessage: SDKMessage): Message {
   const content = parseMessageContent(sdkMessage);
 
@@ -200,17 +169,15 @@ export function convertSDKMessageToFrontend(sdkMessage: SDKMessage): Message {
     id: sdkMessage.id,
     conversationId: sdkMessage.channelId || '',
     senderId: sdkMessage.fromUid || '',
-    senderName: sdkMessage.fromUid || '', // 需要通过user服务获取真实名称
-    senderAvatar: '', // 需要通过user服务获取头像
+    senderName: sdkMessage.fromUid || '', 
+    senderAvatar: '', 
     content,
     time: sdkMessage.timestamp ? new Date(sdkMessage.timestamp).toISOString() : new Date().toISOString(),
     status: convertMessageStatus(sdkMessage.status),
   };
 }
 
-/**
- * 解析SDK消息内容为前端格式
- */
+
 function parseMessageContent(sdkMessage: SDKMessage): any {
   const { type, content } = sdkMessage;
 
@@ -285,14 +252,12 @@ function parseMessageContent(sdkMessage: SDKMessage): any {
     default:
       return {
         type: 'text',
-        text: '[未知消息类型]',
+        text: translate("[Unknown message type]"),
       };
   }
 }
 
-/**
- * 将前端消息内容转换为SDK格式
- */
+
 export function convertFrontendContentToSDK(content: any): any {
   switch (content.type) {
     case 'text':
@@ -321,23 +286,27 @@ export function convertFrontendContentToSDK(content: any): any {
       } as any);
 
     case 'location':
-      // TODO: SDK暂不支持location类型
       console.warn('Location message type not supported by SDK');
-      return ResourceBuilder.text(`[位置] ${content.location?.name || ''}`);
+      return ResourceBuilder.text(
+        translate("[Location] {{name}}", {
+          name: content.location?.name || "",
+        }),
+      );
 
     case 'card':
-      // TODO: SDK暂不支持card类型
       console.warn('Card message type not supported by SDK');
-      return ResourceBuilder.text(`[卡片] ${content.card?.title || ''}`);
+      return ResourceBuilder.text(
+        translate("[Card] {{title}}", {
+          title: content.card?.title || "",
+        }),
+      );
 
     default:
       throw new Error(`Unsupported message type: ${content.type}`);
   }
 }
 
-/**
- * 转换消息状态
- */
+
 function convertMessageStatus(status?: SDKMessageStatus): MessageStatus {
   switch (status) {
     case SDKMessageStatus.SENDING:
@@ -355,11 +324,8 @@ function convertMessageStatus(status?: SDKMessageStatus): MessageStatus {
   }
 }
 
-// ==================== 会话适配器 ====================
 
-/**
- * 将SDK会话转换为前端格式
- */
+
 export function convertSDKConversationToFrontend(sdkConversation: SDKConversation): Conversation {
   const lastMessage = sdkConversation.lastMessage
     ? convertSDKMessageToFrontend(sdkConversation.lastMessage)
@@ -379,7 +345,7 @@ export function convertSDKConversationToFrontend(sdkConversation: SDKConversatio
     lastMessage: lastMessage?.content?.text || '',
     lastMessageTime: formatTime(sdkConversation.updatedAt),
     unreadCount: sdkConversation.unreadCount || 0,
-    isOnline: false, // 需要通过presence服务获取
+    isOnline: false, 
     isTyping: false,
     type: conversationType,
   };
@@ -387,43 +353,39 @@ export function convertSDKConversationToFrontend(sdkConversation: SDKConversatio
 
 
 
-/**
- * 格式化时间显示
- */
+
 function formatTime(timestamp: number): string {
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now.getTime() - date.getTime();
 
-  // 小于1分钟
   if (diff < 60000) {
-    return '刚刚';
+    return translate("Just now");
   }
 
-  // 小于1小时
   if (diff < 3600000) {
-    return `${Math.floor(diff / 60000)}分钟前`;
+    return translate("{{count}} minutes ago", {
+      count: Math.floor(diff / 60000),
+    });
   }
 
-  // 小于24小时
   if (diff < 86400000) {
-    return `${Math.floor(diff / 3600000)}小时前`;
+    return translate("{{count}} hours ago", {
+      count: Math.floor(diff / 3600000),
+    });
   }
 
-  // 小于7天
   if (diff < 604800000) {
-    return `${Math.floor(diff / 86400000)}天前`;
+    return translate("{{count}} days ago", {
+      count: Math.floor(diff / 86400000),
+    });
   }
 
-  // 显示日期
-  return date.toLocaleDateString('zh-CN');
+  return formatAppDate(date, { dateStyle: "short" });
 }
 
-// ==================== 群组适配器 ====================
 
-/**
- * 将SDK群组转换为前端格式
- */
+
 export function convertSDKGroupToFrontend(sdkGroup: SDKGroup): Group {
   return {
     id: sdkGroup.id,
@@ -432,9 +394,9 @@ export function convertSDKGroupToFrontend(sdkGroup: SDKGroup): Group {
     memberCount: sdkGroup.memberCount || 0,
     maxMembers: sdkGroup.maxMembers || 500,
     description: sdkGroup.notice || '',
-    creatorId: '', // 需要通过API获取
+    creatorId: '', 
     ownerId: sdkGroup.ownerUid || '',
-    members: [], // 需要通过API获取
+    members: [], 
     createdAt: typeof sdkGroup.createdAt === 'number' ? new Date(sdkGroup.createdAt).toISOString() : new Date().toISOString(),
     settings: {
       allowInvite: true,
@@ -442,27 +404,23 @@ export function convertSDKGroupToFrontend(sdkGroup: SDKGroup): Group {
       needVerify: true,
       showMemberCount: true,
     },
-    notices: [], // 需要单独获取
+    notices: [], 
   };
 }
 
-/**
- * 将SDK群成员转换为前端格式
- */
+
 export function convertSDKGroupMemberToFrontend(sdkMember: SDKGroupMember): GroupMember {
   return {
     id: sdkMember.uid,
     name: sdkMember.groupNickname || sdkMember.uid,
     avatar: sdkMember.user?.avatar || '',
     role: convertMemberRole(sdkMember.role),
-    isOnline: false, // 需要通过presence服务获取
+    isOnline: false, 
     joinTime: typeof sdkMember.joinedAt === 'number' ? new Date(sdkMember.joinedAt).toISOString() : new Date().toISOString(),
   };
 }
 
-/**
- * 转换成员角色
- */
+
 function convertMemberRole(role?: number): 'owner' | 'admin' | 'member' {
   switch (role) {
     case 2:
@@ -475,11 +433,8 @@ function convertMemberRole(role?: number): 'owner' | 'admin' | 'member' {
   }
 }
 
-// ==================== 事件监听 ====================
 
-/**
- * 注册SDK事件监听
- */
+
 export function registerSDKEvents(callbacks: {
   onMessageReceived?: (message: Message) => void;
   onMessageSent?: (message: Message) => void;
@@ -490,10 +445,9 @@ export function registerSDKEvents(callbacks: {
   onDisconnected?: () => void;
   onError?: (error: any) => void;
 }): () => void {
-  // 检查SDK是否已初始化
   if (!sdkClient) {
     console.warn('SDK not initialized, skipping event registration');
-    return () => {}; // 返回空函数作为unsubscribe
+    return () => {}; 
   }
   
   const client = sdkClient;
@@ -531,7 +485,6 @@ export function registerSDKEvents(callbacks: {
     handlers.push({ event: OpenChatEvent.ERROR, handler: callbacks.onError });
   }
 
-  // 返回取消注册的函数
   return () => {
     handlers.forEach(({ event, handler }) => {
       client.off(event, handler);
@@ -539,11 +492,8 @@ export function registerSDKEvents(callbacks: {
   };
 }
 
-// ==================== 便捷方法 ====================
 
-/**
- * 发送文本消息
- */
+
 export async function sendTextMessage(
   conversationId: string,
   text: string,
@@ -560,9 +510,7 @@ export async function sendTextMessage(
   return convertSDKMessageToFrontend(sdkMessage);
 }
 
-/**
- * 发送图片消息
- */
+
 export async function sendImageMessage(
   conversationId: string,
   imageUrl: string,
@@ -586,9 +534,7 @@ export async function sendImageMessage(
   return convertSDKMessageToFrontend(sdkMessage);
 }
 
-/**
- * 获取消息列表
- */
+
 export async function getMessageList(
   conversationId: string,
   options?: { beforeMessageId?: string; limit?: number }
@@ -604,9 +550,7 @@ export async function getMessageList(
   return sdkMessages.map(convertSDKMessageToFrontend);
 }
 
-/**
- * 获取会话列表
- */
+
 export async function getConversationList(): Promise<Conversation[]> {
   if (!sdkClient) {
     console.warn('SDK not initialized, returning empty conversation list');
@@ -617,45 +561,35 @@ export async function getConversationList(): Promise<Conversation[]> {
   return sdkConversations.map(convertSDKConversationToFrontend);
 }
 
-/**
- * 撤回消息
- */
+
 export async function recallMessage(messageId: string): Promise<boolean> {
   const client = getSDKClient(false);
   if (!client) throw new Error('SDK not initialized');
   return client.im.messages.recallMessage(messageId);
 }
 
-/**
- * 删除消息
- */
+
 export async function deleteMessage(messageId: string): Promise<boolean> {
   const client = getSDKClient(false);
   if (!client) throw new Error('SDK not initialized');
   return client.im.messages.deleteMessage(messageId);
 }
 
-/**
- * 标记消息已读
- */
+
 export async function markMessageAsRead(messageId: string): Promise<void> {
   const client = getSDKClient(false);
   if (!client) throw new Error('SDK not initialized');
   return client.im.messages.markMessageAsRead(messageId);
 }
 
-/**
- * 标记会话已读
- */
+
 export async function markConversationAsRead(conversationId: string): Promise<void> {
   const client = getSDKClient(false);
   if (!client) throw new Error('SDK not initialized');
   return client.im.messages.markConversationAsRead(conversationId);
 }
 
-/**
- * 搜索消息
- */
+
 export async function searchMessageList(
   conversationId: string,
   keyword: string
@@ -667,9 +601,7 @@ export async function searchMessageList(
   return sdkMessages.map(convertSDKMessageToFrontend);
 }
 
-/**
- * 获取群组列表
- */
+
 export async function getGroupList(): Promise<Group[]> {
   const client = getSDKClient(false);
   if (!client) throw new Error('SDK not initialized');
@@ -678,9 +610,7 @@ export async function getGroupList(): Promise<Group[]> {
   return sdkGroups.map(convertSDKGroupToFrontend);
 }
 
-/**
- * 获取群组详情
- */
+
 export async function getGroupDetail(groupId: string): Promise<Group | null> {
   const client = getSDKClient(false);
   if (!client) throw new Error('SDK not initialized');
@@ -693,9 +623,7 @@ export async function getGroupDetail(groupId: string): Promise<Group | null> {
   }
 }
 
-/**
- * 创建群组
- */
+
 export async function createGroup(
   name: string,
   memberIds: string[],
@@ -712,9 +640,7 @@ export async function createGroup(
   return convertSDKGroupToFrontend(sdkGroup);
 }
 
-/**
- * 添加群成员
- */
+
 export async function addGroupMembers(groupId: string, memberIds: string[]): Promise<void> {
   const client = getSDKClient(false);
   if (!client) throw new Error('SDK not initialized');
@@ -724,32 +650,25 @@ export async function addGroupMembers(groupId: string, memberIds: string[]): Pro
   }
 }
 
-/**
- * 移除群成员
- */
+
 export async function removeGroupMember(groupId: string, memberId: string): Promise<void> {
   const client = getSDKClient(false);
   if (!client) throw new Error('SDK not initialized');
   await client.im.groups.removeGroupMember(groupId, memberId);
 }
 
-/**
- * 退出群组
- */
+
 export async function quitGroup(groupId: string): Promise<void> {
   const client = getSDKClient(false);
   if (!client) throw new Error('SDK not initialized');
   await client.im.groups.quitGroup(groupId);
 }
 
-/**
- * 解散群组
- */
+
 export async function dissolveGroup(groupId: string): Promise<void> {
   const client = getSDKClient(false);
   if (!client) throw new Error('SDK not initialized');
   await client.im.groups.dissolveGroup(groupId);
 }
 
-// 导出SDK类型
 export type { OpenChatClient };

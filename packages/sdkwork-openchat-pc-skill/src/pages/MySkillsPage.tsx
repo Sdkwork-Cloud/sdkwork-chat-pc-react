@@ -1,12 +1,14 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { SkillMarketItem } from "../entities/skill.entity";
 import { SkillResultService, SkillService } from "../services";
 import { SkillCard } from "../components/SkillCard";
 import { buildSkillWorkspaceLibrary } from "./skill.workspace.model";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 
 export function MySkillsPage() {
   const navigate = useNavigate();
+  const { tr, formatNumber } = useAppTranslation();
 
   const [skills, setSkills] = useState<SkillMarketItem[]>([]);
   const [keyword, setKeyword] = useState("");
@@ -39,7 +41,7 @@ export function MySkillsPage() {
                 allSkillsResult.message ||
                 mySkillsResult.error ||
                 mySkillsResult.message ||
-                "Failed to load enabled skills.",
+                tr("Failed to load enabled skills."),
             );
             setSkills([]);
             return;
@@ -56,16 +58,16 @@ export function MySkillsPage() {
           setSkills(enabledSkills);
           setFavoriteSkillIds(SkillService.getFavoriteSkillIds());
           setRecentSkillIds(SkillService.getRecentSkillIds());
-        } catch (error) {
-          if (!cancelled) {
-            setErrorText(error instanceof Error ? error.message : "Failed to load enabled skills.");
-            setSkills([]);
-          }
-        } finally {
-          if (!cancelled) {
-            setIsLoading(false);
-          }
+      } catch (error) {
+        if (!cancelled) {
+          setErrorText(error instanceof Error ? error.message : tr("Failed to load enabled skills."));
+          setSkills([]);
         }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
       };
 
       void loadMySkills();
@@ -75,7 +77,7 @@ export function MySkillsPage() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [keyword]);
+  }, [keyword, tr]);
 
   const library = useMemo(
     () => buildSkillWorkspaceLibrary(skills, { favoriteSkillIds, recentSkillIds }),
@@ -100,14 +102,14 @@ export function MySkillsPage() {
     try {
       const result = await SkillResultService.disableSkill(skillId);
       if (!result.success) {
-        setErrorText(result.error || result.message || "Failed to disable skill.");
+        setErrorText(result.error || result.message || tr("Failed to disable skill."));
         return;
       }
       setSkills((previous) => previous.filter((item) => item.id !== skillId));
       setRecentSkillIds((previous) => previous.filter((id) => id !== skillId));
-      setStatusText("Skill disabled.");
+        setStatusText(tr("Skill disabled."));
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Failed to disable skill.");
+      setErrorText(error instanceof Error ? error.message : tr("Failed to disable skill."));
     } finally {
       setProcessingSkillId(null);
     }
@@ -122,7 +124,9 @@ export function MySkillsPage() {
   const handleToggleFavorite = (skillId: string) => {
     const enabled = SkillService.toggleFavoriteSkill(skillId);
     setFavoriteSkillIds(SkillService.getFavoriteSkillIds());
-    setStatusText(enabled ? "Skill added to favorites." : "Skill removed from favorites.");
+    setStatusText(
+      enabled ? tr("Skill added to favorites.") : tr("Skill removed from favorites."),
+    );
     setErrorText("");
   };
 
@@ -131,14 +135,16 @@ export function MySkillsPage() {
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-text-primary">My Skills</h1>
-            <p className="mt-1 text-sm text-text-secondary">Manage all skills currently enabled for your account.</p>
+            <h1 className="text-xl font-semibold text-text-primary">{tr("My Skills")}</h1>
+            <p className="mt-1 text-sm text-text-secondary">
+              {tr("Manage all skills currently enabled for your account.")}
+            </p>
           </div>
           <button
             onClick={() => navigate("/skills")}
             className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-bg-hover"
           >
-            Back to Marketplace
+            {tr("Back to Marketplace")}
           </button>
         </div>
       </header>
@@ -146,16 +152,18 @@ export function MySkillsPage() {
       <div className="flex-1 overflow-auto p-6">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Enabled count</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{library.enabled.length}</p>
+            <p className="text-xs text-text-muted">{tr("Enabled count")}</p>
+            <p className="mt-1 text-xl font-semibold text-text-primary">{formatNumber(library.enabled.length)}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Total usage</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{totalUsage.toLocaleString()}</p>
+            <p className="text-xs text-text-muted">{tr("Total usage")}</p>
+            <p className="mt-1 text-xl font-semibold text-text-primary">{formatNumber(totalUsage)}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Average rating</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{avgRating.toFixed(1)}</p>
+            <p className="text-xs text-text-muted">{tr("Average rating")}</p>
+            <p className="mt-1 text-xl font-semibold text-text-primary">
+              {formatNumber(avgRating, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+            </p>
           </div>
         </div>
 
@@ -163,7 +171,7 @@ export function MySkillsPage() {
           <input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
-            placeholder="Search enabled skills"
+            placeholder={tr("Search enabled skills")}
             className="h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none md:w-80"
           />
         </div>
@@ -183,7 +191,7 @@ export function MySkillsPage() {
         <div className="mt-5">
           {library.recent.length > 0 ? (
             <div className="mb-4 rounded-xl border border-border bg-bg-secondary p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Recently Used</h2>
+              <h2 className="text-sm font-semibold text-text-primary">{tr("Recently Used")}</h2>
               <div className="mt-3 flex flex-wrap gap-2">
                 {library.recent.map((item) => (
                   <button
@@ -200,7 +208,7 @@ export function MySkillsPage() {
 
           {library.favorites.length > 0 ? (
             <div className="mb-4 rounded-xl border border-border bg-bg-secondary p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Favorites</h2>
+              <h2 className="text-sm font-semibold text-text-primary">{tr("Favorites")}</h2>
               <div className="mt-3 flex flex-wrap gap-2">
                 {library.favorites.map((item) => (
                   <button
@@ -208,7 +216,7 @@ export function MySkillsPage() {
                     onClick={() => handleOpenSkill(item.id)}
                     className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs text-primary transition-colors hover:brightness-110"
                   >
-                    鈽?{item.name}
+                    {tr("Favorite - {{name}}", { name: item.name })}
                   </button>
                 ))}
               </div>
@@ -217,11 +225,11 @@ export function MySkillsPage() {
 
           {isLoading ? (
             <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-              Loading enabled skills...
+              {tr("Loading enabled skills...")}
             </div>
           ) : library.enabled.length === 0 ? (
             <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-              No enabled skill found. Go to marketplace and enable at least one skill.
+              {tr("No enabled skill found. Go to marketplace and enable at least one skill.")}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -238,7 +246,7 @@ export function MySkillsPage() {
                       onClick={() => handleOpenSkill(skill.id)}
                       className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-bg-hover"
                     >
-                      Open detail
+                      {tr("Open detail")}
                     </button>
                     <button
                       onClick={() => handleToggleFavorite(skill.id)}
@@ -248,7 +256,7 @@ export function MySkillsPage() {
                           : "border border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
                       }`}
                     >
-                      {favoriteSkillIds.includes(skill.id) ? "Favorited" : "Add favorite"}
+                      {favoriteSkillIds.includes(skill.id) ? tr("Favorited") : tr("Add favorite")}
                     </button>
                   </div>
                 </div>
@@ -262,4 +270,3 @@ export function MySkillsPage() {
 }
 
 export default MySkillsPage;
-

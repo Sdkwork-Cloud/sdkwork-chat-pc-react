@@ -1,79 +1,57 @@
-﻿/**
- * 閫氱敤 Modal 缁勪欢
- *
- * 鑱岃矗锛? * 1. 鎻愪緵缁熶竴鐨勫脊绐楁牱寮忓拰琛屼负
- * 2. 鏀寔澶氱灏哄鍜屽彉浣? * 3. 楂樺彲鎵╁睍鍜屽鐢? *
- * 鐗规€э細
- * - 缁熶竴鐨勯伄缃╁眰
- * - 鍙厤缃殑澶撮儴銆佸唴瀹广€佸簳閮? * - 鏀寔鑷畾涔夊搴︺€侀珮搴? * - 鏀寔鍏抽棴鎸夐挳銆佺偣鍑婚伄缃╁叧闂? * - 鏀寔鍔ㄧ敾鏁堟灉
- * - 鏀寔閿洏浜嬩欢锛圗SC鍏抽棴锛? */
+import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 
-import { useEffect, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-
-export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full' | 'custom';
-export type ModalVariant = 'default' | 'centered' | 'right' | 'left';
+export type ModalSize = "sm" | "md" | "lg" | "xl" | "2xl" | "full" | "custom";
+export type ModalVariant = "default" | "centered" | "right" | "left";
 
 interface ModalProps {
-  // 鏄剧ず鎺у埗
   isOpen: boolean;
   onClose: () => void;
-
-  // 灏哄
   size?: ModalSize;
   customWidth?: string;
   customHeight?: string;
   variant?: ModalVariant;
-
-  // 鍐呭
-  title?: React.ReactNode;
-  children: React.ReactNode;
-  footer?: React.ReactNode;
-
-  // 閰嶇疆
+  title?: ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
   showCloseButton?: boolean;
   closeOnOverlayClick?: boolean;
   closeOnEsc?: boolean;
   showOverlay?: boolean;
   overlayClassName?: string;
-
-  // 鏍峰紡
   className?: string;
   headerClassName?: string;
   bodyClassName?: string;
   footerClassName?: string;
-
-  // 浜嬩欢
   onOpen?: () => void;
   onAfterClose?: () => void;
 }
 
-// 灏哄鏄犲皠
 const sizeMap: Record<ModalSize, string> = {
-  sm: 'w-[400px]',
-  md: 'w-[500px]',
-  lg: 'w-[600px]',
-  xl: 'w-[750px]',
-  '2xl': 'w-[850px]',
-  full: 'w-[95vw] h-[90vh]',
-  custom: '',
+  sm: "w-[400px]",
+  md: "w-[500px]",
+  lg: "w-[600px]",
+  xl: "w-[750px]",
+  "2xl": "w-[850px]",
+  full: "h-[90vh] w-[95vw]",
+  custom: "",
 };
 
-// 鍙樹綋鏄犲皠
 const variantMap: Record<ModalVariant, string> = {
-  default: '',
-  centered: 'items-center justify-center',
-  right: 'items-center justify-end pr-4',
-  left: 'items-center justify-start pl-4',
+  default: "",
+  centered: "items-center justify-center",
+  right: "items-center justify-end pr-4",
+  left: "items-center justify-start pl-4",
 };
 
 export function Modal({
   isOpen,
   onClose,
-  size = 'md',
+  size = "md",
   customWidth,
   customHeight,
-  variant = 'centered',
+  variant = "centered",
   title,
   children,
   footer,
@@ -81,170 +59,107 @@ export function Modal({
   closeOnOverlayClick = true,
   closeOnEsc = true,
   showOverlay = true,
-  overlayClassName = '',
-  className = '',
-  headerClassName = '',
-  bodyClassName = '',
-  footerClassName = '',
+  overlayClassName = "",
+  className = "",
+  headerClassName = "",
+  bodyClassName = "",
+  footerClassName = "",
   onOpen,
   onAfterClose,
 }: ModalProps) {
+  const { tr } = useAppTranslation();
   const modalRef = useRef<HTMLDivElement>(null);
-  const previousActiveElement = useRef<Element | null>(null);
 
-  // 鎵撳紑鏃惰褰曠劍鐐瑰厓绱?  useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
-      previousActiveElement.current = document.activeElement;
       onOpen?.();
-      // 鑱氱劍鍒板脊绐?      setTimeout(() => {
-        modalRef.current?.focus();
-      }, 0);
-    } else {
-      onAfterClose?.();
+      window.setTimeout(() => modalRef.current?.focus(), 0);
+      return;
     }
-  }, [isOpen, onOpen, onAfterClose]);
+    onAfterClose?.();
+  }, [isOpen, onAfterClose, onOpen]);
 
-  // ESC 閿叧闂?  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && closeOnEsc && isOpen) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && closeOnEsc && isOpen) {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
+      document.addEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
     };
-  }, [isOpen, closeOnEsc, onClose]);
+  }, [closeOnEsc, isOpen, onClose]);
 
-  // 鐐瑰嚮閬僵鍏抽棴
   const handleOverlayClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (closeOnOverlayClick && e.target === e.currentTarget) {
+    (event: React.MouseEvent) => {
+      if (closeOnOverlayClick && event.target === event.currentTarget) {
         onClose();
       }
     },
-    [closeOnOverlayClick, onClose]
+    [closeOnOverlayClick, onClose],
   );
 
   if (!isOpen) return null;
 
-  const sizeClass = size === 'custom' && customWidth ? '' : sizeMap[size];
+  const sizeClass = size === "custom" && customWidth ? "" : sizeMap[size];
   const widthStyle = customWidth ? { width: customWidth } : undefined;
   const heightStyle = customHeight ? { height: customHeight } : undefined;
 
-  const modalContent = (
+  return createPortal(
     <div
-      className={`fixed inset-0 z-[9999] flex ${variantMap[variant]} ${showOverlay ? 'bg-black/60 backdrop-blur-md' : ''} ${overlayClassName} animate-in fade-in duration-300`}
+      className={`fixed inset-0 z-[9999] flex ${variantMap[variant]} ${showOverlay ? "bg-black/60 backdrop-blur-md" : ""} ${overlayClassName} animate-in fade-in duration-300`}
       onClick={handleOverlayClick}
     >
       <div
         ref={modalRef}
         tabIndex={-1}
-        className={`
-          bg-bg-secondary
-          rounded-2xl
-          shadow-2xl 
-          overflow-hidden 
-          flex flex-col
-          border border-border
-          animate-in fade-in zoom-in-95 duration-300
-          ${sizeClass}
-          ${className}
-        `}
+        className={`animate-in zoom-in-95 flex flex-col overflow-hidden rounded-2xl border border-border bg-bg-secondary shadow-2xl duration-300 ${sizeClass} ${className}`}
         style={{ ...widthStyle, ...heightStyle }}
       >
-        {/* 澶撮儴 */}
-        {(title || showCloseButton) && (
+        {title || showCloseButton ? (
           <div
-            className={`
-              flex items-center justify-between 
-              px-6 py-5 
-              border-b border-border
-              flex-shrink-0 
-              bg-bg-secondary/50 backdrop-blur-sm
-              ${headerClassName}
-            `}
+            className={`flex flex-shrink-0 items-center justify-between border-b border-border bg-bg-secondary/50 px-6 py-5 backdrop-blur-sm ${headerClassName}`}
           >
-            {title && (
-              <h2 className="text-lg font-bold text-text-primary tracking-tight">
-                {title}
-              </h2>
-            )}
-            {showCloseButton && (
+            {title ? <h2 className="text-lg font-bold tracking-tight text-text-primary">{title}</h2> : null}
+            {showCloseButton ? (
               <button
                 onClick={onClose}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-bg-hover text-text-tertiary hover:text-text-primary transition-all duration-200 ml-auto"
-                aria-label="鍏抽棴"
+                className="ml-auto flex h-8 w-8 items-center justify-center rounded-full text-text-tertiary transition-all duration-200 hover:bg-bg-hover hover:text-text-primary"
+                aria-label={tr("Close")}
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
 
-        {/* 鍐呭鍖?*/}
-        <div className={`flex-1 overflow-hidden ${bodyClassName}`}>
-          {children}
-        </div>
+        <div className={`flex-1 overflow-hidden ${bodyClassName}`}>{children}</div>
 
-        {/* 搴曢儴 */}
-        {footer && (
+        {footer ? (
           <div
-            className={`
-              px-6 py-4 
-              border-t border-border
-              flex-shrink-0 
-              bg-bg-secondary/80 backdrop-blur-sm
-              ${footerClassName}
-            `}
+            className={`flex-shrink-0 border-t border-border bg-bg-secondary/80 px-6 py-4 backdrop-blur-sm ${footerClassName}`}
           >
             {footer}
           </div>
-        )}
+        ) : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
-
-  return createPortal(modalContent, document.body);
 }
 
-// 棰勮鐨?Modal 鍙樹綋缁勪欢
-export function ModalHeader({
-  children,
-  className = '',
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+export function ModalHeader({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div
-      className={`
-        flex items-center justify-between 
-        px-6 py-5 
-        border-b border-border
-        flex-shrink-0 
-        bg-bg-secondary
-        ${className}
-      `}
-    >
+    <div className={`flex flex-shrink-0 items-center justify-between border-b border-border bg-bg-secondary px-6 py-5 ${className}`}>
       {children}
     </div>
   );
@@ -252,21 +167,15 @@ export function ModalHeader({
 
 export function ModalBody({
   children,
-  className = '',
+  className = "",
   scrollable = true,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
   scrollable?: boolean;
 }) {
   return (
-    <div
-      className={`
-        flex-1 
-        ${scrollable ? 'overflow-y-auto scrollbar-thin scrollbar-thumb-border-medium' : 'overflow-hidden'}
-        ${className}
-      `}
-    >
+    <div className={`flex-1 ${scrollable ? "overflow-y-auto scrollbar-thin scrollbar-thumb-border-medium" : "overflow-hidden"} ${className}`}>
       {children}
     </div>
   );
@@ -274,44 +183,30 @@ export function ModalBody({
 
 export function ModalFooter({
   children,
-  className = '',
-  align = 'right',
+  className = "",
+  align = "right",
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
-  align?: 'left' | 'center' | 'right';
+  align?: "left" | "center" | "right";
 }) {
-  const alignClass = {
-    left: 'justify-start',
-    center: 'justify-center',
-    right: 'justify-end',
-  }[align];
+  const alignClass = align === "left" ? "justify-start" : align === "center" ? "justify-center" : "justify-end";
 
   return (
-    <div
-      className={`
-        px-6 py-4 
-        border-t border-border
-        flex-shrink-0 
-        bg-bg-secondary
-        flex items-center ${alignClass}
-        ${className}
-      `}
-    >
+    <div className={`flex flex-shrink-0 items-center border-t border-border bg-bg-secondary px-6 py-4 ${alignClass} ${className}`}>
       {children}
     </div>
   );
 }
 
-// 甯哥敤鎸夐挳缁勫悎
 export function ModalButtonGroup({
   onCancel,
   onConfirm,
-  cancelText = '鍙栨秷',
-  confirmText = '纭畾',
+  cancelText,
+  confirmText,
   isLoading = false,
   disabled = false,
-  confirmVariant = 'primary',
+  confirmVariant = "primary",
   showCancel = true,
   showConfirm = true,
   children,
@@ -322,69 +217,55 @@ export function ModalButtonGroup({
   confirmText?: string;
   isLoading?: boolean;
   disabled?: boolean;
-  confirmVariant?: 'primary' | 'success' | 'danger';
+  confirmVariant?: "primary" | "success" | "danger";
   showCancel?: boolean;
   showConfirm?: boolean;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
-  const variantClass = {
-    primary: 'bg-primary hover:bg-primary-hover shadow-glow-primary',
-    success: 'bg-success hover:bg-green-600 shadow-glow-success',
-    danger: 'bg-error hover:bg-red-600 shadow-glow-error',
-  }[confirmVariant];
+  const { tr } = useAppTranslation();
+  const resolvedCancelText = cancelText ?? tr("Cancel");
+  const resolvedConfirmText = confirmText ?? tr("Confirm");
+
+  const variantClass =
+    confirmVariant === "success"
+      ? "bg-success hover:bg-green-600 shadow-glow-success"
+      : confirmVariant === "danger"
+        ? "bg-error hover:bg-red-600 shadow-glow-error"
+        : "bg-primary hover:bg-primary-hover shadow-glow-primary";
 
   return (
     <div className="flex items-center space-x-3">
       {children}
-      {showCancel && onCancel && (
+      {showCancel && onCancel ? (
         <button
           onClick={onCancel}
           disabled={isLoading}
-          className="px-5 py-2 text-[14px] text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-xl transition-all duration-200 disabled:opacity-50 border border-border"
+          className="rounded-xl border border-border px-5 py-2 text-[14px] text-text-secondary transition-all duration-200 hover:bg-bg-hover hover:text-text-primary disabled:opacity-50"
         >
-          {cancelText}
+          {resolvedCancelText}
         </button>
-      )}
-      {showConfirm && onConfirm && (
+      ) : null}
+      {showConfirm && onConfirm ? (
         <button
           onClick={onConfirm}
           disabled={isLoading || disabled}
-          className={`
-            px-6 py-2 text-[14px] text-white 
-            rounded-xl transition-all duration-300 
-            flex items-center font-medium
-            disabled:opacity-50 disabled:cursor-not-allowed
-            active:scale-95 transform
-            ${variantClass}
-          `}
+          className={`active:scale-95 flex items-center rounded-xl px-6 py-2 text-[14px] font-medium text-white transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 ${variantClass}`}
         >
-          {isLoading && (
-            <svg
-              className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
+          {isLoading ? (
+            <svg className="-ml-1 mr-2 h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path
                 className="opacity-75"
                 fill="currentColor"
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               />
             </svg>
-          )}
-          {confirmText}
+          ) : null}
+          {resolvedConfirmText}
         </button>
-      )}
+      ) : null}
     </div>
   );
 }
 
 export default Modal;
-

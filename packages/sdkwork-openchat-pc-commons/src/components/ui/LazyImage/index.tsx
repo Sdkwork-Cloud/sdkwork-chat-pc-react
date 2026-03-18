@@ -1,7 +1,4 @@
-﻿/**
- * 鎳掑姞杞藉浘鐗囩粍浠? *
- * 鑱岃矗锛氬疄鐜板浘鐗囨噿鍔犺浇 + Blurhash 鍗犱綅 + 骞虫粦杩囨浮
- */
+
 
 import { memo, useState, useEffect, useRef, useCallback } from 'react';
 import { decode } from 'blurhash';
@@ -20,9 +17,7 @@ interface LazyImageProps {
   onError?: () => void;
 }
 
-/**
- * Blurhash Canvas 缁勪欢
- */
+
 const BlurhashCanvas = memo(
   ({ hash, width, height }: { hash: string; width: number; height: number }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -35,14 +30,11 @@ const BlurhashCanvas = memo(
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // 瑙ｇ爜 Blurhash
         const pixels = decode(hash, width, height);
 
-        // 鍒涘缓 ImageData
         const imageData = ctx.createImageData(width, height);
         imageData.data.set(pixels);
 
-        // 缁樺埗鍒?canvas
         ctx.putImageData(imageData, 0, 0);
       } catch (error) {
         console.error('Blurhash decode error:', error);
@@ -66,8 +58,7 @@ const BlurhashCanvas = memo(
 
 BlurhashCanvas.displayName = 'BlurhashCanvas';
 
-/**
- * 鎳掑姞杞藉浘鐗囩粍浠? */
+
 export const LazyImage = memo(
   ({
     src,
@@ -88,7 +79,6 @@ export const LazyImage = memo(
     const containerRef = useRef<HTMLDivElement>(null);
     const imgRef = useRef<HTMLImageElement>(null);
 
-    // 浣跨敤 Intersection Observer 妫€娴嬫槸鍚﹀湪瑙嗗彛鍐?    useEffect(() => {
       const container = containerRef.current;
       if (!container) return;
 
@@ -110,19 +100,16 @@ export const LazyImage = memo(
       return () => observer.disconnect();
     }, [rootMargin, threshold]);
 
-    // 澶勭悊鍥剧墖鍔犺浇瀹屾垚
     const handleLoad = useCallback(() => {
       setIsLoaded(true);
       onLoad?.();
     }, [onLoad]);
 
-    // 澶勭悊鍥剧墖鍔犺浇閿欒
     const handleError = useCallback(() => {
       setHasError(true);
       onError?.();
     }, [onError]);
 
-    // 棰勫姞杞藉浘鐗?    useEffect(() => {
       if (!isInView || !src) return;
 
       const img = new Image();
@@ -142,12 +129,12 @@ export const LazyImage = memo(
         className={`relative overflow-hidden ${className}`}
         style={{ backgroundColor: placeholderColor }}
       >
-        {/* Blurhash 鍗犱綅 */}
+        {}
         {!isLoaded && blurhash && (
           <BlurhashCanvas hash={blurhash} width={width} height={height} />
         )}
 
-        {/* 绾壊鍗犱綅 */}
+        {}
         {!isLoaded && !blurhash && (
           <div
             className="absolute inset-0 animate-pulse"
@@ -155,7 +142,7 @@ export const LazyImage = memo(
           />
         )}
 
-        {/* 瀹為檯鍥剧墖 */}
+        {}
         {isInView && !hasError && (
           <img
             ref={imgRef}
@@ -169,7 +156,7 @@ export const LazyImage = memo(
           />
         )}
 
-        {/* 閿欒鍗犱綅 */}
+        {}
         {hasError && (
           <div className="absolute inset-0 flex items-center justify-center bg-[#1E293B]">
             <svg

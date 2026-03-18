@@ -1,8 +1,5 @@
-/**
- * 全局事件系统
- */
 
-// 事件类型定义
+
 export enum AppEvents {
   USER_LOGIN = 'user:login',
   USER_LOGOUT = 'user:logout',
@@ -14,10 +11,8 @@ export enum AppEvents {
   ERROR_OCCURRED = 'error:occurred',
 }
 
-// 事件常量
 export const EVENTS = AppEvents;
 
-// 事件发射器
 class EventEmitter {
   private listeners: Map<string, Set<(data?: unknown) => void>> = new Map();
 
@@ -57,7 +52,6 @@ class EventEmitter {
 
 export const eventEmitter = new EventEmitter();
 
-// 兼容旧API
 export const on = (event: string, callback: (data?: unknown) => void) =>
   eventEmitter.on(event, callback);
 export const off = (event: string, callback: (data?: unknown) => void) =>

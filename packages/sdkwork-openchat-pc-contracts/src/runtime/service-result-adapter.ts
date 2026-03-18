@@ -42,6 +42,17 @@ export interface ServiceResultProxyOptions {
 type AnyFn = (...args: unknown[]) => unknown;
 type PromiseLikeValue<T = unknown> = PromiseLike<T> & { then: PromiseLike<T>["then"] };
 type UnwrapLegacyResult<T> = T extends LegacyResultLike<infer D> ? D : T;
+const LEGACY_NETWORK = "\u7f51\u7edc";
+const LEGACY_TIMEOUT = "\u8d85\u65f6";
+const LEGACY_UNAUTHORIZED = "\u672a\u767b\u5f55";
+const LEGACY_EXPIRED = "\u8fc7\u671f";
+const LEGACY_NOT_FOUND = "\u4e0d\u5b58\u5728";
+const LEGACY_CONFLICT = "\u5df2\u5b58\u5728";
+const LEGACY_REQUIRED = "\u4e0d\u80fd\u4e3a\u7a7a";
+const LEGACY_INVALID_FORMAT = "\u683c\u5f0f\u4e0d\u6b63\u786e";
+const LEGACY_MISMATCH = "\u4e0d\u4e00\u81f4";
+const LEGACY_BAD_REQUEST = "\u8bf7\u6c42\u53c2\u6570\u9519\u8bef";
+const LEGACY_RATE_LIMIT = "\u9891\u7387";
 
 export type ResultifiedService<T extends object> = {
   [K in keyof T]: T[K] extends (...args: infer A) => Promise<infer R>
@@ -115,19 +126,22 @@ function resolveErrorCode(
   if (normalized.includes("network") || normalized.includes("failed to fetch")) {
     return "NETWORK_ERROR";
   }
-  if (normalized.includes("网络")) {
+  if (normalized.includes(LEGACY_NETWORK)) {
     return "NETWORK_ERROR";
   }
   if (normalized.includes("timeout")) {
     return "TIMEOUT";
   }
-  if (normalized.includes("超时")) {
+  if (normalized.includes(LEGACY_TIMEOUT)) {
     return "TIMEOUT";
   }
   if (normalized.includes("unauthorized") || normalized.includes("token")) {
     return "UNAUTHORIZED";
   }
-  if (normalized.includes("未登录") || normalized.includes("过期")) {
+  if (
+    normalized.includes(LEGACY_UNAUTHORIZED) ||
+    normalized.includes(LEGACY_EXPIRED)
+  ) {
     return "UNAUTHORIZED";
   }
   if (normalized.includes("forbidden")) {
@@ -136,27 +150,27 @@ function resolveErrorCode(
   if (normalized.includes("not found")) {
     return "NOT_FOUND";
   }
-  if (normalized.includes("不存在")) {
+  if (normalized.includes(LEGACY_NOT_FOUND)) {
     return "NOT_FOUND";
   }
   if (normalized.includes("conflict") || normalized.includes("already exists")) {
     return "CONFLICT";
   }
-  if (normalized.includes("已存在")) {
+  if (normalized.includes(LEGACY_CONFLICT)) {
     return "CONFLICT";
   }
   if (normalized.includes("validation") || normalized.includes("invalid")) {
     return "VALIDATION_ERROR";
   }
   if (
-    normalized.includes("不能为空") ||
-    normalized.includes("格式不正确") ||
-    normalized.includes("不一致") ||
-    normalized.includes("请求参数错误")
+    normalized.includes(LEGACY_REQUIRED) ||
+    normalized.includes(LEGACY_INVALID_FORMAT) ||
+    normalized.includes(LEGACY_MISMATCH) ||
+    normalized.includes(LEGACY_BAD_REQUEST)
   ) {
     return "VALIDATION_ERROR";
   }
-  if (normalized.includes("rate") || normalized.includes("频率")) {
+  if (normalized.includes("rate") || normalized.includes(LEGACY_RATE_LIMIT)) {
     return "RATE_LIMITED";
   }
 

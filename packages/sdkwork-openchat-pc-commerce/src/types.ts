@@ -1,7 +1,4 @@
-/**
- * Commerce Module Type Definitions
- * 电商模块类型定义
- */
+
 
 export interface Product {
   id: string;

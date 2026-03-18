@@ -1,5 +1,6 @@
 export * from "@sdkwork/openchat-pc-ui";
 export * from "@sdkwork/openchat-pc-kernel";
+export * from "@sdkwork/openchat-pc-i18n";
 export * from "./shell";
 
 export * as CommonTypes from "@sdkwork/openchat-pc-contracts";

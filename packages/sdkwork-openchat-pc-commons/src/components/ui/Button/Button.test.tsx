@@ -1,8 +1,4 @@
-﻿/**
- * Button 缁勪欢娴嬭瘯
- * 
- * 鑱岃矗锛氶獙璇?Button 缁勪欢鐨勮涓哄拰娓叉煋
- */
+
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';

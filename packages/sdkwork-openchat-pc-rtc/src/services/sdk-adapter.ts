@@ -1,16 +1,4 @@
-﻿/**
- * RTC SDK 鎶借薄灞?
- * 
- * 鑱岃矗锛?
- * 1. 瀹氫箟缁熶竴鐨?RTC SDK 鎺ュ彛鏍囧噯
- * 2. 鏀寔涓嶅悓 RTC SDK 鎻愪緵鍟嗙殑閫傞厤
- * 3. 鎻愪緵榛樿鐨勯€傞厤鍣ㄩ€夋嫨閫昏緫
- * 
- * 鍙傝€冩爣鍑嗭細
- * - 瀛楄妭璺冲姩鐏北浜?RTC SDK
- * - 鑵捐浜?RTC SDK
- * - WebRTC 鏍囧噯 API
- */
+
 
 import type { CallSession, CallType, CallSignal } from '../entities/rtc.entity';
 import { createSDKAdapterRegistry, type SDKAdapterBridge as BaseSDKAdapterBridge } from "@sdkwork/openchat-pc-contracts";
@@ -21,7 +9,6 @@ const { registerSDKAdapter, getSDKAdapter } = createSDKAdapterRegistry<SDKAdapte
 
 export { getSDKAdapter, registerSDKAdapter };
 
-// 濯掍綋娴佺害鏉熺被鍨?
 export interface MediaTrackConstraints {
   deviceId?: string | { exact: string };
   width?: number | { min: number; max: number; ideal: number };
@@ -29,25 +16,20 @@ export interface MediaTrackConstraints {
   frameRate?: number | { min: number; max: number; ideal: number };
 }
 
-// RTC SDK 鎻愪緵鍟嗙被鍨?
 export type RTCProviderType = 'volcengine' | 'tencentcloud' | 'webrtc';
 
-// 璁惧绫诲瀷
 export type DeviceType = 'camera' | 'microphone' | 'speaker';
 
-// 璁惧淇℃伅
 export interface DeviceInfo {
   id: string;
   name: string;
 }
 
-// 濯掍綋娴佺害鏉?
 export interface MediaConstraints {
   video: boolean | MediaTrackConstraints;
   audio: boolean | MediaTrackConstraints;
 }
 
-// RTC 閰嶇疆閫夐」
 export interface RTCConfig {
   provider: RTCProviderType;
   appId: string;
@@ -63,99 +45,61 @@ export interface RTCConfig {
   };
 }
 
-// RTC SDK 鎶借薄鎺ュ彛
 export interface RTCSDK {
-  /**
-   * 鍒濆鍖?SDK
-   */
+  
   init(config: RTCConfig): Promise<void>;
 
-  /**
-   * 鍒涘缓骞跺姞鍏ユ埧闂?
-   */
+  
   joinRoom(roomId: string, userId: string, token: string, callType: CallType): Promise<string>;
 
-  /**
-   * 绂诲紑鎴块棿
-   */
+  
   leaveRoom(roomId: string): Promise<void>;
 
-  /**
-   * 鍙戝竷鏈湴娴?
-   */
+  
   publishStream(stream: MediaStream, options?: any): Promise<void>;
 
-  /**
-   * 鍙栨秷鍙戝竷鏈湴娴?
-   */
+  
   unpublishStream(): Promise<void>;
 
-  /**
-   * 璁㈤槄杩滅▼娴?
-   */
+  
   subscribeStream(remoteUserId: string, options?: any): Promise<void>;
 
-  /**
-   * 鍙栨秷璁㈤槄杩滅▼娴?
-   */
+  
   unsubscribeStream(remoteUserId: string): Promise<void>;
 
-  /**
-   * 鑾峰彇鏈湴濯掍綋娴?
-   */
+  
   getLocalStream(constraints: MediaConstraints): Promise<MediaStream>;
 
-  /**
-   * 鍋滄鏈湴濯掍綋娴?
-   */
+  
   stopLocalStream(): Promise<void>;
 
-  /**
-   * 鍒囨崲璁惧
-   */
+  
   switchDevice(deviceType: DeviceType, deviceId: string): Promise<void>;
 
-  /**
-   * 鑾峰彇璁惧鍒楄〃
-   */
+  
   getDevices(deviceType: DeviceType): Promise<DeviceInfo[]>;
 
-  /**
-   * 鎺у埗鏈湴娴?
-   */
+  
   setLocalStreamEnabled(audio: boolean, video: boolean): Promise<void>;
 
-  /**
-   * 鎺у埗杩滅▼娴?
-   */
+  
   setRemoteStreamEnabled(remoteUserId: string, audio: boolean, video: boolean): Promise<void>;
 
-  /**
-   * 鍙戦€佷俊浠?
-   */
+  
   sendSignal(signal: CallSignal): Promise<void>;
 
-  /**
-   * 娉ㄥ唽浜嬩欢鐩戝惉
-   */
+  
   on(event: string, callback: Function): void;
 
-  /**
-   * 绉婚櫎浜嬩欢鐩戝惉
-   */
+  
   off(event: string, callback: Function): void;
 
-  /**
-   * 閿€姣?SDK 瀹炰緥
-   */
+  
   destroy(): Promise<void>;
 }
 
-// RTC SDK 宸ュ巶绫?
 export class RTCSDKFactory {
-  /**
-   * 鍒涘缓 RTC SDK 瀹炰緥
-   */
+  
   static create(provider: RTCProviderType, config: RTCConfig): RTCSDK {
     switch (provider) {
       case 'volcengine':
@@ -168,25 +112,19 @@ export class RTCSDKFactory {
     }
   }
 
-  /**
-   * 鏍规嵁璁惧绫诲瀷閫夋嫨榛樿鐨?RTC SDK 鎻愪緵鍟?
-   */
+  
   static getDefaultProvider(): RTCProviderType {
-    // 妫€娴嬫槸鍚﹀湪绉诲姩璁惧
     const userAgent = typeof navigator === 'undefined' ? '' : navigator.userAgent;
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
     
-    // 绉诲姩璁惧榛樿浣跨敤鐏北浜?RTC
     if (isMobile) {
       return 'volcengine';
     }
     
-    // 妗岄潰璁惧榛樿浣跨敤 WebRTC
     return 'webrtc';
   }
 }
 
-// 鐏北浜?RTC SDK 閫傞厤鍣?
 type VolcRTCMethod = (...args: unknown[]) => unknown;
 
 interface VolcRTCUserInfo {
@@ -932,7 +870,6 @@ class VolcEngineRTCSDKAdapter implements RTCSDK {
   }
 }
 
-// 鑵捐浜?RTC SDK 閫傞厤鍣?
 class TencentCloudRTCSDKAdapter implements RTCSDK {
   private config: RTCConfig;
   private instance: any = null;
@@ -942,8 +879,6 @@ class TencentCloudRTCSDKAdapter implements RTCSDK {
   }
 
   async init(config: RTCConfig): Promise<void> {
-    // 鍒濆鍖栬吘璁簯 RTC SDK
-    // 杩欓噷闇€瑕佸紩鍏ヨ吘璁簯 RTC SDK
     // import TRTC from 'trtc-js-sdk';
     console.log('Initializing TencentCloud RTC SDK', config);
   }
@@ -975,7 +910,6 @@ class TencentCloudRTCSDKAdapter implements RTCSDK {
 
   async getLocalStream(constraints: MediaConstraints): Promise<MediaStream> {
     console.log('TencentCloud getLocalStream', constraints);
-    // 妯℃嫙杩斿洖濯掍綋娴?
     return new MediaStream();
   }
 
@@ -1017,7 +951,6 @@ class TencentCloudRTCSDKAdapter implements RTCSDK {
   }
 }
 
-// WebRTC 閫傞厤鍣?
 class WebRTCAdapter implements RTCSDK {
   private config: RTCConfig;
   private peerConnections: Map<string, RTCPeerConnection> = new Map();
@@ -1034,7 +967,6 @@ class WebRTCAdapter implements RTCSDK {
   async joinRoom(roomId: string, userId: string, token: string, callType: CallType): Promise<string> {
     console.log('WebRTC joinRoom', { roomId, userId, callType });
     
-    // 鍒涘缓 PeerConnection
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -1065,7 +997,6 @@ class WebRTCAdapter implements RTCSDK {
   async publishStream(stream: MediaStream, options?: any): Promise<void> {
     console.log('WebRTC publishStream', options);
     
-    // 娣诲姞娴佸埌鎵€鏈?PeerConnection
     for (const [roomId, pc] of this.peerConnections.entries()) {
       stream.getTracks().forEach(track => {
         pc.addTrack(track, stream);
@@ -1077,7 +1008,6 @@ class WebRTCAdapter implements RTCSDK {
   async unpublishStream(): Promise<void> {
     console.log('WebRTC unpublishStream');
     
-    // 绉婚櫎鎵€鏈夋祦
     for (const [roomId, pc] of this.peerConnections.entries()) {
       const stream = this.localStreams.get(roomId);
       if (stream) {
@@ -1125,7 +1055,6 @@ class WebRTCAdapter implements RTCSDK {
   async switchDevice(deviceType: DeviceType, deviceId: string): Promise<void> {
     console.log('WebRTC switchDevice', { deviceType, deviceId });
     
-    // 鍒囨崲璁惧閫昏緫
     for (const [roomId, stream] of this.localStreams.entries()) {
       if (deviceType === 'camera') {
         const videoTracks = stream.getVideoTracks();
@@ -1219,19 +1148,16 @@ class WebRTCAdapter implements RTCSDK {
   async destroy(): Promise<void> {
     console.log('WebRTC destroy');
     
-    // 娓呯悊鎵€鏈夎祫婧?
     for (const roomId of this.peerConnections.keys()) {
       await this.leaveRoom(roomId);
     }
   }
 }
 
-// 瀵煎嚭榛樿鐨?RTC SDK 瀹炰緥鍒涘缓鍑芥暟
 export function createRTCSDK(config: RTCConfig): RTCSDK {
   return RTCSDKFactory.create(config.provider, config);
 }
 
-// 瀵煎嚭榛樿鐨?RTC SDK 閰嶇疆
 export const DEFAULT_RTC_CONFIG: RTCConfig = {
   provider: RTCSDKFactory.getDefaultProvider(),
   appId: '',

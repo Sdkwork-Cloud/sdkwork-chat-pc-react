@@ -1,15 +1,11 @@
-/**
- * 核心类型定义
- */
 
-// 基础实体接口
+
 export interface BaseEntity {
   id: string;
   createTime?: number;
   updateTime?: number;
 }
 
-// 通用结果类型
 export interface Result<T = unknown> {
   success: boolean;
   data?: T;
@@ -18,7 +14,6 @@ export interface Result<T = unknown> {
   code?: number;
 }
 
-// 分页查询
 export interface PageQuery {
   page?: number;
   pageSize?: number;
@@ -26,7 +21,6 @@ export interface PageQuery {
   sortOrder?: 'asc' | 'desc';
 }
 
-// 分页结果
 export interface PageResult<T> {
   list: T[];
   total: number;
@@ -35,7 +29,6 @@ export interface PageResult<T> {
   totalPages: number;
 }
 
-// 分页响应
 export interface PageResponse<T> {
   data: T[];
   total: number;
@@ -43,7 +36,6 @@ export interface PageResponse<T> {
   pageSize: number;
 }
 
-// 分页参数
 export interface Page<T> {
   content: T[];
   total: number;

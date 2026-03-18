@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { OpenClawInstallResultService } from "../services";
 import type { OpenClawDesktopGuide, OpenClawInstallCommand } from "../types";
 
@@ -23,6 +24,7 @@ function platformLabel(platform: OpenClawDesktopGuide["platform"]): string {
 }
 
 export function SdkworkOpenclawPcDesktop() {
+  const { tr } = useAppTranslation();
   const [guide, setGuide] = useState<OpenClawDesktopGuide | null>(null);
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,7 @@ export function SdkworkOpenclawPcDesktop() {
   if (loading) {
     return (
       <div className="rounded-xl border border-border bg-bg-secondary p-4 text-sm text-text-secondary">
-        Detecting desktop install profile...
+        {tr("Detecting desktop install profile...")}
       </div>
     );
   }
@@ -74,7 +76,7 @@ export function SdkworkOpenclawPcDesktop() {
   if (!guide) {
     return (
       <div className="rounded-xl border border-error/40 bg-error/10 p-4 text-sm text-error">
-        {notice || "Desktop guide unavailable."}
+        {tr(notice || "Desktop guide unavailable.")}
       </div>
     );
   }
@@ -84,43 +86,43 @@ export function SdkworkOpenclawPcDesktop() {
       <header className="rounded-xl border border-border bg-bg-secondary p-4">
         <h2 className="text-base font-semibold text-text-primary">sdkwork-openclaw-pc-desktop</h2>
         <p className="mt-1 text-sm text-text-secondary">
-          本地桌面安装向导，根据当前运行平台生成推荐命令。
+          {tr("Desktop install guide with platform-specific recommendations.")}
         </p>
         <div className="mt-2 flex flex-wrap gap-3 text-xs text-text-muted">
-          <span>Detected platform: {platform}</span>
+          <span>{tr("Detected platform")}: {tr(platform)}</span>
           <a
             href="https://docs.openclaw.ai/install"
             target="_blank"
             rel="noreferrer"
             className="text-primary hover:underline"
           >
-            查看完整安装文档
+            {tr("Open full installation guide")}
           </a>
         </div>
       </header>
 
       <article className="rounded-xl border border-border bg-bg-secondary p-4">
-        <h3 className="text-sm font-medium text-text-primary">推荐策略</h3>
-        <p className="mt-1 text-sm text-text-secondary">{guide.recommendation}</p>
+        <h3 className="text-sm font-medium text-text-primary">{tr("Recommended strategy")}</h3>
+        <p className="mt-1 text-sm text-text-secondary">{tr(guide.recommendation)}</p>
 
         {guide.notes.length > 0 ? (
           <ul className="mt-3 list-disc space-y-1 pl-4 text-xs text-text-muted">
             {guide.notes.map((note) => (
-              <li key={note}>{note}</li>
+              <li key={note}>{tr(note)}</li>
             ))}
           </ul>
         ) : null}
       </article>
 
       <article className="rounded-xl border border-border bg-bg-secondary p-4">
-        <h3 className="text-sm font-medium text-text-primary">快速命令</h3>
+        <h3 className="text-sm font-medium text-text-primary">{tr("Quick commands")}</h3>
         <div className="mt-3 space-y-3">
           {guide.quickCommands.map((command) => (
             <div key={command.id} className="rounded-lg border border-border bg-bg-primary p-3">
               <div className="mb-1 flex items-center justify-between gap-2">
                 <div className="text-xs text-text-secondary">
-                  {command.title}
-                  {command.description ? ` · ${command.description}` : ""}
+                  {tr(command.title)}
+                  {command.description ? ` - ${tr(command.description)}` : ""}
                 </div>
                 <span className="rounded bg-bg-tertiary px-2 py-0.5 text-[11px] text-text-muted">
                   {shellLabel(command.shell)}
@@ -136,7 +138,7 @@ export function SdkworkOpenclawPcDesktop() {
                 }}
                 className="mt-2 rounded border border-border bg-bg-tertiary px-2 py-1 text-[11px] text-text-secondary hover:bg-bg-hover"
               >
-                复制命令
+                {tr("Copy command")}
               </button>
             </div>
           ))}
@@ -145,7 +147,7 @@ export function SdkworkOpenclawPcDesktop() {
 
       {notice ? (
         <div className="rounded-lg border border-border bg-bg-secondary px-3 py-2 text-xs text-text-secondary">
-          {notice}
+          {tr(notice)}
         </div>
       ) : null}
     </section>

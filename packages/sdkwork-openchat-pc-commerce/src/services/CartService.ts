@@ -1,4 +1,4 @@
-﻿import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
+import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
 import type { CartItem } from "../types";
 
 function responseData<T>(response: unknown): T {

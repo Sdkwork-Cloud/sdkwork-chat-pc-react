@@ -1,33 +1,27 @@
-/**
- * 微前端加载器实现
- * 
- * 负责微前端的加载、挂载、卸载和更新操作
- */
+import { microFrontendChannel } from "./channel";
+import { errorService } from "../services/error.service";
+import type {
+  MicroFrontend,
+  MicroFrontendConfig,
+  MicroFrontendLifecycleEvent,
+  MicroFrontendLoader,
+  MicroFrontendStatus,
+} from "./types";
 
-import { MicroFrontend, MicroFrontendConfig, MicroFrontendStatus, MicroFrontendLoader, MicroFrontendLifecycleEvent } from './types';
-import { microFrontendChannel } from './channel';
-import { errorService } from '../services/error.service';
-
-// 扩展Window接口以支持微前端
 declare global {
   interface Window {
     [key: string]: any;
   }
 }
 
-// 浏览器兼容的 EventEmitter 实现
 class EventEmitter {
-  private events: Map<string, Function[]>;
-
-  constructor() {
-    this.events = new Map();
-  }
+  private events = new Map<string, Function[]>();
 
   on(event: string, listener: Function): this {
     if (!this.events.has(event)) {
       this.events.set(event, []);
     }
-    this.events.get(event)!.push(listener);
+    this.events.get(event)?.push(listener);
     return this;
   }
 
@@ -41,25 +35,28 @@ class EventEmitter {
   }
 
   off(event: string, listener: Function): this {
-    if (this.events.has(event)) {
-      const listeners = this.events.get(event)!;
-      const index = listeners.indexOf(listener);
-      if (index !== -1) {
-        listeners.splice(index, 1);
-      }
+    const listeners = this.events.get(event);
+    if (!listeners) {
+      return this;
+    }
+
+    const index = listeners.indexOf(listener);
+    if (index >= 0) {
+      listeners.splice(index, 1);
     }
     return this;
   }
 
   emit(event: string, ...args: any[]): boolean {
-    if (this.events.has(event)) {
-      const listeners = this.events.get(event)!;
-      for (const listener of listeners) {
-        listener(...args);
-      }
-      return true;
+    const listeners = this.events.get(event);
+    if (!listeners || listeners.length === 0) {
+      return false;
     }
-    return false;
+
+    for (const listener of listeners) {
+      listener(...args);
+    }
+    return true;
   }
 
   removeAllListeners(event?: string): this {
@@ -69,50 +66,6 @@ class EventEmitter {
       this.events.clear();
     }
     return this;
-  }
-
-  getMaxListeners(): number {
-    return 0;
-  }
-
-  setMaxListeners(n: number): this {
-    return this;
-  }
-
-  listeners(event: string): Function[] {
-    return this.events.get(event) || [];
-  }
-
-  rawListeners(event: string): Function[] {
-    return this.events.get(event) || [];
-  }
-
-  listenerCount(event: string): number {
-    return this.events.get(event)?.length || 0;
-  }
-
-  prependListener(event: string, listener: Function): this {
-    if (!this.events.has(event)) {
-      this.events.set(event, []);
-    }
-    this.events.get(event)!.unshift(listener);
-    return this;
-  }
-
-  prependOnceListener(event: string, listener: Function): this {
-    const onceListener = (...args: any[]) => {
-      this.off(event, onceListener);
-      listener(...args);
-    };
-    if (!this.events.has(event)) {
-      this.events.set(event, []);
-    }
-    this.events.get(event)!.unshift(onceListener);
-    return this;
-  }
-
-  eventNames(): string[] {
-    return Array.from(this.events.keys());
   }
 }
 
@@ -124,325 +77,250 @@ export class DefaultMicroFrontend implements MicroFrontend {
   manifest?: any;
   error?: string;
   mountProps?: Record<string, any>;
+
   private scriptElements: HTMLScriptElement[] = [];
   private styleElements: HTMLLinkElement[] = [];
 
   constructor(config: MicroFrontendConfig) {
     this.name = config.name;
     this.config = config;
-    this.status = 'not_loaded';
+    this.status = "not_loaded";
   }
 
-  /**
-   * 加载微前端
-   */
   async load(): Promise<void> {
-    if (this.status === 'loading' || this.status === 'loaded') {
+    if (this.status === "loading" || this.status === "loaded") {
       return;
     }
 
-    this.status = 'loading';
+    this.status = "loading";
 
     try {
-      console.log(`[MicroFrontend] 加载微前端: ${this.name} 从 ${this.config.entry}`);
+      console.log(
+        `[MicroFrontend] Loading "${this.name}" from "${this.config.entry}"`,
+      );
 
-      // 加载HTML入口
-      if (this.config.entry.endsWith('.html')) {
+      if (this.config.entry.endsWith(".html")) {
         await this.loadHtmlEntry();
-      }
-      // 加载JS入口
-      else if (this.config.entry.endsWith('.js')) {
+      } else if (this.config.entry.endsWith(".js")) {
         await this.loadJsEntry();
-      }
-      // 加载其他类型的入口
-      else {
+      } else {
         await this.loadGenericEntry();
       }
 
-      this.status = 'loaded';
-      console.log(`[MicroFrontend] 微前端加载成功: ${this.name}`);
+      this.status = "loaded";
+      console.log(`[MicroFrontend] Loaded "${this.name}" successfully`);
     } catch (error: any) {
-      this.status = 'error';
-      this.error = error.message || '加载微前端失败';
-      console.error(`[MicroFrontend] 加载微前端失败: ${this.name}`, error);
+      this.status = "error";
+      this.error = error?.message || "Failed to load micro frontend.";
+      console.error(`[MicroFrontend] Failed to load "${this.name}"`, error);
       throw error;
     }
   }
 
-  /**
-   * 加载HTML入口
-   */
   private async loadHtmlEntry(): Promise<void> {
     const response = await fetch(this.config.entry);
     if (!response.ok) {
-      throw new Error(`加载微前端失败: ${response.statusText}`);
+      throw new Error(`Failed to load micro frontend: ${response.statusText}`);
     }
 
     const html = await response.text();
     const container = this.getContainer();
     container.innerHTML = html;
-
-    // 加载脚本和样式
     await this.loadScriptsAndStyles(container);
   }
 
-  /**
-   * 加载JS入口
-   */
   private async loadJsEntry(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
+    await new Promise<void>((resolve, reject) => {
+      const script = document.createElement("script");
       script.src = this.config.entry;
-      script.type = 'module';
+      script.type = "module";
       script.onload = () => {
         this.scriptElements.push(script);
         resolve();
       };
       script.onerror = () => {
-        reject(new Error(`加载微前端脚本失败: ${this.config.entry}`));
+        reject(
+          new Error(
+            `Failed to load micro frontend script: ${this.config.entry}`,
+          ),
+        );
       };
       document.head.appendChild(script);
     });
   }
 
-  /**
-   * 加载通用入口
-   */
   private async loadGenericEntry(): Promise<void> {
-    // 这里可以实现其他类型入口的加载逻辑
-    throw new Error(`不支持的入口类型: ${this.config.entry}`);
+    throw new Error(`Unsupported entry type: ${this.config.entry}`);
   }
 
-  /**
-   * 加载脚本和样式
-   */
   private async loadScriptsAndStyles(container: HTMLElement): Promise<void> {
-    const scripts = container.querySelectorAll('script');
+    const scripts = container.querySelectorAll("script");
     const styles = container.querySelectorAll('link[rel="stylesheet"]');
 
-    // 加载脚本
     for (const script of scripts) {
-      const newScript = document.createElement('script');
+      const newScript = document.createElement("script");
       if (script.src) {
         newScript.src = script.src;
-        await new Promise((resolve, reject) => {
-          newScript.onload = resolve;
-          newScript.onerror = reject;
+        await new Promise<void>((resolve, reject) => {
+          newScript.onload = () => resolve();
+          newScript.onerror = () => reject(new Error("Script load failed."));
           document.head.appendChild(newScript);
         });
-        this.scriptElements.push(newScript);
       } else {
         newScript.textContent = script.textContent;
         document.head.appendChild(newScript);
-        this.scriptElements.push(newScript);
       }
+      this.scriptElements.push(newScript);
     }
 
-    // 加载样式
     for (const style of styles) {
-      const newStyle = document.createElement('link');
-      newStyle.rel = 'stylesheet';
+      const newStyle = document.createElement("link");
+      newStyle.rel = "stylesheet";
       newStyle.href = (style as HTMLLinkElement).href;
-      await new Promise((resolve, reject) => {
-        newStyle.onload = resolve;
-        newStyle.onerror = reject;
+      await new Promise<void>((resolve, reject) => {
+        newStyle.onload = () => resolve();
+        newStyle.onerror = () => reject(new Error("Style load failed."));
         document.head.appendChild(newStyle);
       });
       this.styleElements.push(newStyle);
     }
   }
 
-  /**
-   * 挂载微前端
-   */
   async mount(props?: Record<string, any>): Promise<void> {
-    if (this.status === 'mounted') {
+    if (this.status === "mounted") {
       return;
     }
-
-    if (this.status !== 'loaded') {
+    if (this.status !== "loaded") {
       await this.load();
     }
 
     try {
-      console.log(`[MicroFrontend] 挂载微前端: ${this.name}`);
-
+      console.log(`[MicroFrontend] Mounting "${this.name}"`);
       this.mountProps = {
         ...this.config.props,
         ...props,
         channel: microFrontendChannel,
       };
 
-      // 调用微前端的 mount 方法
-      if (window[this.name] && typeof window[this.name].mount === 'function') {
+      if (window[this.name] && typeof window[this.name].mount === "function") {
         await window[this.name].mount(this.getContainer(), this.mountProps);
       }
 
-      this.status = 'mounted';
-      console.log(`[MicroFrontend] 微前端挂载成功: ${this.name}`);
+      this.status = "mounted";
+      console.log(`[MicroFrontend] Mounted "${this.name}" successfully`);
     } catch (error: any) {
-      this.status = 'error';
-      this.error = error.message || '挂载微前端失败';
-      console.error(`[MicroFrontend] 挂载微前端失败: ${this.name}`, error);
+      this.status = "error";
+      this.error = error?.message || "Failed to mount micro frontend.";
+      console.error(`[MicroFrontend] Failed to mount "${this.name}"`, error);
       throw error;
     }
   }
 
-  /**
-   * 卸载微前端
-   */
   async unmount(): Promise<void> {
-    if (this.status !== 'mounted') {
+    if (this.status !== "mounted") {
       return;
     }
 
     try {
-      console.log(`[MicroFrontend] 卸载微前端: ${this.name}`);
+      console.log(`[MicroFrontend] Unmounting "${this.name}"`);
 
-      // 调用微前端的 unmount 方法
-      if (window[this.name] && typeof window[this.name].unmount === 'function') {
+      if (window[this.name] && typeof window[this.name].unmount === "function") {
         await window[this.name].unmount(this.getContainer());
       }
 
-      // 清理脚本和样式
       this.cleanupResources();
-
-      this.status = 'unmounted';
-      console.log(`[MicroFrontend] 微前端卸载成功: ${this.name}`);
+      this.status = "unmounted";
+      console.log(`[MicroFrontend] Unmounted "${this.name}" successfully`);
     } catch (error: any) {
-      this.status = 'error';
-      this.error = error.message || '卸载微前端失败';
-      console.error(`[MicroFrontend] 卸载微前端失败: ${this.name}`, error);
+      this.status = "error";
+      this.error = error?.message || "Failed to unmount micro frontend.";
+      console.error(`[MicroFrontend] Failed to unmount "${this.name}"`, error);
       throw error;
     }
   }
 
-  /**
-   * 更新微前端
-   */
   async update(props?: Record<string, any>): Promise<void> {
-    if (this.status !== 'mounted') {
+    if (this.status !== "mounted") {
       return;
     }
 
     try {
-      console.log(`[MicroFrontend] 更新微前端: ${this.name}`);
-
+      console.log(`[MicroFrontend] Updating "${this.name}"`);
       this.mountProps = {
         ...this.mountProps,
         ...props,
       };
 
-      // 调用微前端的 update 方法
-      if (window[this.name] && typeof window[this.name].update === 'function') {
+      if (window[this.name] && typeof window[this.name].update === "function") {
         await window[this.name].update(this.mountProps);
       }
-
-      console.log(`[MicroFrontend] 微前端更新成功: ${this.name}`);
+      console.log(`[MicroFrontend] Updated "${this.name}" successfully`);
     } catch (error: any) {
-      this.status = 'error';
-      this.error = error.message || '更新微前端失败';
-      console.error(`[MicroFrontend] 更新微前端失败: ${this.name}`, error);
+      this.status = "error";
+      this.error = error?.message || "Failed to update micro frontend.";
+      console.error(`[MicroFrontend] Failed to update "${this.name}"`, error);
       throw error;
     }
   }
 
-  /**
-   * 获取状态
-   */
   getStatus(): MicroFrontendStatus {
     return this.status;
   }
 
-  /**
-   * 设置错误
-   */
   setError(error: string): void {
     this.error = error;
-    this.status = 'error';
+    this.status = "error";
   }
 
-  /**
-   * 清除错误
-   */
   clearError(): void {
     this.error = undefined;
   }
 
-  /**
-   * 获取容器
-   */
   private getContainer(): HTMLElement {
-    if (typeof this.config.container === 'string') {
+    if (typeof this.config.container === "string") {
       const container = document.querySelector(this.config.container);
       if (!container) {
-        throw new Error(`找不到微前端容器: ${this.config.container}`);
+        throw new Error(
+          `Cannot find micro frontend container: ${this.config.container}`,
+        );
       }
       return container as HTMLElement;
     }
     return this.config.container;
   }
 
-  /**
-   * 清理资源
-   */
   private cleanupResources(): void {
-    // 清理脚本
-    this.scriptElements.forEach(script => {
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-    });
+    this.scriptElements.forEach((script) => script.remove());
     this.scriptElements = [];
 
-    // 清理样式
-    this.styleElements.forEach(style => {
-      if (style.parentNode) {
-        style.parentNode.removeChild(style);
-      }
-    });
+    this.styleElements.forEach((style) => style.remove());
     this.styleElements = [];
 
-    // 清理全局变量
     if (window[this.name]) {
       delete window[this.name];
     }
   }
 }
 
-export class DefaultMicroFrontendLoader extends EventEmitter implements MicroFrontendLoader {
-  private microFrontends: Map<string, MicroFrontend> = new Map();
+export class DefaultMicroFrontendLoader
+  extends EventEmitter
+  implements MicroFrontendLoader
+{
+  private microFrontends = new Map<string, MicroFrontend>();
 
-  /**
-   * 加载微前端
-   */
   async load(config: MicroFrontendConfig): Promise<MicroFrontend> {
     try {
-      // 检查是否已经加载
-      if (this.microFrontends.has(config.name)) {
-        return this.microFrontends.get(config.name)!;
+      const existing = this.microFrontends.get(config.name);
+      if (existing) {
+        return existing;
       }
 
-      // 创建微前端实例
       const microFrontend = new DefaultMicroFrontend(config);
       this.microFrontends.set(config.name, microFrontend);
 
-      // 触发加载前事件
-      this.emit('beforeLoad', {
-        name: 'beforeLoad',
-        microFrontend,
-        timestamp: Date.now(),
-      } as MicroFrontendLifecycleEvent);
-
-      // 加载微前端
+      this.emitLifecycle("beforeLoad", microFrontend);
       await microFrontend.load();
-
-      // 触发加载后事件
-      this.emit('afterLoad', {
-        name: 'afterLoad',
-        microFrontend,
-        timestamp: Date.now(),
-      } as MicroFrontendLifecycleEvent);
+      this.emitLifecycle("afterLoad", microFrontend);
 
       return microFrontend;
     } catch (error: any) {
@@ -455,23 +333,14 @@ export class DefaultMicroFrontendLoader extends EventEmitter implements MicroFro
     }
   }
 
-  /**
-   * 获取微前端
-   */
   get(name: string): MicroFrontend | undefined {
     return this.microFrontends.get(name);
   }
 
-  /**
-   * 获取所有微前端
-   */
   getAll(): MicroFrontend[] {
     return Array.from(this.microFrontends.values());
   }
 
-  /**
-   * 移除微前端
-   */
   async remove(name: string): Promise<void> {
     const microFrontend = this.microFrontends.get(name);
     if (!microFrontend) {
@@ -479,13 +348,9 @@ export class DefaultMicroFrontendLoader extends EventEmitter implements MicroFro
     }
 
     try {
-      // 卸载微前端
       await microFrontend.unmount();
-
-      // 从映射中移除
       this.microFrontends.delete(name);
-
-      console.log(`[MicroFrontendLoader] 移除微前端: ${name}`);
+      console.log(`[MicroFrontendLoader] Removed "${name}"`);
     } catch (error: any) {
       errorService.handleError(error, {
         context: `microfrontend:remove:${name}`,
@@ -496,9 +361,6 @@ export class DefaultMicroFrontendLoader extends EventEmitter implements MicroFro
     }
   }
 
-  /**
-   * 清除所有微前端
-   */
   async clear(): Promise<void> {
     for (const [name, microFrontend] of this.microFrontends) {
       try {
@@ -511,91 +373,52 @@ export class DefaultMicroFrontendLoader extends EventEmitter implements MicroFro
         });
       }
     }
-
     this.microFrontends.clear();
-    console.log('[MicroFrontendLoader] 清除所有微前端');
+    console.log("[MicroFrontendLoader] Cleared all micro frontends");
   }
 
-  /**
-   * 挂载微前端
-   */
   async mount(name: string, props?: Record<string, any>): Promise<void> {
     const microFrontend = this.microFrontends.get(name);
     if (!microFrontend) {
-      throw new Error(`微前端未加载: ${name}`);
+      throw new Error(`Micro frontend is not loaded: ${name}`);
     }
 
-    // 触发挂载前事件
-    this.emit('beforeMount', {
-      name: 'beforeMount',
-      microFrontend,
-      timestamp: Date.now(),
-    } as MicroFrontendLifecycleEvent);
-
+    this.emitLifecycle("beforeMount", microFrontend);
     await microFrontend.mount(props);
-
-    // 触发挂载后事件
-    this.emit('afterMount', {
-      name: 'afterMount',
-      microFrontend,
-      timestamp: Date.now(),
-    } as MicroFrontendLifecycleEvent);
+    this.emitLifecycle("afterMount", microFrontend);
   }
 
-  /**
-   * 卸载微前端
-   */
   async unmount(name: string): Promise<void> {
     const microFrontend = this.microFrontends.get(name);
     if (!microFrontend) {
       return;
     }
 
-    // 触发卸载前事件
-    this.emit('beforeUnmount', {
-      name: 'beforeUnmount',
-      microFrontend,
-      timestamp: Date.now(),
-    } as MicroFrontendLifecycleEvent);
-
+    this.emitLifecycle("beforeUnmount", microFrontend);
     await microFrontend.unmount();
-
-    // 触发卸载后事件
-    this.emit('afterUnmount', {
-      name: 'afterUnmount',
-      microFrontend,
-      timestamp: Date.now(),
-    } as MicroFrontendLifecycleEvent);
+    this.emitLifecycle("afterUnmount", microFrontend);
   }
 
-  /**
-   * 更新微前端
-   */
   async update(name: string, props?: Record<string, any>): Promise<void> {
     const microFrontend = this.microFrontends.get(name);
     if (!microFrontend) {
-      throw new Error(`微前端未加载: ${name}`);
+      throw new Error(`Micro frontend is not loaded: ${name}`);
     }
 
-    // 触发更新前事件
-    this.emit('beforeUpdate', {
-      name: 'beforeUpdate',
-      microFrontend,
-      timestamp: Date.now(),
-    } as MicroFrontendLifecycleEvent);
-
+    this.emitLifecycle("beforeUpdate", microFrontend);
     await microFrontend.update(props);
+    this.emitLifecycle("afterUpdate", microFrontend);
+  }
 
-    // 触发更新后事件
-    this.emit('afterUpdate', {
-      name: 'afterUpdate',
+  private emitLifecycle(name: string, microFrontend: MicroFrontend): void {
+    this.emit(name, {
+      name,
       microFrontend,
       timestamp: Date.now(),
     } as MicroFrontendLifecycleEvent);
   }
 }
 
-// 导出单例
 export const microFrontendLoader = new DefaultMicroFrontendLoader();
 
 export default DefaultMicroFrontendLoader;

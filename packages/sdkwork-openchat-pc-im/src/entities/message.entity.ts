@@ -1,8 +1,4 @@
-/**
- * 消息实体
- *
- * 职责：定义消息领域模型
- */
+
 
 import type { MessageContent } from '../services/message.service';
 

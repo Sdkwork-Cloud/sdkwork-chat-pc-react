@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { AgentCategory, AgentStatus, type Agent } from "../entities/agent.entity";
 import { AgentResultService, AgentService } from "../services";
 import {
@@ -9,32 +10,6 @@ import {
   pickAgentPreviewTarget,
   type AgentWorkbenchRail,
 } from "./agent.workspace.model";
-
-const categoryOptions: Array<{ value: AgentCategory; label: string }> = [
-  { value: AgentCategory.ALL, label: "All categories" },
-  { value: AgentCategory.PRODUCTIVITY, label: "Productivity" },
-  { value: AgentCategory.EDUCATION, label: "Education" },
-  { value: AgentCategory.ENTERTAINMENT, label: "Entertainment" },
-  { value: AgentCategory.LIFE, label: "Lifestyle" },
-  { value: AgentCategory.PROGRAMMING, label: "Programming" },
-  { value: AgentCategory.WRITING, label: "Writing" },
-  { value: AgentCategory.BUSINESS, label: "Business" },
-  { value: AgentCategory.CREATIVE, label: "Creative" },
-];
-
-const sortOptions: Array<{ value: "popular" | "newest" | "rating"; label: string }> = [
-  { value: "popular", label: "Most popular" },
-  { value: "newest", label: "Newest first" },
-  { value: "rating", label: "Highest rating" },
-];
-
-const railOptions: Array<{ key: AgentWorkbenchRail; label: string; description: string }> = [
-  { key: "all", label: "All agents", description: "Marketplace overview" },
-  { key: "featured", label: "Featured", description: "High rating and usage" },
-  { key: "mine", label: "My agents", description: "Created or managed by you" },
-  { key: "active", label: "Active", description: "Currently chatting or running" },
-  { key: "recent", label: "Recently updated", description: "Latest maintenance and releases" },
-];
 
 function getStatusClass(status: AgentStatus): string {
   switch (status) {
@@ -52,21 +27,22 @@ function getStatusClass(status: AgentStatus): string {
 
 function formatStatus(status: AgentStatus): string {
   if (status === AgentStatus.CHATTING) {
-    return "chatting";
+    return "Chatting";
   }
   if (status === AgentStatus.EXECUTING) {
-    return "executing";
+    return "Executing";
   }
   if (status === AgentStatus.READY) {
-    return "ready";
+    return "Ready";
   }
   if (status === AgentStatus.ERROR) {
-    return "error";
+    return "Error";
   }
   return status;
 }
 
 export function AgentMarketPage() {
+  const { tr, formatDate, formatNumber } = useAppTranslation();
   const navigate = useNavigate();
 
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -79,6 +55,41 @@ export function AgentMarketPage() {
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => AgentService.getFavoriteAgentIds());
   const [recentOpenedIds, setRecentOpenedIds] = useState<string[]>(() => AgentService.getRecentAgentIds());
+
+  const categoryOptions = useMemo<Array<{ value: AgentCategory; label: string }>>(
+    () => [
+      { value: AgentCategory.ALL, label: tr("All categories") },
+      { value: AgentCategory.PRODUCTIVITY, label: tr("Productivity") },
+      { value: AgentCategory.EDUCATION, label: tr("Education") },
+      { value: AgentCategory.ENTERTAINMENT, label: tr("Entertainment") },
+      { value: AgentCategory.LIFE, label: tr("Lifestyle") },
+      { value: AgentCategory.PROGRAMMING, label: tr("Programming") },
+      { value: AgentCategory.WRITING, label: tr("Writing") },
+      { value: AgentCategory.BUSINESS, label: tr("Business") },
+      { value: AgentCategory.CREATIVE, label: tr("Creative") },
+    ],
+    [tr],
+  );
+
+  const sortOptions = useMemo<Array<{ value: "popular" | "newest" | "rating"; label: string }>>(
+    () => [
+      { value: "popular", label: tr("Most popular") },
+      { value: "newest", label: tr("Newest first") },
+      { value: "rating", label: tr("Highest rating") },
+    ],
+    [tr],
+  );
+
+  const railOptions = useMemo<Array<{ key: AgentWorkbenchRail; label: string; description: string }>>(
+    () => [
+      { key: "all", label: tr("All agents"), description: tr("Marketplace overview") },
+      { key: "featured", label: tr("Featured"), description: tr("High rating and usage") },
+      { key: "mine", label: tr("My agents"), description: tr("Created or managed by you") },
+      { key: "active", label: tr("Active"), description: tr("Currently chatting or running") },
+      { key: "recent", label: tr("Recently updated"), description: tr("Latest maintenance and releases") },
+    ],
+    [tr],
+  );
 
   useEffect(() => {
     setFavoriteIds(AgentService.getFavoriteAgentIds());
@@ -226,9 +237,9 @@ export function AgentMarketPage() {
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-text-primary">Agent Market</h1>
+            <h1 className="text-xl font-semibold text-text-primary">{tr("Agent Market")}</h1>
             <p className="mt-1 text-sm text-text-secondary">
-              Discover, compare, and launch specialized agents with a desktop-first control panel.
+              {tr("Discover, compare, and launch specialized agents with a desktop-first control panel.")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -236,13 +247,13 @@ export function AgentMarketPage() {
               onClick={() => navigate("/skills")}
               className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
             >
-              Skill Market
+              {tr("Skill Market")}
             </button>
             <button
               onClick={() => navigate("/appstore")}
               className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
             >
-              App Store
+              {tr("App Store")}
             </button>
           </div>
         </div>
@@ -250,8 +261,8 @@ export function AgentMarketPage() {
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-6 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
         <aside className="min-h-0 overflow-auto rounded-2xl border border-border bg-bg-secondary p-4">
-          <h2 className="text-sm font-semibold text-text-primary">Workbench Lens</h2>
-          <p className="mt-1 text-xs text-text-muted">Select a business lens first, then narrow list filters.</p>
+          <h2 className="text-sm font-semibold text-text-primary">{tr("Workbench Lens")}</h2>
+          <p className="mt-1 text-xs text-text-muted">{tr("Select a business lens first, then narrow list filters.")}</p>
 
           <div className="mt-4 space-y-2">
             {railOptions.map((option) => {
@@ -273,7 +284,7 @@ export function AgentMarketPage() {
             })}
           </div>
 
-          <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">Category</h3>
+          <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Category")}</h3>
           <div className="mt-2 space-y-1">
             {categoryOptions.map((item) => {
               const active = item.value === category;
@@ -291,7 +302,7 @@ export function AgentMarketPage() {
             })}
           </div>
 
-          <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">Quick Tags</h3>
+          <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Quick Tags")}</h3>
           <div className="mt-2 flex flex-wrap gap-2">
             {categoryOptions
               .filter((item) => item.value !== AgentCategory.ALL)
@@ -309,19 +320,19 @@ export function AgentMarketPage() {
 
           <div className="mt-5 grid grid-cols-2 gap-2">
             <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">Total</p>
+              <p className="text-xs text-text-muted">{tr("Total")}</p>
               <p className="mt-1 text-base font-semibold text-text-primary">{summary.total}</p>
             </div>
             <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">Active</p>
+              <p className="text-xs text-text-muted">{tr("Active")}</p>
               <p className="mt-1 text-base font-semibold text-text-primary">{summary.active}</p>
             </div>
             <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">Mine</p>
+              <p className="text-xs text-text-muted">{tr("Mine")}</p>
               <p className="mt-1 text-base font-semibold text-text-primary">{summary.mine}</p>
             </div>
             <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">Favorites</p>
+              <p className="text-xs text-text-muted">{tr("Favorites")}</p>
               <p className="mt-1 text-base font-semibold text-text-primary">{library.favorites.length}</p>
             </div>
           </div>
@@ -330,7 +341,7 @@ export function AgentMarketPage() {
         <div className="min-h-0 overflow-auto rounded-2xl border border-border bg-bg-secondary p-4">
           {featuredAgents.length > 0 ? (
             <div className="mb-4 rounded-xl border border-border bg-gradient-to-r from-primary/10 via-bg-primary to-bg-primary p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Today Focus</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">{tr("Today Focus")}</p>
               <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
                 {featuredAgents.map((item) => (
                   <button
@@ -344,7 +355,12 @@ export function AgentMarketPage() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-text-primary">{item.name}</p>
                       <p className="truncate text-xs text-text-muted">
-                        {item.config.rating?.toFixed(1) || "-"} / {(item.config.usageCount || 0).toLocaleString()}
+                          {item.config.rating !== undefined
+                            ? formatNumber(item.config.rating, {
+                                minimumFractionDigits: 1,
+                                maximumFractionDigits: 1,
+                              })
+                            : "-"} / {formatNumber(item.config.usageCount || 0)}
                       </p>
                     </div>
                   </button>
@@ -357,7 +373,7 @@ export function AgentMarketPage() {
             <input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
-              placeholder="Search by name, description, or tags"
+              placeholder={tr("Search by name, description, or tags")}
               className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
             />
             <select
@@ -375,22 +391,22 @@ export function AgentMarketPage() {
 
           {errorText ? (
             <div className="mb-4 rounded-lg border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
-              {errorText}
+              {tr(errorText)}
             </div>
           ) : null}
 
           {isLoading ? (
             <div className="rounded-xl border border-border bg-bg-primary p-5 text-sm text-text-secondary">
-              Loading agents...
+              {tr("Loading agents...")}
             </div>
           ) : scopedAgents.length === 0 ? (
             <div className="rounded-xl border border-border bg-bg-primary p-5 text-sm text-text-secondary">
-              <p>{emptyText}</p>
+              <p>{tr(emptyText)}</p>
               <button
                 onClick={resetFilters}
                 className="mt-3 rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
               >
-                Reset filters
+                {tr("Reset filters")}
               </button>
             </div>
           ) : (
@@ -428,15 +444,17 @@ export function AgentMarketPage() {
                               : "bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
                           }`}
                         >
-                          {favoriteAgentIdSet.has(agent.id) ? "Saved" : "Save"}
+                          {favoriteAgentIdSet.has(agent.id) ? tr("Saved") : tr("Save")}
                         </button>
                         <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${getStatusClass(agent.status)}`}>
-                          {formatStatus(agent.status)}
+                          {tr(formatStatus(agent.status))}
                         </span>
                       </div>
                     </div>
 
-                    <p className="mt-3 line-clamp-2 min-h-[40px] text-sm text-text-secondary">{agent.description || "No description."}</p>
+                    <p className="mt-3 line-clamp-2 min-h-[40px] text-sm text-text-secondary">
+                      {agent.description || tr("No description.")}
+                    </p>
 
                     <div className="mt-3 flex flex-wrap gap-2">
                       {(agent.config.tags || []).slice(0, 4).map((tag) => (
@@ -447,8 +465,13 @@ export function AgentMarketPage() {
                     </div>
 
                     <div className="mt-4 flex items-center justify-between text-xs text-text-muted">
-                      <span>Rating {agent.config.rating?.toFixed(1) || "-"}</span>
-                      <span>Usage {agent.config.usageCount?.toLocaleString() || 0}</span>
+                            <span>{tr("Rating")} {agent.config.rating !== undefined
+                              ? formatNumber(agent.config.rating, {
+                                  minimumFractionDigits: 1,
+                                  maximumFractionDigits: 1,
+                                })
+                              : "-"}</span>
+                      <span>{tr("Usage")} {formatNumber(agent.config.usageCount || 0)}</span>
                     </div>
                   </article>
                 );
@@ -458,10 +481,10 @@ export function AgentMarketPage() {
         </div>
 
         <aside className="hidden min-h-0 overflow-auto rounded-2xl border border-border bg-bg-secondary p-4 xl:block">
-          <h2 className="text-sm font-semibold text-text-primary">Live Preview</h2>
+          <h2 className="text-sm font-semibold text-text-primary">{tr("Live Preview")}</h2>
           {!selectedAgent ? (
             <div className="mt-3 rounded-lg border border-border bg-bg-primary p-4 text-sm text-text-secondary">
-              Select an agent to view details.
+              {tr("Select an agent to view details.")}
             </div>
           ) : (
             <div className="mt-3 space-y-4">
@@ -475,11 +498,11 @@ export function AgentMarketPage() {
                     <p className="truncate text-xs text-text-muted">{selectedAgent.config.creator || "OpenChat"}</p>
                   </div>
                 </div>
-                <p className="mt-3 text-sm text-text-secondary">{selectedAgent.description || "No description."}</p>
+                <p className="mt-3 text-sm text-text-secondary">{selectedAgent.description || tr("No description.")}</p>
               </div>
 
               <div className="rounded-lg border border-border bg-bg-primary p-4">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Capabilities</h4>
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Capabilities")}</h4>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {(selectedAgent.config.tags || []).length > 0 ? (
                     (selectedAgent.config.tags || []).map((tag) => (
@@ -488,39 +511,39 @@ export function AgentMarketPage() {
                       </span>
                     ))
                   ) : (
-                    <span className="text-xs text-text-muted">No tags</span>
+                    <span className="text-xs text-text-muted">{tr("No tags")}</span>
                   )}
                 </div>
               </div>
 
               <div className="rounded-lg border border-border bg-bg-primary p-4">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Actions</h4>
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Actions")}</h4>
                 <div className="mt-3 grid grid-cols-1 gap-2">
                   <button
                     onClick={() => handleOpenDetail(selectedAgent.id)}
                     className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-bg-hover"
                   >
-                    Open detail workspace
+                    {tr("Open detail workspace")}
                   </button>
                   <button
                     onClick={() => handleLaunchChat(selectedAgent)}
                     className="rounded-md bg-primary px-3 py-2 text-sm text-white transition-colors hover:brightness-110"
                   >
-                    Start chat
+                    {tr("Start chat")}
                   </button>
                   <button
                     onClick={() => handleToggleFavorite(selectedAgent.id)}
                     className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning transition-colors hover:bg-warning/20"
                   >
-                    {favoriteAgentIdSet.has(selectedAgent.id) ? "Remove from favorites" : "Save to favorites"}
+                    {favoriteAgentIdSet.has(selectedAgent.id) ? tr("Remove from favorites") : tr("Save to favorites")}
                   </button>
                 </div>
               </div>
 
               <div className="rounded-lg border border-border bg-bg-primary p-4">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Starter Prompt</h4>
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Starter Prompt")}</h4>
                 <p className="mt-2 text-xs text-text-secondary">
-                  {selectedAgent.config.welcomeMessage || "Describe your goal and expected outcome."}
+                  {selectedAgent.config.welcomeMessage || tr("Describe your goal and expected outcome.")}
                 </p>
                 {examplePrompts.length > 0 ? (
                   <div className="mt-2 space-y-1">
@@ -539,7 +562,7 @@ export function AgentMarketPage() {
 
               {recentOpenedAgents.length > 0 ? (
                 <div className="rounded-lg border border-border bg-bg-primary p-4">
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Recently Opened</h4>
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Recently Opened")}</h4>
                   <div className="mt-2 space-y-2">
                     {recentOpenedAgents.map((item) => (
                       <button
@@ -549,7 +572,7 @@ export function AgentMarketPage() {
                       >
                         <span className="truncate">{item.name}</span>
                         <span className="text-text-muted">
-                          {favoriteAgentIdSet.has(item.id) ? "Saved" : "Recent"}
+                          {favoriteAgentIdSet.has(item.id) ? tr("Saved") : tr("Recent")}
                         </span>
                       </button>
                     ))}
@@ -559,7 +582,7 @@ export function AgentMarketPage() {
 
               {summary.recent.length > 0 ? (
                 <div className="rounded-lg border border-border bg-bg-primary p-4">
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Recently Updated</h4>
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Recently Updated")}</h4>
                   <div className="mt-2 space-y-2">
                     {summary.recent.slice(0, 3).map((item) => (
                       <button
@@ -568,7 +591,7 @@ export function AgentMarketPage() {
                         className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs text-text-secondary hover:bg-bg-hover"
                       >
                         <span className="truncate">{item.name}</span>
-                        <span className="text-text-muted">{new Date(item.updatedAt).toLocaleDateString()}</span>
+                        <span className="text-text-muted">{formatDate(item.updatedAt, { dateStyle: "medium" })}</span>
                       </button>
                     ))}
                   </div>

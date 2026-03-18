@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   CallModal,
@@ -6,6 +6,10 @@ import {
   type CallType,
   useRTC,
 } from "@sdkwork/openchat-pc-rtc";
+import {
+  formatTime as formatLocaleTime,
+  useAppTranslation,
+} from "@sdkwork/openchat-pc-i18n";
 import { ChatHeader } from "../components/ChatHeader";
 import { ChatInput, type MediaItem } from "../components/ChatInput";
 import {
@@ -18,119 +22,140 @@ import type { Message, MessageAttachment } from "../entities/message.entity";
 import { useConversations } from "../hooks/useConversations";
 import { useMessages } from "../hooks/useMessages";
 
-const fallbackConversations: Conversation[] = [
-  {
-    id: "ai-1",
-    name: "OpenChat Assistant",
-    avatar: "AI",
-    lastMessage: "Ready to help with product and engineering questions.",
-    lastMessageTime: "09:18",
-    unreadCount: 2,
-    isOnline: true,
-    type: "ai",
-  },
-  {
-    id: "team-1",
-    name: "Core Team",
-    avatar: "CT",
-    lastMessage: "Roadmap review moved to 16:00.",
-    lastMessageTime: "Yesterday",
-    unreadCount: 0,
-    isOnline: true,
-    type: "group",
-  },
-  {
-    id: "u-1",
-    name: "Alex",
-    avatar: "A",
-    lastMessage: "Ping me when the build is ready.",
-    lastMessageTime: "08:42",
-    unreadCount: 0,
-    isOnline: true,
-    type: "single",
-  },
-];
+type TranslationFn = ReturnType<typeof useAppTranslation>["tr"];
 
-const fallbackMessages: Record<string, Message[]> = {
-  "ai-1": [
+function buildSeedConversations(tr: TranslationFn): Conversation[] {
+  return [
     {
-      id: "m-1",
-      conversationId: "ai-1",
-      senderId: "assistant",
-      senderName: "OpenChat Assistant",
-      senderAvatar: "AI",
-      content: { type: "text", text: "Hi, I am OpenChat Assistant. How can I help?" },
+      id: "ai-1",
+      name: tr("OpenChat Assistant"),
+      avatar: "AI",
+      lastMessage: tr("Ready to help with product and engineering questions."),
+      lastMessageTime: "09:18",
+      unreadCount: 2,
+      isOnline: true,
       type: "ai",
-      time: "09:15",
-      status: "read",
     },
     {
-      id: "m-2",
-      conversationId: "ai-1",
-      senderId: "current-user",
-      senderName: "You",
-      senderAvatar: "Me",
-      content: { type: "text", text: "Summarize today's delivery risks." },
-      type: "user",
-      time: "09:16",
-      status: "read",
+      id: "team-1",
+      name: tr("Core Team"),
+      avatar: "CT",
+      lastMessage: tr("Roadmap review moved to 16:00."),
+      lastMessageTime: tr("Yesterday"),
+      unreadCount: 0,
+      isOnline: true,
+      type: "group",
     },
     {
-      id: "m-3",
-      conversationId: "ai-1",
-      senderId: "assistant",
-      senderName: "OpenChat Assistant",
-      senderAvatar: "AI",
-      content: {
-        type: "text",
-        text: "Main risks are API coupling, unverified edge cases, and missing alert rules.",
+      id: "u-1",
+      name: "Alex",
+      avatar: "A",
+      lastMessage: tr("Ping me when the build is ready."),
+      lastMessageTime: "08:42",
+      unreadCount: 0,
+      isOnline: true,
+      type: "single",
+    },
+  ];
+}
+
+function buildSeedMessages(tr: TranslationFn): Record<string, Message[]> {
+  return {
+    "ai-1": [
+      {
+        id: "m-1",
+        conversationId: "ai-1",
+        senderId: "assistant",
+        senderName: tr("OpenChat Assistant"),
+        senderAvatar: "AI",
+        content: {
+          type: "text",
+          text: tr("Hi, I am OpenChat Assistant. How can I help?"),
+        },
+        type: "ai",
+        time: "09:15",
+        status: "read",
       },
-      type: "ai",
-      time: "09:18",
-      status: "read",
-    },
-  ],
-  "team-1": [
-    {
-      id: "m-4",
-      conversationId: "team-1",
-      senderId: "u-9",
-      senderName: "Mia",
-      senderAvatar: "M",
-      content: { type: "text", text: "Please review PR #184 before noon." },
-      type: "ai",
-      time: "Yesterday",
-      status: "read",
-    },
-  ],
-  "u-1": [
-    {
-      id: "m-5",
-      conversationId: "u-1",
-      senderId: "current-user",
-      senderName: "You",
-      senderAvatar: "Me",
-      content: { type: "text", text: "Can we sync on release timeline?" },
-      type: "user",
-      time: "08:40",
-      status: "read",
-    },
-    {
-      id: "m-6",
-      conversationId: "u-1",
-      senderId: "u-1",
-      senderName: "Alex",
-      senderAvatar: "A",
-      content: { type: "text", text: "Sure, let's discuss after standup." },
-      type: "ai",
-      time: "08:42",
-      status: "read",
-    },
-  ],
-};
+      {
+        id: "m-2",
+        conversationId: "ai-1",
+        senderId: "current-user",
+        senderName: tr("You"),
+        senderAvatar: "Me",
+        content: {
+          type: "text",
+          text: tr("Summarize today's delivery risks."),
+        },
+        type: "user",
+        time: "09:16",
+        status: "read",
+      },
+      {
+        id: "m-3",
+        conversationId: "ai-1",
+        senderId: "assistant",
+        senderName: tr("OpenChat Assistant"),
+        senderAvatar: "AI",
+        content: {
+          type: "text",
+          text: tr("Main risks are API coupling, unverified edge cases, and missing alert rules."),
+        },
+        type: "ai",
+        time: "09:18",
+        status: "read",
+      },
+    ],
+    "team-1": [
+      {
+        id: "m-4",
+        conversationId: "team-1",
+        senderId: "u-9",
+        senderName: "Mia",
+        senderAvatar: "M",
+        content: {
+          type: "text",
+          text: tr("Please review PR #184 before noon."),
+        },
+        type: "ai",
+        time: tr("Yesterday"),
+        status: "read",
+      },
+    ],
+    "u-1": [
+      {
+        id: "m-5",
+        conversationId: "u-1",
+        senderId: "current-user",
+        senderName: tr("You"),
+        senderAvatar: "Me",
+        content: {
+          type: "text",
+          text: tr("Can we sync on release timeline?"),
+        },
+        type: "user",
+        time: "08:40",
+        status: "read",
+      },
+      {
+        id: "m-6",
+        conversationId: "u-1",
+        senderId: "u-1",
+        senderName: "Alex",
+        senderAvatar: "A",
+        content: {
+          type: "text",
+          text: tr("Sure, let's discuss after standup."),
+        },
+        type: "ai",
+        time: "08:42",
+        status: "read",
+      },
+    ],
+  };
+}
 
 function formatNow(): string {
-  return new Date().toLocaleTimeString("zh-CN", {
+  return formatLocaleTime(new Date(), {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -141,7 +166,7 @@ function normalizeTime(value: string): string {
   if (Number.isNaN(date.getTime())) {
     return value;
   }
-  return date.toLocaleTimeString("zh-CN", {
+  return formatLocaleTime(date, {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -159,7 +184,7 @@ function toMessageAttachments(items: MediaItem[]): MessageAttachment[] {
   }));
 }
 
-function getLastMessagePreview(text: string, attachments: MediaItem[]): string {
+function getLastMessagePreview(tr: TranslationFn, text: string, attachments: MediaItem[]): string {
   const normalizedText = text.trim();
   if (normalizedText) {
     return normalizedText;
@@ -171,12 +196,16 @@ function getLastMessagePreview(text: string, attachments: MediaItem[]): string {
 
   if (attachments.length === 1) {
     const attachment = attachments[0];
-    if (attachment.type === "image") return "[image]";
-    if (attachment.type === "video") return "[video]";
-    return `[file] ${attachment.name || "attachment"}`;
+    if (attachment.type === "image") return tr("[Image]");
+    if (attachment.type === "video") return tr("[Video]");
+    return tr("[File] {{name}}", {
+      name: attachment.name || tr("Attachment"),
+    });
   }
 
-  return `[attachments] ${attachments.length} items`;
+  return tr("[Attachments] {{count}} items", {
+    count: attachments.length,
+  });
 }
 
 function normalizeMessageForRender(message: Message): Message {
@@ -214,12 +243,19 @@ function buildExternalConversation(
 }
 
 export function ChatPage() {
+  const { tr } = useAppTranslation();
+  const seedConversations = useMemo(() => buildSeedConversations(tr), [tr]);
+  const seedMessages = useMemo(() => buildSeedMessages(tr), [tr]);
+  const seedConversationIds = useMemo(
+    () => new Set(seedConversations.map((item) => item.id)),
+    [seedConversations],
+  );
   const [searchParams, setSearchParams] = useSearchParams();
   const [localConversations, setLocalConversations] = useState<Conversation[]>(
-    fallbackConversations,
+    seedConversations,
   );
   const [localMessagesByConversation, setLocalMessagesByConversation] =
-    useState<Record<string, Message[]>>(fallbackMessages);
+    useState<Record<string, Message[]>>(seedMessages);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const messageEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -263,17 +299,92 @@ export function ChatPage() {
     isLoading: isLoadingMessages,
   } = useMessages(selectedConversationFromSDK ? selectedId : null);
 
+  useEffect(() => {
+    const localizedConversationById = new Map(seedConversations.map((item) => [item.id, item]));
+
+    setLocalConversations((previous) => {
+      let changed = false;
+      const updated = previous.map((item) => {
+        const localized = localizedConversationById.get(item.id);
+        if (!localized) {
+          return item;
+        }
+
+        const nextItem = {
+          ...item,
+          name: localized.name,
+          lastMessage: localized.lastMessage,
+          lastMessageTime: localized.lastMessageTime,
+        };
+        if (
+          nextItem.name !== item.name
+          || nextItem.lastMessage !== item.lastMessage
+          || nextItem.lastMessageTime !== item.lastMessageTime
+        ) {
+          changed = true;
+        }
+        return nextItem;
+      });
+
+      return changed ? updated : previous;
+    });
+
+    setLocalMessagesByConversation((previous) => {
+      let changed = false;
+      const nextMessagesByConversation: Record<string, Message[]> = { ...previous };
+
+      for (const [conversationId, localizedMessages] of Object.entries(seedMessages)) {
+        const existingMessages = previous[conversationId];
+        if (!existingMessages) {
+          nextMessagesByConversation[conversationId] = localizedMessages;
+          changed = true;
+          continue;
+        }
+
+        const localizedById = new Map(localizedMessages.map((message) => [message.id, message]));
+        let conversationChanged = false;
+        const updatedMessages = existingMessages.map((message) => {
+          const localized = localizedById.get(message.id);
+          if (!localized) {
+            return message;
+          }
+
+          const nextMessage = {
+            ...message,
+            senderName: localized.senderName,
+            content: localized.content,
+            time: localized.time,
+          };
+          if (
+            nextMessage.senderName !== message.senderName
+            || nextMessage.time !== message.time
+            || nextMessage.content !== message.content
+          ) {
+            conversationChanged = true;
+          }
+          return nextMessage;
+        });
+
+        if (conversationChanged) {
+          nextMessagesByConversation[conversationId] = updatedMessages;
+          changed = true;
+        }
+      }
+
+      return changed ? nextMessagesByConversation : previous;
+    });
+  }, [seedConversations, seedMessages]);
+
   const externalConversations = useMemo(() => {
     if (!sdkEnabled) {
       return localConversations;
     }
 
-    const fallbackSeedIds = new Set(fallbackConversations.map((item) => item.id));
     return localConversations.filter(
       (item) =>
-        !fallbackSeedIds.has(item.id) || sdkConversations.some((remote) => remote.id === item.id),
+        !seedConversationIds.has(item.id) || sdkConversations.some((remote) => remote.id === item.id),
     );
-  }, [localConversations, sdkConversations, sdkEnabled]);
+  }, [localConversations, sdkConversations, sdkEnabled, seedConversationIds]);
 
   const conversations = useMemo(() => {
     if (!sdkEnabled) {
@@ -299,7 +410,7 @@ export function ChatPage() {
   const targetConversationName =
     targetContactName ||
     targetAgentName ||
-    (targetAgentId ? "AI Agent" : targetContactId ? "Contact" : "");
+    (targetAgentId ? tr("AI Agent") : targetContactId ? tr("Contact") : "");
   const targetConversationType: Conversation["type"] = targetAgentId ? "ai" : "single";
 
   useEffect(() => {
@@ -348,7 +459,9 @@ export function ChatPage() {
               senderAvatar: "AI",
               content: {
                 type: "text",
-                text: `Hello, I am ${targetConversationName}. What do you want to build today?`,
+                text: tr("Hello, I am {{name}}. What do you want to build today?", {
+                  name: targetConversationName,
+                }),
               },
               type: "ai",
               time: formatNow(),
@@ -474,7 +587,7 @@ export function ChatPage() {
       id: `${selectedId}-${Date.now()}`,
       conversationId: selectedId,
       senderId: "current-user",
-      senderName: "You",
+      senderName: tr("You"),
       senderAvatar: "Me",
       content: { type: "text", text },
       type: "user",
@@ -493,7 +606,7 @@ export function ChatPage() {
         item.id === selectedId
           ? {
               ...item,
-              lastMessage: getLastMessagePreview(text, attachmentList),
+              lastMessage: getLastMessagePreview(tr, text, attachmentList),
               lastMessageTime: now,
             }
           : item,
@@ -565,7 +678,9 @@ export function ChatPage() {
 
             <div className="flex-1 overflow-y-auto px-6 py-5">
               {isLoadingMessages && selectedConversationFromSDK ? (
-                <div className="text-sm text-text-muted">Loading messages...</div>
+                <div className="text-sm text-text-muted">
+                  {tr("Loading messages...")}
+                </div>
               ) : null}
 
               {messages.map((message) => (
@@ -585,7 +700,7 @@ export function ChatPage() {
           </>
         ) : (
           <div className="flex flex-1 items-center justify-center text-text-tertiary">
-            Select a conversation to start chatting.
+            {tr("Select a conversation to start chatting.")}
           </div>
         )}
       </section>

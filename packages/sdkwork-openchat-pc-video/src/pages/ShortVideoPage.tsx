@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { VideoResultService, VideoService } from "../services";
 import type { Video, VideoComment, VideoStats, VideoType } from "../types";
 import {
@@ -27,6 +28,7 @@ const sortOptions: Array<{ value: "popular" | "new" | "duration"; label: string 
 ];
 
 export function ShortVideoPage() {
+  const { tr } = useAppTranslation();
   const [videos, setVideos] = useState<Video[]>([]);
   const [stats, setStats] = useState<VideoStats | null>(null);
   const [comments, setComments] = useState<VideoComment[]>([]);
@@ -65,13 +67,13 @@ export function ShortVideoPage() {
       setStats(statsRes.data || null);
 
       if (!videosRes.success || !statsRes.success) {
-        setErrorText(videosRes.message || statsRes.message || "Some video data could not be loaded.");
+        setErrorText(videosRes.message || statsRes.message || tr("Some video data could not be loaded."));
       }
     } catch (error) {
       setVideos([]);
       setStats(null);
       setSelectedVideoId("");
-      setErrorText(error instanceof Error ? error.message : "Failed to load videos.");
+      setErrorText(error instanceof Error ? error.message : tr("Failed to load videos."));
     } finally {
       setIsLoading(false);
     }
@@ -139,7 +141,7 @@ export function ShortVideoPage() {
       } catch (error) {
         if (!cancelled) {
           setComments([]);
-          setStatusText(error instanceof Error ? error.message : "Failed to load comments.");
+          setStatusText(error instanceof Error ? error.message : tr("Failed to load comments."));
         }
       }
     }
@@ -170,12 +172,12 @@ export function ShortVideoPage() {
     try {
       const result = await VideoResultService.toggleLike(selectedVideo.id);
       if (!result.success) {
-        setStatusText(result.message || "Failed to update like state.");
+        setStatusText(result.message || tr("Failed to update like state."));
         return;
       }
       await loadVideos();
     } catch (error) {
-      setStatusText(error instanceof Error ? error.message : "Failed to update like state.");
+      setStatusText(error instanceof Error ? error.message : tr("Failed to update like state."));
     }
   };
 
@@ -188,40 +190,38 @@ export function ShortVideoPage() {
     try {
       const result = await VideoResultService.toggleCollect(selectedVideo.id);
       if (!result.success) {
-        setStatusText(result.message || "Failed to update collection state.");
+        setStatusText(result.message || tr("Failed to update collection state."));
         return;
       }
       await loadVideos();
     } catch (error) {
-      setStatusText(error instanceof Error ? error.message : "Failed to update collection state.");
+      setStatusText(error instanceof Error ? error.message : tr("Failed to update collection state."));
     }
   };
 
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <h1 className="text-xl font-semibold text-text-primary">Short Video</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Explore AI-generated short videos and interact with creators.
-        </p>
+        <h1 className="text-xl font-semibold text-text-primary">{tr("Short Video")}</h1>
+        <p className="mt-1 text-sm text-text-secondary">{tr("Explore AI-generated short videos and interact with creators.")}</p>
       </header>
 
       <div className="flex-1 overflow-auto p-6">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Current Results</p>
+            <p className="text-xs text-text-muted">{tr("Current Results")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.total}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Views</p>
+            <p className="text-xs text-text-muted">{tr("Views")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">{VideoService.formatCount(workspaceSummary.views)}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Likes</p>
+            <p className="text-xs text-text-muted">{tr("Likes")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">{VideoService.formatCount(workspaceSummary.likes)}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Avg Duration</p>
+            <p className="text-xs text-text-muted">{tr("Avg Duration")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">{VideoService.formatDuration(workspaceSummary.avgDuration)}</p>
           </div>
         </div>
@@ -229,7 +229,10 @@ export function ShortVideoPage() {
         <div className="mt-3 flex flex-wrap gap-2">
           {distributionTypeOptions.map((item) => (
             <span key={item.value} className="rounded-full border border-border bg-bg-secondary px-2 py-1 text-xs text-text-secondary">
-              {item.label}: {workspaceSummary.typeDistribution[item.value]}
+              {tr("{{label}}: {{count}}", {
+                label: tr(item.label),
+                count: workspaceSummary.typeDistribution[item.value],
+              })}
             </span>
           ))}
         </div>
@@ -240,7 +243,7 @@ export function ShortVideoPage() {
               <input
                 value={keyword}
                 onChange={(event) => setKeyword(event.target.value)}
-                placeholder="Search videos"
+                placeholder={tr("Search videos")}
                 className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
               />
               <select
@@ -250,7 +253,7 @@ export function ShortVideoPage() {
               >
                 {typeOptions.map((item) => (
                   <option key={item.value} value={item.value}>
-                    {item.label}
+                    {tr(item.label)}
                   </option>
                 ))}
               </select>
@@ -261,7 +264,7 @@ export function ShortVideoPage() {
               >
                 {sortOptions.map((item) => (
                   <option key={item.value} value={item.value}>
-                    {item.label}
+                    {tr(item.label)}
                   </option>
                 ))}
               </select>
@@ -269,16 +272,16 @@ export function ShortVideoPage() {
 
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
               <div className="rounded-lg border border-border bg-bg-primary p-2 text-text-secondary">
-                Videos {stats?.totalVideos ?? 0}
+                {tr("Videos")} {stats?.totalVideos ?? 0}
               </div>
               <div className="rounded-lg border border-border bg-bg-primary p-2 text-text-secondary">
-                Views {stats ? VideoService.formatCount(stats.totalViews) : 0}
+                {tr("Views")} {stats ? VideoService.formatCount(stats.totalViews) : 0}
               </div>
             </div>
 
             <div className="mt-3 grid grid-cols-1 gap-2 text-[11px]">
               <div className="rounded-lg border border-border bg-bg-primary p-2">
-                <p className="mb-1 font-semibold uppercase tracking-wide text-text-muted">Favorites</p>
+                <p className="mb-1 font-semibold uppercase tracking-wide text-text-muted">{tr("Favorites")}</p>
                 {workspaceLibrary.favorites.slice(0, 2).map((item) => (
                   <button
                     key={`favorite-${item.id}`}
@@ -288,10 +291,12 @@ export function ShortVideoPage() {
                     {item.title}
                   </button>
                 ))}
-                {workspaceLibrary.favorites.length === 0 ? <p className="text-text-muted">No favorites yet.</p> : null}
+                {workspaceLibrary.favorites.length === 0 ? (
+                  <p className="text-text-muted">{tr("No favorites yet.")}</p>
+                ) : null}
               </div>
               <div className="rounded-lg border border-border bg-bg-primary p-2">
-                <p className="mb-1 font-semibold uppercase tracking-wide text-text-muted">Recent</p>
+                <p className="mb-1 font-semibold uppercase tracking-wide text-text-muted">{tr("Recent")}</p>
                 {workspaceLibrary.recent.slice(0, 2).map((item) => (
                   <button
                     key={`recent-${item.id}`}
@@ -301,10 +306,12 @@ export function ShortVideoPage() {
                     {item.title}
                   </button>
                 ))}
-                {workspaceLibrary.recent.length === 0 ? <p className="text-text-muted">No recent history.</p> : null}
+                {workspaceLibrary.recent.length === 0 ? (
+                  <p className="text-text-muted">{tr("No recent history.")}</p>
+                ) : null}
               </div>
               <div className="rounded-lg border border-border bg-bg-primary p-2">
-                <p className="mb-1 font-semibold uppercase tracking-wide text-text-muted">Trending</p>
+                <p className="mb-1 font-semibold uppercase tracking-wide text-text-muted">{tr("Trending")}</p>
                 {workspaceLibrary.trending.slice(0, 2).map((item) => (
                   <button
                     key={`trending-${item.id}`}
@@ -314,15 +321,17 @@ export function ShortVideoPage() {
                     {item.title}
                   </button>
                 ))}
-                {workspaceLibrary.trending.length === 0 ? <p className="text-text-muted">No trending videos.</p> : null}
+                {workspaceLibrary.trending.length === 0 ? (
+                  <p className="text-text-muted">{tr("No trending videos.")}</p>
+                ) : null}
               </div>
             </div>
 
             <div className="mt-4 flex-1 space-y-2 overflow-auto">
               {isLoading ? (
-                <p className="text-sm text-text-secondary">Loading videos...</p>
+                <p className="text-sm text-text-secondary">{tr("Loading videos...")}</p>
               ) : workspaceVideos.length === 0 ? (
-                <p className="text-sm text-text-secondary">No videos found.</p>
+                <p className="text-sm text-text-secondary">{tr("No videos found.")}</p>
               ) : (
                 workspaceVideos.map((video) => (
                   <button
@@ -339,11 +348,11 @@ export function ShortVideoPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1">
                           <p className="truncate text-xs font-semibold text-text-primary">{video.title}</p>
-                          {favoriteSet.has(video.id) ? (
-                            <span className="rounded bg-warning/20 px-1 py-0.5 text-[10px] font-semibold text-warning">
-                              Fav
-                            </span>
-                          ) : null}
+                        {favoriteSet.has(video.id) ? (
+                          <span className="rounded bg-warning/20 px-1 py-0.5 text-[10px] font-semibold text-warning">
+                            {tr("Fav")}
+                          </span>
+                        ) : null}
                         </div>
                         <p className="mt-1 text-[11px] text-text-muted">
                           {video.author} | {VideoService.formatDuration(video.duration)}
@@ -359,7 +368,7 @@ export function ShortVideoPage() {
           <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-bg-secondary p-4">
             {!selectedVideo ? (
               <div className="rounded-lg border border-border bg-bg-primary p-5 text-sm text-text-secondary">
-                Select a video from the left panel.
+                {tr("Select a video from the left panel.")}
               </div>
             ) : (
               <>
@@ -386,44 +395,52 @@ export function ShortVideoPage() {
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-text-muted">
-                      <span>Views {VideoService.formatCount(selectedVideo.views)}</span>
-                      <span>Likes {VideoService.formatCount(selectedVideo.likes)}</span>
-                      <span>Comments {VideoService.formatCount(selectedVideo.comments)}</span>
-                      <span>Shares {VideoService.formatCount(selectedVideo.shares)}</span>
+                      <span>
+                        {tr("Views")}: {VideoService.formatCount(selectedVideo.views)}
+                      </span>
+                      <span>
+                        {tr("Likes")}: {VideoService.formatCount(selectedVideo.likes)}
+                      </span>
+                      <span>
+                        {tr("Comments")}: {VideoService.formatCount(selectedVideo.comments)}
+                      </span>
+                      <span>
+                        {tr("Shares")}: {VideoService.formatCount(selectedVideo.shares)}
+                      </span>
                     </div>
 
                     <div className="mt-4 flex items-center gap-2">
-                      <button
-                        onClick={() => void handleToggleLike()}
-                        className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
-                      >
-                        {selectedVideo.hasLiked ? "Unlike" : "Like"}
-                      </button>
-                      <button
-                        onClick={() => void handleToggleCollect()}
-                        className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
-                      >
-                        {selectedVideo.hasCollected ? "Collected" : "Collect"}
-                      </button>
-                      <button
-                        onClick={() => handleToggleFavorite(selectedVideo.id)}
-                        className={`rounded-md border px-3 py-1.5 text-xs ${
-                          favoriteSet.has(selectedVideo.id)
-                            ? "border-warning/40 bg-warning/20 text-warning"
-                            : "border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
-                        }`}
-                      >
-                        {favoriteSet.has(selectedVideo.id) ? "Favorited" : "Favorite"}
-                      </button>
+                        <button
+                          onClick={() => void handleToggleLike()}
+                          className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
+                        >
+                          {selectedVideo.hasLiked ? tr("Unlike") : tr("Like")}
+                        </button>
+                        <button
+                          onClick={() => void handleToggleCollect()}
+                          className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
+                        >
+                          {selectedVideo.hasCollected ? tr("Collected") : tr("Collect")}
+                        </button>
+                        <button
+                          onClick={() => handleToggleFavorite(selectedVideo.id)}
+                          className={`rounded-md border px-3 py-1.5 text-xs ${
+                            favoriteSet.has(selectedVideo.id)
+                              ? "border-warning/40 bg-warning/20 text-warning"
+                              : "border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
+                          }`}
+                        >
+                          {favoriteSet.has(selectedVideo.id) ? tr("Favorited") : tr("Favorite")}
+                        </button>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-4 flex-1 overflow-auto rounded-lg border border-border bg-bg-primary p-3">
-                  <h3 className="text-sm font-semibold text-text-primary">Comments</h3>
+                  <h3 className="text-sm font-semibold text-text-primary">{tr("Comments")}</h3>
                   <div className="mt-2 space-y-2">
                     {comments.length === 0 ? (
-                      <p className="text-xs text-text-secondary">No comments yet.</p>
+                      <p className="text-xs text-text-secondary">{tr("No comments yet.")}</p>
                     ) : (
                       comments.map((comment) => (
                         <div key={comment.id} className="rounded-md border border-border bg-bg-secondary p-2">

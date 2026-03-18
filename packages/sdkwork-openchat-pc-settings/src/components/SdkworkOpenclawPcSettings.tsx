@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { OpenClawInstallResultService } from "../services";
 import type { OpenClawInstallCommand, OpenClawPostInstallProfile } from "../types";
 
@@ -59,6 +60,7 @@ function shellLabel(shell: OpenClawInstallCommand["shell"]): string {
 }
 
 export function SdkworkOpenclawPcSettings() {
+  const { tr } = useAppTranslation();
   const [profile, setProfile] = useState<OpenClawPostInstallProfile>(() => loadProfile());
   const [commands, setCommands] = useState<OpenClawInstallCommand[]>([]);
   const [loading, setLoading] = useState(false);
@@ -114,15 +116,15 @@ export function SdkworkOpenclawPcSettings() {
       <header className="rounded-xl border border-border bg-bg-secondary p-4">
         <h2 className="text-base font-semibold text-text-primary">sdkwork-openclaw-pc-settings</h2>
         <p className="mt-1 text-sm text-text-secondary">
-          安装后配置面板：根据你的网关模式、路径和通道选择，自动生成可执行命令。
+          {tr("Post-install configuration panel that generates executable commands from your gateway mode, paths, and channel selections.")}
         </p>
       </header>
 
       <article className="rounded-xl border border-border bg-bg-secondary p-4">
-        <h3 className="text-sm font-medium text-text-primary">Gateway Profile</h3>
+        <h3 className="text-sm font-medium text-text-primary">{tr("Gateway profile")}</h3>
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
           <label className="text-sm text-text-secondary">
-            gateway.mode
+            {tr("gateway.mode")}
             <select
               value={profile.gatewayMode}
               onChange={(event) =>
@@ -133,13 +135,13 @@ export function SdkworkOpenclawPcSettings() {
               }
               className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
             >
-              <option value="local">local</option>
-              <option value="remote">remote</option>
+              <option value="local">{tr("local")}</option>
+              <option value="remote">{tr("remote")}</option>
             </select>
           </label>
 
           <label className="text-sm text-text-secondary">
-            gateway.bind
+            {tr("gateway.bind")}
             <select
               value={profile.gatewayBind}
               onChange={(event) =>
@@ -150,14 +152,14 @@ export function SdkworkOpenclawPcSettings() {
               }
               className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
             >
-              <option value="loopback">loopback</option>
-              <option value="lan">lan</option>
-              <option value="auto">auto</option>
+              <option value="loopback">{tr("loopback")}</option>
+              <option value="lan">{tr("lan")}</option>
+              <option value="auto">{tr("auto")}</option>
             </select>
           </label>
 
           <label className="text-sm text-text-secondary">
-            gateway port
+            {tr("gateway port")}
             <input
               value={profile.gatewayPort}
               onChange={(event) =>
@@ -169,13 +171,13 @@ export function SdkworkOpenclawPcSettings() {
           </label>
 
           <label className="text-sm text-text-secondary">
-            gateway token (optional)
+            {tr("gateway token (optional)")}
             <input
               value={profile.gatewayToken}
               onChange={(event) =>
                 setProfile((prev) => ({ ...prev, gatewayToken: event.target.value }))
               }
-              placeholder="paste generated token"
+              placeholder={tr("paste generated token")}
               className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
             />
           </label>
@@ -216,7 +218,7 @@ export function SdkworkOpenclawPcSettings() {
       </article>
 
       <article className="rounded-xl border border-border bg-bg-secondary p-4">
-        <h3 className="text-sm font-medium text-text-primary">Channels (optional)</h3>
+        <h3 className="text-sm font-medium text-text-primary">{tr("Channels (optional)")}</h3>
         <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-text-secondary md:grid-cols-4">
           <label className="inline-flex items-center gap-2">
             <input
@@ -229,7 +231,7 @@ export function SdkworkOpenclawPcSettings() {
                 }))
               }
             />
-            Telegram
+            {tr("Telegram")}
           </label>
           <label className="inline-flex items-center gap-2">
             <input
@@ -242,7 +244,7 @@ export function SdkworkOpenclawPcSettings() {
                 }))
               }
             />
-            Discord
+            {tr("Discord")}
           </label>
           <label className="inline-flex items-center gap-2">
             <input
@@ -255,7 +257,7 @@ export function SdkworkOpenclawPcSettings() {
                 }))
               }
             />
-            WhatsApp
+            {tr("WhatsApp")}
           </label>
           <label className="inline-flex items-center gap-2">
             <input
@@ -268,14 +270,14 @@ export function SdkworkOpenclawPcSettings() {
                 }))
               }
             />
-            Signal
+            {tr("Signal")}
           </label>
         </div>
       </article>
 
       <article className="rounded-xl border border-border bg-bg-secondary p-4">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-medium text-text-primary">Generated Commands</h3>
+          <h3 className="text-sm font-medium text-text-primary">{tr("Generated commands")}</h3>
           <button
             type="button"
             onClick={() => {
@@ -284,17 +286,17 @@ export function SdkworkOpenclawPcSettings() {
             disabled={commands.length === 0}
             className="rounded border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover disabled:opacity-60"
           >
-            复制全部
+            {tr("Copy all")}
           </button>
         </div>
 
         {loading ? (
-          <p className="text-sm text-text-secondary">Generating commands...</p>
+          <p className="text-sm text-text-secondary">{tr("Generating commands...")}</p>
         ) : null}
 
         {!loading && commands.length === 0 ? (
           <p className="text-sm text-text-secondary">
-            No commands generated. Check profile values.
+            {tr("No commands generated. Check profile values.")}
           </p>
         ) : null}
 
@@ -303,7 +305,7 @@ export function SdkworkOpenclawPcSettings() {
             {commands.map((command) => (
               <div key={command.id} className="rounded-md border border-border bg-bg-primary p-2.5">
                 <div className="mb-1 flex items-center justify-between gap-2">
-                  <div className="text-xs text-text-secondary">{command.title}</div>
+                  <div className="text-xs text-text-secondary">{tr(command.title)}</div>
                   <span className="rounded bg-bg-tertiary px-2 py-0.5 text-[11px] text-text-muted">
                     {shellLabel(command.shell)}
                   </span>
@@ -318,7 +320,7 @@ export function SdkworkOpenclawPcSettings() {
                   }}
                   className="mt-2 rounded border border-border bg-bg-tertiary px-2 py-1 text-[11px] text-text-secondary hover:bg-bg-hover"
                 >
-                  复制命令
+                  {tr("Copy command")}
                 </button>
               </div>
             ))}
@@ -328,7 +330,7 @@ export function SdkworkOpenclawPcSettings() {
 
       {notice ? (
         <div className="rounded-lg border border-border bg-bg-secondary px-3 py-2 text-xs text-text-secondary">
-          {notice}
+          {tr(notice)}
         </div>
       ) : null}
     </section>

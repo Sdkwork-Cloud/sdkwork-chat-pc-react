@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { AgentChat } from "../components/AgentChat";
 import { MemoryPanel } from "../components/MemoryPanel";
 import type { Agent, AgentSession, AgentStats } from "../entities/agent.entity";
@@ -7,22 +8,23 @@ import { AgentResultService, AgentService } from "../services";
 
 type DetailTab = "overview" | "chat" | "memory";
 
-const tabs: Array<{ key: DetailTab; label: string; hint: string }> = [
-  { key: "chat", label: "Live Chat", hint: "Primary workspace" },
-  { key: "overview", label: "Overview", hint: "Runtime and config" },
-  { key: "memory", label: "Memory", hint: "Long context" },
-];
-
-function formatPercent(value?: number): string {
+function formatPercent(
+  value: number | undefined,
+  formatNumber: ReturnType<typeof useAppTranslation>["formatNumber"],
+): string {
   if (value === undefined || Number.isNaN(value)) {
     return "-";
   }
-  return `${(value * 100).toFixed(1)}%`;
+  return `${formatNumber(value * 100, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}%`;
 }
 
 export function AgentDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { tr, formatDateTime, formatNumber } = useAppTranslation();
 
   const [agent, setAgent] = useState<Agent | null>(null);
   const [stats, setStats] = useState<AgentStats | null>(null);
@@ -34,9 +36,19 @@ export function AgentDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionText, setActionText] = useState("");
 
+  const tabs = useMemo(
+    () =>
+      [
+        { key: "chat" as const, label: tr("Live Chat"), hint: tr("Primary workspace") },
+        { key: "overview" as const, label: tr("Overview"), hint: tr("Runtime and config") },
+        { key: "memory" as const, label: tr("Memory"), hint: tr("Long context") },
+      ],
+    [tr],
+  );
+
   useEffect(() => {
     if (!id) {
-      setError("Missing agent id.");
+      setError(tr("Missing agent id."));
       return;
     }
 
@@ -66,7 +78,7 @@ export function AgentDetailPage() {
               statsResult.message ||
               sessionsResult.error ||
               sessionsResult.message ||
-              "Agent not found or service unavailable.",
+              tr("Agent not found or service unavailable."),
           );
           setAgent(null);
           setStats(null);
@@ -88,7 +100,7 @@ export function AgentDetailPage() {
           return;
         }
         console.error("Failed to load agent detail:", err);
-        setError("Agent not found or service unavailable.");
+        setError(tr("Agent not found or service unavailable."));
       } finally {
         if (!cancelled) {
           setIsLoading(false);
@@ -100,7 +112,7 @@ export function AgentDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, tr]);
 
   const selectedSession = useMemo(() => {
     if (!chatSession) {
@@ -112,7 +124,7 @@ export function AgentDetailPage() {
   const refreshStats = async (agentId: string) => {
     const result = await AgentResultService.getAgentStats(agentId);
     if (!result.success) {
-      throw new Error(result.error || result.message || "Failed to refresh agent stats.");
+      throw new Error(result.error || result.message || tr("Failed to refresh agent stats."));
     }
     setStats(result.data || null);
   };
@@ -120,7 +132,7 @@ export function AgentDetailPage() {
   const refreshSessions = async (agentId: string) => {
     const result = await AgentResultService.getAgentSessions(agentId);
     if (!result.success) {
-      throw new Error(result.error || result.message || "Failed to refresh sessions.");
+      throw new Error(result.error || result.message || tr("Failed to refresh sessions."));
     }
     const data = result.data || [];
     setSessions(data);
@@ -137,19 +149,19 @@ export function AgentDetailPage() {
     setActionText("");
 
     try {
-      const title = `Session ${new Date().toLocaleTimeString()}`;
+      const title = `${tr("Session")} ${formatDateTime(new Date())}`;
       const createdResult = await AgentResultService.createSession(agent.id, { title });
       if (!createdResult.success || !createdResult.data) {
-        setError(createdResult.error || createdResult.message || "Failed to create session.");
+        setError(createdResult.error || createdResult.message || tr("Failed to create session."));
         return;
       }
       const created = createdResult.data;
       setSessions((previous) => [created, ...previous]);
       setChatSession(created);
       setActiveTab("chat");
-      setActionText("New session created.");
+      setActionText(tr("New session created."));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create session.");
+      setError(err instanceof Error ? err.message : tr("Failed to create session."));
     } finally {
       setIsActionLoading(false);
     }
@@ -167,15 +179,15 @@ export function AgentDetailPage() {
     try {
       const resetResult = await AgentResultService.resetAgent(agent.id);
       if (!resetResult.success) {
-        setError(resetResult.error || resetResult.message || "Failed to reset agent.");
+        setError(resetResult.error || resetResult.message || tr("Failed to reset agent."));
         return;
       }
       const latestSessions = await refreshSessions(agent.id);
       await refreshStats(agent.id);
       setChatSession(latestSessions[0]);
-      setActionText("Agent context has been reset.");
+      setActionText(tr("Agent context has been reset."));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reset agent.");
+      setError(err instanceof Error ? err.message : tr("Failed to reset agent."));
     } finally {
       setIsActionLoading(false);
     }
@@ -196,9 +208,9 @@ export function AgentDetailPage() {
       if (!chatSession && latestSessions.length > 0) {
         setChatSession(latestSessions[0]);
       }
-      setActionText("Runtime data refreshed.");
+      setActionText(tr("Runtime data refreshed."));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to refresh.");
+      setError(err instanceof Error ? err.message : tr("Failed to refresh."));
     } finally {
       setIsActionLoading(false);
     }
@@ -207,9 +219,9 @@ export function AgentDetailPage() {
   if (isLoading) {
     return (
       <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary p-6">
-        <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-          Loading agent detail...
-        </div>
+          <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
+            {tr("Loading agent detail...")}
+          </div>
       </section>
     );
   }
@@ -221,10 +233,10 @@ export function AgentDetailPage() {
           onClick={() => navigate("/agents")}
           className="w-fit rounded-full border border-border bg-bg-secondary px-4 py-2 text-xs text-text-secondary hover:bg-bg-hover"
         >
-          Back to Agent Market
+          {tr("Back to Agent Market")}
         </button>
         <div className="mt-4 rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-          {error || "Agent not found."}
+          {error || tr("Agent not found.")}
         </div>
       </section>
     );
@@ -238,57 +250,59 @@ export function AgentDetailPage() {
             onClick={() => navigate("/agents")}
             className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs text-text-secondary transition-colors hover:bg-bg-hover"
           >
-            Back to Agent Market
+            {tr("Back to Agent Market")}
           </button>
-          <button
-            onClick={() => {
-              AgentService.markAgentOpened(agent.id);
-              const params = new URLSearchParams({
-                agentId: agent.id,
-                agentName: agent.name,
-              });
-              navigate(`/chat?${params.toString()}`);
-            }}
-            className="rounded-full bg-primary px-4 py-2 text-xs text-white transition-colors hover:brightness-110"
-          >
-            Open in Chat
-          </button>
+            <button
+              onClick={() => {
+                AgentService.markAgentOpened(agent.id);
+                const params = new URLSearchParams({
+                  agentId: agent.id,
+                  agentName: agent.name,
+                });
+                navigate(`/chat?${params.toString()}`);
+              }}
+              className="rounded-full bg-primary px-4 py-2 text-xs text-white transition-colors hover:brightness-110"
+            >
+              {tr("Open in Chat")}
+            </button>
         </div>
         <h1 className="mt-3 text-xl font-semibold text-text-primary">{agent.name}</h1>
-        <p className="mt-1 text-sm text-text-secondary">{agent.description || "No description available."}</p>
+        <p className="mt-1 text-sm text-text-secondary">{agent.description || tr("No description available.")}</p>
         <div className="mt-3 inline-flex items-center rounded-full border border-border bg-bg-tertiary px-3 py-1 text-xs text-text-muted">
-          {agent.type} / {agent.status}
+          {tr(agent.type)} / {tr(agent.status)}
         </div>
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-6 xl:grid-cols-[300px_minmax(0,1fr)]">
         <aside className="min-h-0 overflow-auto rounded-2xl border border-border bg-bg-secondary p-4">
-          <h2 className="text-sm font-semibold text-text-primary">Runtime Panel</h2>
+          <h2 className="text-sm font-semibold text-text-primary">{tr("Runtime Panel")}</h2>
           <div className="mt-3 grid grid-cols-2 gap-2">
             <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">Sessions</p>
+              <p className="text-xs text-text-muted">{tr("Sessions")}</p>
               <p className="mt-1 text-base font-semibold text-text-primary">{stats?.totalSessions ?? 0}</p>
             </div>
             <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">Messages</p>
+              <p className="text-xs text-text-muted">{tr("Messages")}</p>
               <p className="mt-1 text-base font-semibold text-text-primary">{stats?.totalMessages ?? 0}</p>
             </div>
             <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">Avg Response</p>
+              <p className="text-xs text-text-muted">{tr("Avg Response")}</p>
               <p className="mt-1 text-base font-semibold text-text-primary">
                 {stats?.avgResponseTime ? `${stats.avgResponseTime} ms` : "-"}
               </p>
             </div>
             <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">Satisfaction</p>
-              <p className="mt-1 text-base font-semibold text-text-primary">{formatPercent(stats?.satisfactionRate)}</p>
+              <p className="text-xs text-text-muted">{tr("Satisfaction")}</p>
+              <p className="mt-1 text-base font-semibold text-text-primary">{formatPercent(stats?.satisfactionRate, formatNumber)}</p>
             </div>
           </div>
 
           <div className="mt-3 rounded-xl border border-border bg-gradient-to-r from-primary/10 via-bg-primary to-bg-primary p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Quick Start</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{tr("Quick Start")}</p>
             <p className="mt-1 text-xs text-text-secondary">
-              Create a session first, then chat. If runtime state looks stale, refresh stats or reset context.
+              {tr(
+                "Create a session first, then chat. If runtime state looks stale, refresh stats or reset context.",
+              )}
             </p>
           </div>
 
@@ -300,7 +314,7 @@ export function AgentDetailPage() {
               disabled={isActionLoading}
               className="rounded-md bg-primary px-3 py-2 text-sm text-white transition-colors hover:brightness-110 disabled:opacity-60"
             >
-              New Session
+              {tr("New Session")}
             </button>
             <button
               onClick={() => {
@@ -309,7 +323,7 @@ export function AgentDetailPage() {
               disabled={isActionLoading}
               className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-bg-hover disabled:opacity-60"
             >
-              Refresh Stats
+              {tr("Refresh Stats")}
             </button>
             <button
               onClick={() => {
@@ -318,7 +332,7 @@ export function AgentDetailPage() {
               disabled={isActionLoading}
               className="rounded-md border border-warning/50 bg-warning/10 px-3 py-2 text-sm text-warning transition-colors hover:bg-warning/20 disabled:opacity-60"
             >
-              Reset Context
+              {tr("Reset Context")}
             </button>
           </div>
 
@@ -334,12 +348,12 @@ export function AgentDetailPage() {
             </div>
           ) : null}
 
-          <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">Sessions</h3>
+          <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Sessions")}</h3>
           <div className="mt-2 space-y-2">
             {sessions.length === 0 ? (
-              <div className="rounded-lg border border-border bg-bg-primary p-3 text-xs text-text-muted">
-                No sessions yet. Create one to start chatting.
-              </div>
+                <div className="rounded-lg border border-border bg-bg-primary p-3 text-xs text-text-muted">
+                  {tr("No sessions yet. Create one to start chatting.")}
+                </div>
             ) : (
               sessions.map((session) => {
                 const active = selectedSession?.id === session.id;
@@ -356,9 +370,9 @@ export function AgentDetailPage() {
                         : "border-border bg-bg-primary text-text-secondary hover:bg-bg-hover"
                     }`}
                   >
-                    <p className="truncate text-sm font-medium">{session.title || "Untitled Session"}</p>
+                    <p className="truncate text-sm font-medium">{session.title || tr("Untitled Session")}</p>
                     <p className="mt-1 truncate text-xs opacity-80">
-                      Updated at {new Date(session.updatedAt).toLocaleString()}
+                      {tr("Updated at {{time}}", { time: formatDateTime(session.updatedAt) })}
                     </p>
                   </button>
                 );
@@ -386,24 +400,40 @@ export function AgentDetailPage() {
                 </button>
               );
             })}
-            <span className="ml-auto text-xs text-text-muted">Session: {selectedSession?.title || "None selected"}</span>
+            <span className="ml-auto text-xs text-text-muted">
+              {tr("Session: {{session}}", {
+                session: selectedSession?.title || tr("None selected"),
+              })}
+            </span>
           </div>
 
           {activeTab === "overview" ? (
             <div className="min-h-0 flex-1 overflow-auto">
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <div className="rounded-xl border border-border bg-bg-primary p-4">
-                  <h3 className="text-sm font-semibold text-text-primary">Model Parameters</h3>
+                  <h3 className="text-sm font-semibold text-text-primary">{tr("Model Parameters")}</h3>
                   <div className="mt-3 space-y-2 text-sm text-text-secondary">
-                    <p>Model: {agent.config.llmConfig?.model || agent.config.model || "Not configured"}</p>
-                    <p>Temperature: {agent.config.llmConfig?.temperature ?? agent.config.temperature ?? "-"}</p>
-                    <p>Max Tokens: {agent.config.llmConfig?.maxTokens ?? agent.config.maxTokens ?? "-"}</p>
-                    <p>Creator: {agent.config.creator || "OpenChat"}</p>
+                    <p>
+                      {tr("Model: {{name}}", {
+                        name: agent.config.llmConfig?.model || agent.config.model || tr("Not configured"),
+                      })}
+                    </p>
+                    <p>
+                      {tr("Temperature: {{value}}", {
+                        value: agent.config.llmConfig?.temperature ?? agent.config.temperature ?? "-",
+                      })}
+                    </p>
+                    <p>
+                      {tr("Max Tokens: {{count}}", {
+                        count: Number(agent.config.llmConfig?.maxTokens ?? agent.config.maxTokens ?? 0),
+                      })}
+                    </p>
+                    <p>{tr("Creator: {{name}}", { name: agent.config.creator || "OpenChat" })}</p>
                   </div>
                 </div>
 
                 <div className="rounded-xl border border-border bg-bg-primary p-4">
-                  <h3 className="text-sm font-semibold text-text-primary">Tags and Capabilities</h3>
+                  <h3 className="text-sm font-semibold text-text-primary">{tr("Tags and Capabilities")}</h3>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {(agent.config.tags || []).length > 0 ? (
                       (agent.config.tags || []).map((tag) => (
@@ -412,30 +442,35 @@ export function AgentDetailPage() {
                         </span>
                       ))
                     ) : (
-                      <span className="text-sm text-text-muted">No tags</span>
+                      <span className="text-sm text-text-muted">{tr("No tags")}</span>
                     )}
                   </div>
                 </div>
 
                 <div className="rounded-xl border border-border bg-bg-primary p-4 lg:col-span-2">
-                  <h3 className="text-sm font-semibold text-text-primary">Operational Metrics</h3>
+                  <h3 className="text-sm font-semibold text-text-primary">{tr("Operational Metrics")}</h3>
                   <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
                     <div className="rounded-lg border border-border bg-bg-secondary p-3">
-                      <p className="text-xs text-text-muted">Today</p>
+                      <p className="text-xs text-text-muted">{tr("Today")}</p>
                       <p className="mt-1 text-base font-semibold text-text-primary">{stats?.todayUsage ?? 0}</p>
                     </div>
                     <div className="rounded-lg border border-border bg-bg-secondary p-3">
-                      <p className="text-xs text-text-muted">This Week</p>
+                      <p className="text-xs text-text-muted">{tr("This Week")}</p>
                       <p className="mt-1 text-base font-semibold text-text-primary">{stats?.weeklyUsage ?? 0}</p>
                     </div>
                     <div className="rounded-lg border border-border bg-bg-secondary p-3">
-                      <p className="text-xs text-text-muted">Avg Rating</p>
+                      <p className="text-xs text-text-muted">{tr("Avg Rating")}</p>
                       <p className="mt-1 text-base font-semibold text-text-primary">
-                        {stats?.averageRating ? stats.averageRating.toFixed(1) : "-"}
+                        {stats?.averageRating
+                          ? formatNumber(stats.averageRating, {
+                              minimumFractionDigits: 1,
+                              maximumFractionDigits: 1,
+                            })
+                          : "-"}
                       </p>
                     </div>
                     <div className="rounded-lg border border-border bg-bg-secondary p-3">
-                      <p className="text-xs text-text-muted">Favorites</p>
+                      <p className="text-xs text-text-muted">{tr("Favorites")}</p>
                       <p className="mt-1 text-base font-semibold text-text-primary">{stats?.favoriteCount ?? 0}</p>
                     </div>
                   </div>

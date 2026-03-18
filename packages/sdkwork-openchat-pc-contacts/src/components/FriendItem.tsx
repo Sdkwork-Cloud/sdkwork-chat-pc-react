@@ -1,12 +1,7 @@
-/**
- * 好友列表项组件 - 微信风格设计
- *
- * 职责：渲染单个好友项
- * 设计参考：微信PC版好友列表
- */
+import { memo } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 
-import { memo } from 'react';
-import type { Friend } from '../entities/contact.entity';
+import type { Friend } from "../entities/contact.entity";
 
 interface FriendItemProps {
   friend: Friend;
@@ -14,45 +9,41 @@ interface FriendItemProps {
   onClick: () => void;
 }
 
-export const FriendItem = memo(({ friend, isSelected, onClick }: FriendItemProps) => {
+export const FriendItem = memo(function FriendItem({ friend, isSelected, onClick }: FriendItemProps) {
+  const { tr } = useAppTranslation();
+  const fallbackStatus = friend.isOnline ? tr("Online") : tr("Offline");
+
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
-      className={`flex items-center px-4 py-3 cursor-pointer transition-all duration-150 group ${
-        isSelected
-          ? 'bg-[var(--ai-primary-soft)]'
-          : 'hover:bg-[var(--bg-hover)]'
+      className={`flex w-full items-center px-4 py-3 text-left transition-all duration-150 group ${
+        isSelected ? "bg-[var(--ai-primary-soft)]" : "hover:bg-[var(--bg-hover)]"
       }`}
     >
-      {/* 头像 */}
       <div className="relative flex-shrink-0">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--ai-primary)] to-[var(--ai-primary-hover)] flex items-center justify-center text-white font-semibold text-sm shadow-[var(--shadow-sm)]">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--ai-primary)] to-[var(--ai-primary-hover)] text-sm font-semibold text-white shadow-[var(--shadow-sm)]">
           {friend.avatar}
         </div>
-        {/* 在线状态指示器 */}
-        {friend.isOnline && (
-          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[var(--ai-success)] border-2 border-[var(--bg-secondary)] rounded-full"></div>
-        )}
+        {friend.isOnline ? (
+          <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[var(--bg-secondary)] bg-[var(--ai-success)]" />
+        ) : null}
       </div>
 
-      {/* 内容 */}
-      <div className="flex-1 min-w-0 ml-3">
-        <h3 className={`font-medium text-sm truncate ${
-          isSelected ? 'text-[var(--ai-primary)]' : 'text-[var(--text-primary)]'
-        }`}>
+      <div className="ml-3 min-w-0 flex-1">
+        <h3
+          className={`truncate text-sm font-medium ${
+            isSelected ? "text-[var(--ai-primary)]" : "text-[var(--text-primary)]"
+          }`}
+        >
           {friend.name}
         </h3>
-        <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">
-          {friend.status || (friend.isOnline ? '在线' : '离线')}
-        </p>
+        <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">{friend.status || fallbackStatus}</p>
       </div>
 
-      {/* 选中指示器 */}
-      {isSelected && (
-        <div className="w-1.5 h-1.5 rounded-full bg-[var(--ai-primary)] ml-2" />
-      )}
-    </div>
+      {isSelected ? <div className="ml-2 h-1.5 w-1.5 rounded-full bg-[var(--ai-primary)]" /> : null}
+    </button>
   );
 });
 
-FriendItem.displayName = 'FriendItem';
+FriendItem.displayName = "FriendItem";

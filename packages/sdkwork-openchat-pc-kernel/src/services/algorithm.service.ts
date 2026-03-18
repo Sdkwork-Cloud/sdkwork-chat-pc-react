@@ -1,4 +1,4 @@
-﻿import { CountingBloomFilter } from '../utils/countingBloomFilter';
+import { CountingBloomFilter } from '../utils/countingBloomFilter';
 import { SkipList } from '../utils/skipList';
 
 export interface AlgorithmService {
@@ -34,6 +34,5 @@ export class AlgorithmServiceImpl implements AlgorithmService {
   }
 }
 
-// 瀵煎嚭鍗曚緥瀹炰緥
 export const algorithmService = new AlgorithmServiceImpl();
 

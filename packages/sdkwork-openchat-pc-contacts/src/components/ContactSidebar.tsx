@@ -1,20 +1,15 @@
-﻿/**
- * 联系人侧边栏组件 - 微信风格设计
- *
- * 职责：渲染联系人列表侧边栏
- * 设计参考：微信PC版通讯录
- */
+import { memo } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 
-import { memo } from 'react';
 import type {
-  Friend,
-  Group,
   ContactTab,
+  Friend,
   FriendFilter,
   FriendRequest,
-} from '../entities/contact.entity';
-import { FriendItem } from './FriendItem';
-import { GroupItem } from './GroupItem';
+  Group,
+} from "../entities/contact.entity";
+import { FriendItem } from "./FriendItem";
+import { GroupItem } from "./GroupItem";
 
 interface ContactSidebarProps {
   friends: Friend[];
@@ -36,7 +31,7 @@ interface ContactSidebarProps {
   onCreateGroup: () => void;
 }
 
-const QuickActionItem = memo(({
+const QuickActionItem = memo(function QuickActionItem({
   icon,
   iconBg,
   title,
@@ -50,63 +45,48 @@ const QuickActionItem = memo(({
   badge?: number;
   onClick: () => void;
   isActive?: boolean;
-}) => (
-  <button
-    onClick={onClick}
-    className={`w-full flex items-center px-4 py-3 transition-all duration-150 group ${
-      isActive ? 'bg-[var(--ai-primary-soft)]' : 'hover:bg-[var(--bg-hover)]'
-    }`}
-  >
-    <div
-      className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105 ${iconBg}`}
-    >
-      {icon}
-    </div>
-    <span
-      className={`ml-3 text-sm font-medium flex-1 text-left ${
-        isActive ? 'text-[var(--ai-primary)]' : 'text-[var(--text-primary)]'
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center px-4 py-3 transition-all duration-150 group ${
+        isActive ? "bg-[var(--ai-primary-soft)]" : "hover:bg-[var(--bg-hover)]"
       }`}
     >
-      {title}
-    </span>
-    {badge !== undefined && badge > 0 && (
-      <span className="min-w-[18px] h-[18px] px-1.5 bg-[var(--ai-error)] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-        {badge > 99 ? '99+' : badge}
+      <div
+        className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105 ${iconBg}`}
+      >
+        {icon}
+      </div>
+      <span
+        className={`ml-3 text-sm font-medium flex-1 text-left ${
+          isActive ? "text-[var(--ai-primary)]" : "text-[var(--text-primary)]"
+        }`}
+      >
+        {title}
       </span>
-    )}
-    <svg
-      className={`w-4 h-4 ml-2 transition-colors ${
-        isActive ? 'text-[var(--ai-primary)]' : 'text-[var(--text-muted)]'
-      }`}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M9 5l7 7-7 7"
-      />
-    </svg>
-  </button>
-));
+      {badge !== undefined && badge > 0 ? (
+        <span className="min-w-[18px] h-[18px] px-1.5 bg-[var(--ai-error)] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      ) : null}
+      <svg
+        className={`w-4 h-4 ml-2 transition-colors ${
+          isActive ? "text-[var(--ai-primary)]" : "text-[var(--text-muted)]"
+        }`}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
+  );
+});
 
-QuickActionItem.displayName = 'QuickActionItem';
+QuickActionItem.displayName = "QuickActionItem";
 
-function formatRequestTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleDateString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-  });
-}
-
-export const ContactSidebar = memo(({
+export const ContactSidebar = memo(function ContactSidebar({
   friends,
   groups,
   friendRequests,
@@ -124,36 +104,37 @@ export const ContactSidebar = memo(({
   onAcceptRequest,
   onRejectRequest,
   onCreateGroup,
-}: ContactSidebarProps) => {
-  const pendingRequests = friendRequests.filter((item) => item.status === 'pending');
+}: ContactSidebarProps) {
+  const { tr, formatDate } = useAppTranslation();
+  const pendingRequests = friendRequests.filter((item) => item.status === "pending");
   const newFriendCount = pendingRequests.length;
 
   const handleNewFriendsClick = () => {
-    onTabChange('friends');
-    onFilterChange('new');
+    onTabChange("friends");
+    onFilterChange("new");
   };
 
   const handleGroupsClick = () => {
-    onTabChange('groups');
-    onFilterChange('all');
+    onTabChange("groups");
+    onFilterChange("all");
   };
 
   const handleFriendsTabClick = () => {
-    onTabChange('friends');
-    onFilterChange('all');
+    onTabChange("friends");
+    onFilterChange("all");
   };
 
   return (
     <div className="w-[300px] bg-[var(--bg-secondary)] border-r border-[var(--border-color)] flex flex-col h-full">
       <div className="h-[60px] flex items-center px-4 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]">
-        <h1 className="text-lg font-semibold text-[var(--text-primary)]">通讯录</h1>
+        <h1 className="text-lg font-semibold text-[var(--text-primary)]">{tr("Contacts")}</h1>
       </div>
 
       <div className="p-3 border-b border-[var(--border-color)]">
         <div className="relative">
           <input
             type="text"
-            placeholder="搜索"
+            placeholder={tr("Search")}
             value={searchKeyword}
             onChange={(event) => onSearchChange(event.target.value)}
             className="w-full h-9 pl-9 pr-3 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-md text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--ai-primary)] focus:bg-[var(--bg-secondary)] transition-all"
@@ -187,10 +168,10 @@ export const ContactSidebar = memo(({
             </svg>
           }
           iconBg="bg-[var(--ai-warning)]"
-          title="新的朋友"
+          title={tr("New Friends")}
           badge={newFriendCount}
           onClick={handleNewFriendsClick}
-          isActive={activeTab === 'friends' && filter === 'new'}
+          isActive={activeTab === "friends" && filter === "new"}
         />
         <QuickActionItem
           icon={
@@ -204,45 +185,45 @@ export const ContactSidebar = memo(({
             </svg>
           }
           iconBg="bg-[var(--ai-success)]"
-          title="群聊"
+          title={tr("Group Chats")}
           onClick={handleGroupsClick}
-          isActive={activeTab === 'groups'}
+          isActive={activeTab === "groups"}
         />
       </div>
 
-      {!(activeTab === 'friends' && filter === 'new') && (
+      {!(activeTab === "friends" && filter === "new") ? (
         <div className="flex border-b border-[var(--border-color)] bg-[var(--bg-secondary)]">
           <button
             onClick={handleFriendsTabClick}
             className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
-              activeTab === 'friends'
-                ? 'text-[var(--ai-primary)]'
-                : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
+              activeTab === "friends"
+                ? "text-[var(--ai-primary)]"
+                : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
             }`}
           >
-            好友
-            {activeTab === 'friends' && (
+            {tr("Friends")}
+            {activeTab === "friends" ? (
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-[var(--ai-primary)] rounded-full" />
-            )}
+            ) : null}
           </button>
           <button
             onClick={handleGroupsClick}
             className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
-              activeTab === 'groups'
-                ? 'text-[var(--ai-primary)]'
-                : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
+              activeTab === "groups"
+                ? "text-[var(--ai-primary)]"
+                : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
             }`}
           >
-            群组
-            {activeTab === 'groups' && (
+            {tr("Groups")}
+            {activeTab === "groups" ? (
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-[var(--ai-primary)] rounded-full" />
-            )}
+            ) : null}
           </button>
         </div>
-      )}
+      ) : null}
 
       <div className="flex-1 overflow-y-auto">
-        {activeTab === 'friends' && filter === 'all' ? (
+        {activeTab === "friends" && filter === "all" ? (
           <>
             {sortedInitials.map((initial) => (
               <div key={initial}>
@@ -260,7 +241,7 @@ export const ContactSidebar = memo(({
               </div>
             ))}
           </>
-        ) : activeTab === 'friends' && filter === 'new' ? (
+        ) : activeTab === "friends" && filter === "new" ? (
           <div className="p-3 space-y-3">
             {friendRequests.length === 0 ? (
               <div className="text-center py-8">
@@ -274,12 +255,13 @@ export const ContactSidebar = memo(({
                     />
                   </svg>
                 </div>
-                <h3 className="text-base font-medium text-[var(--text-primary)] mb-1">新的朋友</h3>
-                <p className="text-sm text-[var(--text-muted)]">暂无新的好友申请</p>
+                <h3 className="text-base font-medium text-[var(--text-primary)] mb-1">{tr("New Friends")}</h3>
+                <p className="text-sm text-[var(--text-muted)]">{tr("No new friend requests yet.")}</p>
               </div>
             ) : (
               friendRequests.map((request) => {
                 const isBusy = processingRequestId === request.id;
+
                 return (
                   <div
                     key={request.id}
@@ -294,41 +276,41 @@ export const ContactSidebar = memo(({
                           {request.fromName}
                         </p>
                         <p className="truncate text-xs text-[var(--text-muted)]">
-                          {request.message || '请求添加你为好友'}
+                          {request.message || tr("Wants to add you as a friend")}
                         </p>
                       </div>
                       <span className="text-xs text-[var(--text-muted)]">
-                        {formatRequestTime(request.createdAt)}
+                        {formatDate(request.createdAt, { month: "2-digit", day: "2-digit" })}
                       </span>
                     </div>
 
-                    {request.status === 'pending' ? (
+                    {request.status === "pending" ? (
                       <div className="mt-3 flex items-center justify-end gap-2">
                         <button
                           onClick={() => onRejectRequest(request.id)}
                           disabled={isBusy}
                           className="rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
                         >
-                          拒绝
+                          {tr("Reject")}
                         </button>
                         <button
                           onClick={() => onAcceptRequest(request.id)}
                           disabled={isBusy}
                           className="rounded-md bg-[var(--ai-primary)] px-3 py-1.5 text-xs text-white transition-colors hover:brightness-110 disabled:opacity-50"
                         >
-                          同意
+                          {tr("Accept")}
                         </button>
                       </div>
                     ) : (
                       <div className="mt-3 flex justify-end">
                         <span
                           className={`text-xs ${
-                            request.status === 'accepted'
-                              ? 'text-[var(--ai-success)]'
-                              : 'text-[var(--text-muted)]'
+                            request.status === "accepted"
+                              ? "text-[var(--ai-success)]"
+                              : "text-[var(--text-muted)]"
                           }`}
                         >
-                          {request.status === 'accepted' ? '已同意' : '已拒绝'}
+                          {request.status === "accepted" ? tr("Accepted") : tr("Rejected")}
                         </span>
                       </div>
                     )}
@@ -348,7 +330,7 @@ export const ContactSidebar = memo(({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
               </div>
-              <span className="ml-3 text-sm text-[var(--text-primary)]">新建群聊</span>
+              <span className="ml-3 text-sm text-[var(--text-primary)]">{tr("New Group Chat")}</span>
             </button>
 
             {groups.map((group) => (
@@ -365,15 +347,15 @@ export const ContactSidebar = memo(({
 
       <div className="px-4 py-2 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]">
         <span className="text-xs text-[var(--text-muted)]">
-          {activeTab === 'friends'
-            ? filter === 'new'
-              ? `${pendingRequests.length} 条待处理申请`
-              : `${friends.length} 位好友`
-            : `${groups.length} 个群组`}
+          {activeTab === "friends"
+            ? filter === "new"
+              ? tr("{{count}} pending requests", { count: pendingRequests.length })
+              : tr("{{count}} friends", { count: friends.length })
+            : tr("{{count}} groups", { count: groups.length })}
         </span>
       </div>
     </div>
   );
 });
 
-ContactSidebar.displayName = 'ContactSidebar';
+ContactSidebar.displayName = "ContactSidebar";

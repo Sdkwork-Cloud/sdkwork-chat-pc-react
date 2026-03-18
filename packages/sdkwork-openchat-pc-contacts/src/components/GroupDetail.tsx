@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { Friend, Group } from "../entities/contact.entity";
 import {
   deleteContactGroupNotice,
@@ -32,15 +33,33 @@ function toDisplayName(friend: Friend): string {
   return friend.remark || friend.nickname || friend.name || friend.username || friend.id;
 }
 
-function formatMuteStatus(muteEndTime?: string): string {
+function formatGroupRole(
+  role: ContactGroupRole,
+  tr: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  switch (role) {
+    case "owner":
+      return tr("Owner");
+    case "admin":
+      return tr("Admin");
+    default:
+      return tr("Member");
+  }
+}
+
+function formatMuteStatus(
+  muteEndTime: string | undefined,
+  tr: (key: string, options?: Record<string, unknown>) => string,
+  formatTime: (value: string | number | Date, options?: Intl.DateTimeFormatOptions) => string,
+): string {
   if (!muteEndTime) {
-    return "Not muted";
+    return tr("Not muted");
   }
   const date = new Date(muteEndTime);
   if (Number.isNaN(date.getTime()) || date.getTime() <= Date.now()) {
-    return "Not muted";
+    return tr("Not muted");
   }
-  return `Muted until ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  return tr("Muted until {{time}}", { time: formatTime(date) });
 }
 
 function sortNotices(input: ContactGroupNotice[]): ContactGroupNotice[] {
@@ -53,11 +72,12 @@ function sortNotices(input: ContactGroupNotice[]): ContactGroupNotice[] {
 
 export const GroupDetail = memo(
   ({ group, members = [], onGroupUpdated, onGroupDeleted }: GroupDetailProps) => {
+    const { tr, formatDateTime, formatTime } = useAppTranslation();
     const [runtime, setRuntime] = useState<ContactGroupRuntimeState | null>(null);
     const [newNotice, setNewNotice] = useState("");
     const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
     const [isPublishingNotice, setIsPublishingNotice] = useState(false);
-    const [feedback, setFeedback] = useState("");
+    const [feedback, setFeedback] = useState<string | null>(null);
     const [isLeaving, setIsLeaving] = useState(false);
 
     const friendMap = useMemo(() => {
@@ -103,7 +123,7 @@ export const GroupDetail = memo(
 
       return memberIds.map((memberId, index) => {
         const friend = friendMap.get(memberId);
-        const baseName = friend ? toDisplayName(friend) : `Member ${index + 1}`;
+        const baseName = friend ? toDisplayName(friend) : tr("Member {{count}}", { count: index + 1 });
         const role = stateById.get(memberId)?.role || (memberId === ownerId || index === 0 ? "owner" : "member");
         return {
           id: memberId,
@@ -113,71 +133,77 @@ export const GroupDetail = memo(
           muteEndTime: stateById.get(memberId)?.muteEndTime,
         };
       });
-    }, [friendMap, memberIds, ownerId, runtime?.memberStates]);
+    }, [friendMap, memberIds, ownerId, runtime?.memberStates, tr]);
 
     const notices = useMemo(() => sortNotices(runtime?.notices || []), [runtime?.notices]);
 
     const applyMemberAction = useCallback(
-      async (memberId: string, task: () => Promise<{ success: boolean; error?: string }>, successText: string) => {
+      async (memberId: string, task: () => Promise<{ success: boolean; error?: string }>, successMessage: string) => {
         setBusyMemberId(memberId);
-        setFeedback("");
+        setFeedback(null);
         try {
           const result = await task();
           if (!result.success) {
-            setFeedback(result.error || "Operation failed.");
+            setFeedback(result.error || tr("Operation failed."));
             return;
           }
           await loadRuntime();
-          setFeedback(successText);
+          setFeedback(successMessage);
         } finally {
           setBusyMemberId(null);
         }
       },
-      [loadRuntime],
+      [loadRuntime, tr],
     );
 
     const handlePublishNotice = async () => {
       const content = newNotice.trim();
       if (!content) {
-        setFeedback("Notice content cannot be empty.");
+        setFeedback(tr("Notice content cannot be empty."));
         return;
       }
 
       setIsPublishingNotice(true);
-      setFeedback("");
+      setFeedback(null);
       try {
         const result = await publishContactGroupNotice(group.id, content, true);
         if (!result.success) {
-          setFeedback(result.error || "Failed to publish notice.");
+          setFeedback(result.error || tr("Failed to publish notice."));
           return;
         }
         setNewNotice("");
         await loadRuntime();
-        setFeedback("Notice published.");
+        setFeedback(tr("Notice published."));
+      } catch (error) {
+        setFeedback(error instanceof Error ? error.message : tr("Failed to publish notice."));
       } finally {
         setIsPublishingNotice(false);
       }
     };
 
     const handleDeleteNotice = async (noticeId: string) => {
-      setFeedback("");
-      const result = await deleteContactGroupNotice(group.id, noticeId);
-      if (!result.success) {
-        setFeedback(result.error || "Failed to delete notice.");
-        return;
+      setFeedback(null);
+      try {
+        const result = await deleteContactGroupNotice(group.id, noticeId);
+        if (!result.success) {
+          setFeedback(result.error || tr("Failed to delete notice."));
+          return;
+        }
+        await loadRuntime();
+        setFeedback(tr("Notice deleted."));
+      } catch (error) {
+        setFeedback(error instanceof Error ? error.message : tr("Failed to delete notice."));
       }
-      await loadRuntime();
-      setFeedback("Notice deleted.");
     };
 
     const handleLeaveGroup = async () => {
       setIsLeaving(true);
-      setFeedback("");
+      setFeedback(null);
       try {
         const currentUserId = localStorage.getItem("uid") || ownerId || memberIds[0] || "current-user";
         const result = await leaveContactGroup(group.id, currentUserId);
         if (!result.success) {
-          setFeedback(result.error || "Failed to leave group.");
+          setFeedback(result.error || tr("Failed to leave group."));
           return;
         }
 
@@ -193,7 +219,9 @@ export const GroupDetail = memo(
           memberCount: nextMemberIds.length,
         };
         onGroupUpdated?.(nextGroup);
-        setFeedback("Left group successfully.");
+        setFeedback(tr("Left group successfully."));
+      } catch (error) {
+        setFeedback(error instanceof Error ? error.message : tr("Failed to leave group."));
       } finally {
         setIsLeaving(false);
       }
@@ -214,7 +242,9 @@ export const GroupDetail = memo(
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="text-2xl font-semibold text-[var(--text-primary)]">{group.name}</h3>
-                  <p className="mt-1 text-sm text-[var(--text-muted)]">{memberIds.length} members</p>
+                  <p className="mt-1 text-sm text-[var(--text-muted)]">
+                    {tr("{{count}} members", { count: memberIds.length })}
+                  </p>
                   {group.description ? (
                     <p className="mt-2 text-sm text-[var(--text-tertiary)]">{group.description}</p>
                   ) : null}
@@ -223,13 +253,13 @@ export const GroupDetail = memo(
             </section>
 
             <section className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6">
-              <h4 className="text-sm font-medium text-[var(--text-tertiary)]">Group Notices</h4>
+              <h4 className="text-sm font-medium text-[var(--text-tertiary)]">{tr("Group Notices")}</h4>
               <div className="mt-3 flex items-start gap-2">
                 <textarea
                   value={newNotice}
                   onChange={(event) => setNewNotice(event.target.value)}
                   rows={2}
-                  placeholder="Publish a notice to all members..."
+                  placeholder={tr("Publish a notice to all members...")}
                   className="flex-1 resize-none rounded-lg border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--ai-primary)]"
                 />
                 <button
@@ -240,12 +270,12 @@ export const GroupDetail = memo(
                   disabled={isPublishingNotice}
                   className="h-10 rounded-lg bg-[var(--ai-primary)] px-4 text-sm text-white transition hover:brightness-110 disabled:opacity-60"
                 >
-                  {isPublishingNotice ? "Publishing..." : "Publish"}
+                  {isPublishingNotice ? tr("Publishing...") : tr("Publish")}
                 </button>
               </div>
               <div className="mt-4 space-y-2">
                 {notices.length === 0 ? (
-                  <p className="text-sm text-[var(--text-muted)]">No notices yet.</p>
+                  <p className="text-sm text-[var(--text-muted)]">{tr("No notices yet.")}</p>
                 ) : (
                   notices.map((notice) => (
                     <div
@@ -261,11 +291,14 @@ export const GroupDetail = memo(
                           }}
                           className="rounded px-2 py-1 text-xs text-[var(--ai-error)] hover:bg-[rgba(239,68,68,0.1)]"
                         >
-                          Delete
+                          {tr("Delete")}
                         </button>
                       </div>
                       <p className="mt-1 text-xs text-[var(--text-muted)]">
-                        {notice.publisherName} · {new Date(notice.publishTime).toLocaleString()}
+                        {tr("Published by {{name}} at {{time}}", {
+                          name: notice.publisherName,
+                          time: formatDateTime(notice.publishTime),
+                        })}
                       </p>
                     </div>
                   ))
@@ -274,7 +307,7 @@ export const GroupDetail = memo(
             </section>
 
             <section className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6">
-              <h4 className="text-sm font-medium text-[var(--text-tertiary)]">Members</h4>
+              <h4 className="text-sm font-medium text-[var(--text-tertiary)]">{tr("Members")}</h4>
               <div className="mt-4 space-y-3">
                 {memberViews.map((member) => {
                   const isBusy = busyMemberId === member.id;
@@ -294,7 +327,10 @@ export const GroupDetail = memo(
                         <div className="min-w-[160px] flex-1">
                           <p className="text-sm font-medium text-[var(--text-primary)]">{member.name}</p>
                           <p className="text-xs text-[var(--text-muted)]">
-                            Role: {member.role} · {formatMuteStatus(member.muteEndTime)}
+                            {tr("Role: {{role}} | {{muteStatus}}", {
+                              role: formatGroupRole(member.role, tr),
+                              muteStatus: formatMuteStatus(member.muteEndTime, tr, formatTime),
+                            })}
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -306,12 +342,12 @@ export const GroupDetail = memo(
                                 void applyMemberAction(
                                   member.id,
                                   () => setContactGroupMemberRole(group.id, member.id, isAdmin ? "member" : "admin"),
-                                  isAdmin ? "Role updated to member." : "Role updated to admin.",
+                                  isAdmin ? tr("Role updated to member.") : tr("Role updated to admin."),
                                 );
                               }}
                               className="rounded-md border border-[var(--border-color)] px-2.5 py-1 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-60"
                             >
-                              {isAdmin ? "Set Member" : "Set Admin"}
+                              {isAdmin ? tr("Set Member") : tr("Set Admin")}
                             </button>
                           ) : null}
                           <button
@@ -321,12 +357,12 @@ export const GroupDetail = memo(
                               void applyMemberAction(
                                 member.id,
                                 () => muteContactGroupMember(group.id, member.id, isMuted ? 0 : 30),
-                                isMuted ? "Mute cleared." : "Muted for 30 minutes.",
+                                isMuted ? tr("Mute cleared.") : tr("Muted for 30 minutes."),
                               );
                             }}
                             className="rounded-md border border-[var(--border-color)] px-2.5 py-1 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-60"
                           >
-                            {isMuted ? "Unmute" : "Mute 30m"}
+                            {isMuted ? tr("Unmute") : tr("Mute 30m")}
                           </button>
                           {!isOwner ? (
                             <button
@@ -336,12 +372,12 @@ export const GroupDetail = memo(
                                 void applyMemberAction(
                                   member.id,
                                   () => transferContactGroupOwnership(group.id, member.id),
-                                  "Ownership transferred.",
+                                  tr("Ownership transferred."),
                                 );
                               }}
                               className="rounded-md border border-[var(--border-color)] px-2.5 py-1 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-60"
                             >
-                              Make Owner
+                              {tr("Make Owner")}
                             </button>
                           ) : null}
                         </div>
@@ -360,7 +396,7 @@ export const GroupDetail = memo(
               disabled={isLeaving}
               className="w-full rounded-xl bg-[rgba(239,68,68,0.1)] py-3 text-sm font-medium text-[var(--ai-error)] transition-colors hover:bg-[rgba(239,68,68,0.15)] disabled:opacity-60"
             >
-              {isLeaving ? "Leaving..." : "Leave Group"}
+              {isLeaving ? tr("Leaving...") : tr("Leave Group")}
             </button>
 
             {feedback ? <p className="text-sm text-[var(--text-secondary)]">{feedback}</p> : null}

@@ -1,4 +1,4 @@
-﻿export interface FeatureFlag {
+export interface FeatureFlag {
   key: string;
   name: string;
   description: string;
@@ -214,6 +214,5 @@ export class FeatureServiceImpl implements FeatureService {
   }
 }
 
-// 瀵煎嚭鍗曚緥瀹炰緥
 export const featureService = new FeatureServiceImpl();
 

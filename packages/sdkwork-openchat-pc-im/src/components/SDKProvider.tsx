@@ -1,19 +1,21 @@
-/**
- * SDK Provider组件
- *
- * 职责：
- * 1. 初始化OpenChat SDK
- * 2. 提供SDK上下文
- * 3. 管理连接状态
- * 4. 处理全局SDK事件
- */
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import { OpenChatClient } from "@openchat/typescript-sdk";
+import { translate } from "@sdkwork/openchat-pc-i18n";
+import {
+  destroySDK,
+  initializeSDK,
+  isSDKInitialized,
+  type SDKAdapterConfig,
+} from "../adapters/sdk-adapter";
+import { MessageResultService } from "../services";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { OpenChatClient } from '@openchat/typescript-sdk';
-import { initializeSDK, destroySDK, isSDKInitialized, SDKAdapterConfig } from '../adapters/sdk-adapter';
-import { MessageResultService } from '../services';
-
-// SDK上下文类型
 interface SDKContextType {
   client: OpenChatClient | null;
   isInitialized: boolean;
@@ -23,10 +25,8 @@ interface SDKContextType {
   reconnect: () => Promise<void>;
 }
 
-// 创建上下文
 const SDKContext = createContext<SDKContextType | undefined>(undefined);
 
-// Provider Props
 interface SDKProviderProps {
   children: ReactNode;
   config: SDKAdapterConfig;
@@ -34,9 +34,6 @@ interface SDKProviderProps {
   onError?: (error: Error) => void;
 }
 
-/**
- * SDK Provider组件
- */
 export function SDKProvider({
   children,
   config,
@@ -49,10 +46,9 @@ export function SDKProvider({
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // 初始化SDK
   const initSDK = useCallback(async () => {
     if (isSDKInitialized()) {
-      console.log('SDK already initialized');
+      console.log("SDK already initialized");
       return;
     }
 
@@ -64,92 +60,91 @@ export function SDKProvider({
       setClient(sdkClient);
       setIsInitialized(true);
       setIsConnected(true);
-      
-      // 注册消息事件监听器
-      const registerResult = MessageResultService.registerMessageEventListeners();
+
+      const registerResult =
+        MessageResultService.registerMessageEventListeners();
       if (!registerResult.success) {
-        console.warn('Failed to register message event listeners:', registerResult.error);
+        console.warn(
+          "Failed to register message event listeners:",
+          registerResult.error,
+        );
       }
-      
+
       onInitialized?.();
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('SDK初始化失败');
-      setError(error);
-      onError?.(error);
-      console.error('SDK初始化失败:', error);
+    } catch (cause) {
+      const nextError =
+        cause instanceof Error
+          ? cause
+          : new Error(translate("SDK initialization failed."));
+      setError(nextError);
+      onError?.(nextError);
+      console.error("SDK initialization failed:", nextError);
     } finally {
       setIsConnecting(false);
     }
-  }, [config, onInitialized, onError]);
+  }, [config, onError, onInitialized]);
 
-  // 重连
   const reconnect = useCallback(async () => {
-    if (isConnecting) return;
+    if (isConnecting) {
+      return;
+    }
 
-    // 先销毁旧的
     destroySDK();
     setClient(null);
     setIsInitialized(false);
     setIsConnected(false);
 
-    // 重新初始化
     await initSDK();
   }, [initSDK, isConnecting]);
 
-  // 组件挂载时初始化
   useEffect(() => {
-    initSDK();
+    void initSDK();
 
-    // 组件卸载时清理
     return () => {
       destroySDK();
     };
   }, [initSDK]);
 
-  // 监听连接状态变化
   useEffect(() => {
-    if (!client) return;
+    if (!client) {
+      return;
+    }
 
-    // 监听连接状态
-    const checkConnection = setInterval(() => {
-      const connected = client.isConnected();
-      setIsConnected(connected);
+    const timer = setInterval(() => {
+      setIsConnected(client.isConnected());
     }, 5000);
 
     return () => {
-      clearInterval(checkConnection);
+      clearInterval(timer);
     };
   }, [client]);
 
-  const value: SDKContextType = {
-    client,
-    isInitialized,
-    isConnected,
-    isConnecting,
-    error,
-    reconnect,
-  };
-
-  return <SDKContext.Provider value={value}>{children}</SDKContext.Provider>;
+  return (
+    <SDKContext.Provider
+      value={{
+        client,
+        isInitialized,
+        isConnected,
+        isConnecting,
+        error,
+        reconnect,
+      }}
+    >
+      {children}
+    </SDKContext.Provider>
+  );
 }
 
-/**
- * 使用SDK上下文的Hook
- */
 export function useSDK(): SDKContextType {
   const context = useContext(SDKContext);
-  if (context === undefined) {
-    throw new Error('useSDK must be used within a SDKProvider');
+  if (!context) {
+    throw new Error("useSDK must be used within a SDKProvider");
   }
   return context;
 }
 
-/**
- * 检查SDK是否已初始化的Hook
- */
 export function useSDKReady(): boolean {
-  const context = useContext(SDKContext);
-  return context?.isInitialized ?? false;
+  return useContext(SDKContext)?.isInitialized ?? false;
 }
 
 export default SDKProvider;

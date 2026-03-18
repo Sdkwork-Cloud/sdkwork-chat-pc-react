@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { formatNumber, useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { Message, MessageAttachment } from "../entities/message.entity";
 
 interface MessageBubbleProps {
@@ -14,7 +15,7 @@ function formatFileSize(bytes?: number): string {
     size /= 1024;
     unitIndex++;
   }
-  return `${size.toFixed(1)} ${units[unitIndex]}`;
+  return `${formatNumber(size, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${units[unitIndex]}`;
 }
 
 function getMessageText(content: Message["content"]): string {
@@ -37,6 +38,7 @@ const AttachmentItem = memo(function AttachmentItem({
   attachment: MessageAttachment;
   isUser: boolean;
 }) {
+  const { tr } = useAppTranslation();
   const sharedClass = isUser
     ? "border border-white/20 bg-white/10 text-white"
     : "border border-border bg-bg-secondary text-text-primary";
@@ -50,7 +52,7 @@ const AttachmentItem = memo(function AttachmentItem({
       >
         <img
           src={attachment.url}
-          alt={attachment.name || "图片"}
+          alt={attachment.name || tr("Image")}
           className="max-h-[220px] w-full object-cover"
           loading="lazy"
         />
@@ -69,7 +71,7 @@ const AttachmentItem = memo(function AttachmentItem({
           ▶
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{attachment.name || "视频文件"}</p>
+          <p className="truncate text-sm font-medium">{attachment.name || tr("Video file")}</p>
           <p className="text-xs opacity-80">
             {attachment.duration ? `${Math.floor(attachment.duration)}s` : formatFileSize(attachment.size)}
           </p>
@@ -86,7 +88,7 @@ const AttachmentItem = memo(function AttachmentItem({
     >
       <div className="flex h-10 w-10 items-center justify-center rounded-md bg-bg-tertiary text-lg">📄</div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{attachment.name || "文件"}</p>
+        <p className="truncate text-sm font-medium">{attachment.name || tr("File")}</p>
         <p className="text-xs opacity-80">{formatFileSize(attachment.size)}</p>
       </div>
     </button>
@@ -94,6 +96,7 @@ const AttachmentItem = memo(function AttachmentItem({
 });
 
 export const MessageBubble = memo(function MessageBubble({ message }: MessageBubbleProps) {
+  const { tr } = useAppTranslation();
   const isUser = message.type === "user";
   const hasAttachments = !!message.attachments?.length;
   const messageText = getMessageText(message.content);
@@ -102,7 +105,7 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     <div className={`mb-5 flex ${isUser ? "justify-end" : "justify-start"} animate-fade-in`}>
       {!isUser ? (
         <div className="mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-white shadow-md">
-          AI
+          {tr("AI")}
         </div>
       ) : null}
 
@@ -142,15 +145,15 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
             {message.status === "sending" ? (
               <div className="h-3 w-3 animate-spin rounded-full border-2 border-text-muted border-t-transparent" />
             ) : null}
-            {message.status === "read" ? <span className="text-xs text-primary">已读</span> : null}
-            {message.status === "sent" ? <span className="text-xs text-text-muted">已发送</span> : null}
+            {message.status === "read" ? <span className="text-xs text-primary">{tr("Read")}</span> : null}
+            {message.status === "sent" ? <span className="text-xs text-text-muted">{tr("Sent")}</span> : null}
           </div>
         ) : null}
       </div>
 
       {isUser ? (
         <div className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-500 text-sm font-bold text-white shadow-md">
-          Me
+          {tr("You")}
         </div>
       ) : null}
     </div>
@@ -158,4 +161,3 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
 });
 
 export default MessageBubble;
-

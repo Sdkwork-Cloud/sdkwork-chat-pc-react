@@ -6,6 +6,7 @@ import {
   buildDriveWorkspaceSummary,
   filterDriveWorkspaceFiles,
 } from "./drive.workspace.model";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 
 function inferFileType(fileName: string): FileType {
   const lower = fileName.toLowerCase();
@@ -29,6 +30,9 @@ const typeOptions: Array<{ value: "all" | FileType; label: string }> = [
   { value: "audio", label: "Audio" },
   { value: "doc", label: "Doc" },
   { value: "pdf", label: "PDF" },
+  { value: "xls", label: "Sheet" },
+  { value: "ppt", label: "Slides" },
+  { value: "zip", label: "Archive" },
   { value: "code", label: "Code" },
   { value: "unknown", label: "Unknown" },
 ];
@@ -38,8 +42,23 @@ const sortOptions: Array<{ value: "updated" | "size"; label: string }> = [
   { value: "size", label: "Largest Size" },
 ];
 
+const fileTypeLabels: Record<FileType, string> = {
+  folder: "Folder",
+  image: "Image",
+  video: "Video",
+  audio: "Audio",
+  doc: "Doc",
+  pdf: "PDF",
+  xls: "Sheet",
+  ppt: "Slides",
+  zip: "Archive",
+  code: "Code",
+  unknown: "Unknown",
+};
+
 export function CloudDrivePage() {
   const [currentParentId, setCurrentParentId] = useState<string | null>(null);
+  const { tr } = useAppTranslation();
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
   const [files, setFiles] = useState<FileNode[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -78,13 +97,13 @@ export function CloudDrivePage() {
       setSelectedIds([]);
 
       if (!filesRes.success || !statsRes.success) {
-        setErrorText(filesRes.message || statsRes.message || "Some drive data could not be loaded.");
+        setErrorText(filesRes.message || statsRes.message || tr("Some drive data could not be loaded."));
       }
     } catch (error) {
       setFiles([]);
       setStorageStats(null);
       setBreadcrumbs([]);
-      setErrorText(error instanceof Error ? error.message : "Failed to load cloud drive.");
+      setErrorText(error instanceof Error ? error.message : tr("Failed to load cloud drive."));
     } finally {
       setIsLoading(false);
     }
@@ -92,7 +111,7 @@ export function CloudDrivePage() {
 
   useEffect(() => {
     void loadData(currentParentId);
-  }, [currentParentId, keyword, typeFilter, onlyStarred]);
+  }, [currentParentId, keyword, typeFilter, onlyStarred, tr]);
 
   const usedPercent = useMemo(() => {
     if (!storageStats || storageStats.total <= 0) {
@@ -133,7 +152,7 @@ export function CloudDrivePage() {
   };
 
   const handleCreateFolder = async () => {
-    const folderName = window.prompt("Folder name", "New Folder");
+    const folderName = window.prompt(tr("Folder name"), tr("New Folder"));
     if (!folderName?.trim()) {
       return;
     }
@@ -141,20 +160,20 @@ export function CloudDrivePage() {
     try {
       const result = await FileResultService.createFolder(currentParentId, folderName.trim());
       if (!result.success) {
-        setStatusText(result.message || "Failed to create folder.");
+        setStatusText(result.message || tr("Failed to create folder."));
         return;
       }
 
-      setStatusText("Folder created.");
+      setStatusText(tr("Folder created."));
       await loadData(currentParentId);
     } catch (error) {
-      setStatusText(error instanceof Error ? error.message : "Failed to create folder.");
+      setStatusText(error instanceof Error ? error.message : tr("Failed to create folder."));
     }
   };
 
   const handleUploadMockFile = async () => {
     const defaultName = `demo_${Date.now()}.txt`;
-    const fileName = window.prompt("File name", defaultName);
+    const fileName = window.prompt(tr("File name"), defaultName);
     if (!fileName?.trim()) {
       return;
     }
@@ -167,14 +186,14 @@ export function CloudDrivePage() {
         type,
       });
       if (!result.success) {
-        setStatusText(result.message || "Failed to upload file.");
+        setStatusText(result.message || tr("Failed to upload file."));
         return;
       }
 
-      setStatusText("File uploaded.");
+      setStatusText(tr("File uploaded."));
       await loadData(currentParentId);
     } catch (error) {
-      setStatusText(error instanceof Error ? error.message : "Failed to upload file.");
+      setStatusText(error instanceof Error ? error.message : tr("Failed to upload file."));
     }
   };
 
@@ -187,18 +206,18 @@ export function CloudDrivePage() {
     try {
       const result = await FileResultService.toggleStar(id);
       if (!result.success) {
-        setStatusText(result.message || "Failed to update favorite state.");
+        setStatusText(result.message || tr("Failed to update favorite state."));
         return;
       }
 
       await loadData(currentParentId);
     } catch (error) {
-      setStatusText(error instanceof Error ? error.message : "Failed to update favorite state.");
+      setStatusText(error instanceof Error ? error.message : tr("Failed to update favorite state."));
     }
   };
 
   const handleRename = async (file: FileNode) => {
-    const nextName = window.prompt("Rename file", file.name);
+    const nextName = window.prompt(tr("Rename file"), file.name);
     if (!nextName?.trim() || nextName.trim() === file.name) {
       return;
     }
@@ -206,54 +225,54 @@ export function CloudDrivePage() {
     try {
       const result = await FileResultService.renameFile(file.id, nextName.trim());
       if (!result.success) {
-        setStatusText(result.message || "Failed to rename file.");
+        setStatusText(result.message || tr("Failed to rename file."));
         return;
       }
 
-      setStatusText("File renamed.");
+      setStatusText(tr("File renamed."));
       await loadData(currentParentId);
     } catch (error) {
-      setStatusText(error instanceof Error ? error.message : "Failed to rename file.");
+      setStatusText(error instanceof Error ? error.message : tr("Failed to rename file."));
     }
   };
 
   const handleDeleteSelected = async () => {
     if (selectedIds.length === 0) {
-      setStatusText("Please select at least one item.");
+      setStatusText(tr("Please select at least one item."));
       return;
     }
 
     try {
       const result = await FileResultService.deleteFiles(selectedIds);
       if (!result.success) {
-        setStatusText(result.message || "Failed to delete selected files.");
+        setStatusText(result.message || tr("Failed to delete selected files."));
         return;
       }
 
-      setStatusText("Selected files deleted.");
+      setStatusText(tr("Selected files deleted."));
       await loadData(currentParentId);
     } catch (error) {
-      setStatusText(error instanceof Error ? error.message : "Failed to delete selected files.");
+      setStatusText(error instanceof Error ? error.message : tr("Failed to delete selected files."));
     }
   };
 
   const handleMoveSelectedToRoot = async () => {
     if (selectedIds.length === 0) {
-      setStatusText("Please select at least one item.");
+      setStatusText(tr("Please select at least one item."));
       return;
     }
 
     try {
       const result = await FileResultService.moveFiles(selectedIds, null);
       if (!result.success) {
-        setStatusText(result.message || "Failed to move selected files.");
+        setStatusText(result.message || tr("Failed to move selected files."));
         return;
       }
 
-      setStatusText("Selected files moved to root.");
+      setStatusText(tr("Selected files moved to root."));
       await loadData(currentParentId);
     } catch (error) {
-      setStatusText(error instanceof Error ? error.message : "Failed to move selected files.");
+      setStatusText(error instanceof Error ? error.message : tr("Failed to move selected files."));
     }
   };
 
@@ -262,51 +281,51 @@ export function CloudDrivePage() {
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <h1 className="text-xl font-semibold text-text-primary">Cloud Drive</h1>
+        <h1 className="text-xl font-semibold text-text-primary">{tr("Cloud Drive")}</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Manage folders, files, and storage usage from your workspace.
+          {tr("Manage folders, files, and storage usage from your workspace.")}
         </p>
       </header>
 
       <div className="flex-1 overflow-auto p-6">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Current Entries</p>
+            <p className="text-xs text-text-muted">{tr("Current Entries")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.total}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Folders</p>
+            <p className="text-xs text-text-muted">{tr("Folders")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.folders}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Files</p>
+            <p className="text-xs text-text-muted">{tr("Files")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.files}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Starred in View</p>
+            <p className="text-xs text-text-muted">{tr("Starred in View")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.starred}</p>
           </div>
         </div>
 
-        <div className="mt-4 rounded-xl border border-border bg-bg-secondary p-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-text-primary">Storage</p>
-            <p className="text-xs text-text-secondary">
-              {storageStats
-                ? `${FileService.formatBytes(storageStats.used)} / ${FileService.formatBytes(storageStats.total)}`
-                : "-"}
-            </p>
+          <div className="mt-4 rounded-xl border border-border bg-bg-secondary p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-text-primary">{tr("Storage")}</p>
+              <p className="text-xs text-text-secondary">
+                {storageStats
+                  ? `${FileService.formatBytes(storageStats.used)} / ${FileService.formatBytes(storageStats.total)}`
+                  : "-"}
+              </p>
+            </div>
+            <div className="mt-2 h-2 rounded-full bg-bg-tertiary">
+              <div className="h-2 rounded-full bg-primary" style={{ width: `${usedPercent}%` }} />
+            </div>
           </div>
-          <div className="mt-2 h-2 rounded-full bg-bg-tertiary">
-            <div className="h-2 rounded-full bg-primary" style={{ width: `${usedPercent}%` }} />
-          </div>
-        </div>
 
         <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-[1fr_140px_160px_auto_auto_auto]">
           <input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
-            placeholder="Search files and folders"
+            placeholder={tr("Search files and folders")}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
           />
           <select
@@ -316,7 +335,7 @@ export function CloudDrivePage() {
           >
             {typeOptions.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {tr(option.label)}
               </option>
             ))}
           </select>
@@ -327,7 +346,7 @@ export function CloudDrivePage() {
           >
             {sortOptions.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {tr(option.label)}
               </option>
             ))}
           </select>
@@ -339,19 +358,19 @@ export function CloudDrivePage() {
                 : "border-border bg-bg-tertiary text-text-secondary"
             }`}
           >
-            Starred only
+            {tr("Starred only")}
           </button>
           <button
             onClick={() => void handleCreateFolder()}
             className="rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-xs text-text-secondary"
           >
-            New Folder
+            {tr("New Folder")}
           </button>
           <button
             onClick={() => void handleUploadMockFile()}
             className="rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-xs text-text-secondary"
           >
-            Upload Demo
+            {tr("Upload Demo")}
           </button>
         </div>
 
@@ -364,7 +383,7 @@ export function CloudDrivePage() {
                 item.id === currentParentId ? "bg-primary text-white" : "bg-bg-tertiary"
               }`}
             >
-              {item.name}
+              {item.id === null ? tr("Root") : item.name}
             </button>
           ))}
         </div>
@@ -372,7 +391,7 @@ export function CloudDrivePage() {
         <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
           <div className="rounded-xl border border-border bg-bg-secondary p-3">
             <div className="mb-2 flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Favorites</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Favorites")}</h4>
               <span className="text-[11px] text-text-muted">{workspaceLibrary.favorites.length}</span>
             </div>
             <div className="space-y-1">
@@ -386,14 +405,14 @@ export function CloudDrivePage() {
                 </button>
               ))}
               {workspaceLibrary.favorites.length === 0 ? (
-                <p className="text-[11px] text-text-muted">No favorites yet.</p>
+                <p className="text-[11px] text-text-muted">{tr("No favorites yet.")}</p>
               ) : null}
             </div>
           </div>
 
           <div className="rounded-xl border border-border bg-bg-secondary p-3">
             <div className="mb-2 flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Recent Opened</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Recent Opened")}</h4>
               <span className="text-[11px] text-text-muted">{workspaceLibrary.recent.length}</span>
             </div>
             <div className="space-y-1">
@@ -407,14 +426,14 @@ export function CloudDrivePage() {
                 </button>
               ))}
               {workspaceLibrary.recent.length === 0 ? (
-                <p className="text-[11px] text-text-muted">No recent history.</p>
+                <p className="text-[11px] text-text-muted">{tr("No recent history.")}</p>
               ) : null}
             </div>
           </div>
 
           <div className="rounded-xl border border-border bg-bg-secondary p-3">
             <div className="mb-2 flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Largest Files</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Largest Files")}</h4>
               <span className="text-[11px] text-text-muted">{workspaceLibrary.largest.length}</span>
             </div>
             <div className="space-y-1">
@@ -428,7 +447,7 @@ export function CloudDrivePage() {
                 </button>
               ))}
               {workspaceLibrary.largest.length === 0 ? (
-                <p className="text-[11px] text-text-muted">No files in this view.</p>
+                <p className="text-[11px] text-text-muted">{tr("No files in this view.")}</p>
               ) : null}
             </div>
           </div>
@@ -439,13 +458,13 @@ export function CloudDrivePage() {
             onClick={() => void handleDeleteSelected()}
             className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary"
           >
-            Delete Selected
+            {tr("Delete Selected")}
           </button>
           <button
             onClick={() => void handleMoveSelectedToRoot()}
             className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary"
           >
-            Move to Root
+            {tr("Move to Root")}
           </button>
         </div>
 
@@ -459,11 +478,11 @@ export function CloudDrivePage() {
         <div className="mt-5">
           {isLoading ? (
             <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-              Loading drive files...
+              {tr("Loading drive files...")}
             </div>
           ) : workspaceFiles.length === 0 ? (
             <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-              No files found in this folder.
+              {tr("No files found in this folder.")}
             </div>
           ) : (
             <div className="space-y-3">
@@ -500,14 +519,14 @@ export function CloudDrivePage() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="truncate text-sm font-semibold text-text-primary">{file.name}</p>
-                            {favoriteSet.has(file.id) ? (
-                              <span className="rounded bg-warning/20 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
-                                Fav
-                              </span>
-                            ) : null}
+                          {favoriteSet.has(file.id) ? (
+                            <span className="rounded bg-warning/20 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                              {tr("Fav")}
+                            </span>
+                          ) : null}
                           </div>
                           <p className="text-xs text-text-muted">
-                            {file.type} | {file.size ? FileService.formatBytes(file.size) : "-"}
+                            {tr(fileTypeLabels[file.type])} | {file.size ? FileService.formatBytes(file.size) : "-"}
                           </p>
                         </div>
                       </button>
@@ -520,7 +539,7 @@ export function CloudDrivePage() {
                             : "border-border bg-bg-tertiary text-text-secondary"
                         }`}
                       >
-                        {favoriteSet.has(file.id) ? "Favorited" : "Favorite"}
+                        {favoriteSet.has(file.id) ? tr("Favorited") : tr("Favorite")}
                       </button>
 
                       <button
@@ -531,14 +550,14 @@ export function CloudDrivePage() {
                             : "bg-bg-tertiary text-text-secondary"
                         }`}
                       >
-                        {file.isStarred ? "Starred" : "Star"}
+                        {file.isStarred ? tr("Starred") : tr("Star")}
                       </button>
 
                       <button
                         onClick={() => void handleRename(file)}
                         className="rounded-md border border-border bg-bg-tertiary px-2 py-1 text-xs text-text-secondary"
                       >
-                        Rename
+                        {tr("Rename")}
                       </button>
                     </div>
                   </article>

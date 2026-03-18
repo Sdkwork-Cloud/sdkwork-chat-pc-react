@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { Modal, ModalButtonGroup } from "@sdkwork/openchat-pc-ui";
 
 interface NewNoteModalProps {
@@ -32,6 +33,7 @@ function persistNote(note: SavedNote): void {
 }
 
 export function NewNoteModal({ isOpen, onClose, onSuccess }: NewNoteModalProps) {
+  const { tr, formatNumber } = useAppTranslation();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -74,14 +76,14 @@ export function NewNoteModal({ isOpen, onClose, onSuccess }: NewNoteModalProps) 
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="New Note"
+      title={tr("New Note")}
       size="xl"
       bodyClassName="p-0"
       footer={
         <ModalButtonGroup
           onCancel={handleClose}
           onConfirm={handleSave}
-          confirmText="Save Note"
+          confirmText={tr("Save Note")}
           isLoading={isSaving}
           disabled={!canSave}
         />
@@ -96,7 +98,7 @@ export function NewNoteModal({ isOpen, onClose, onSuccess }: NewNoteModalProps) 
                 tab === "edit" ? "bg-primary text-white" : "text-text-tertiary hover:text-text-primary"
               }`}
             >
-              Edit
+              {tr("Edit")}
             </button>
             <button
               onClick={() => setTab("preview")}
@@ -104,10 +106,12 @@ export function NewNoteModal({ isOpen, onClose, onSuccess }: NewNoteModalProps) 
                 tab === "preview" ? "bg-primary text-white" : "text-text-tertiary hover:text-text-primary"
               }`}
             >
-              Preview
+              {tr("Preview")}
             </button>
           </div>
-          <span className="text-xs text-text-muted">{content.length} chars</span>
+          <span className="text-xs text-text-muted">
+            {tr("{{count}} chars", { count: content.length })}
+          </span>
         </div>
 
         {tab === "edit" ? (
@@ -115,13 +119,13 @@ export function NewNoteModal({ isOpen, onClose, onSuccess }: NewNoteModalProps) 
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="Note title"
+              placeholder={tr("Note title")}
               className="h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary outline-none focus:border-primary"
             />
             <textarea
               value={content}
               onChange={(event) => setContent(event.target.value)}
-              placeholder="Write your note here."
+              placeholder={tr("Write your note here.")}
               className="min-h-0 flex-1 resize-none rounded-lg border border-border bg-bg-tertiary p-3 text-sm leading-6 text-text-primary outline-none focus:border-primary"
             />
           </div>
@@ -139,7 +143,7 @@ export function NewNoteModal({ isOpen, onClose, onSuccess }: NewNoteModalProps) 
               </div>
             ) : (
               <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-text-muted">
-                Nothing to preview yet.
+                {tr("Nothing to preview yet.")}
               </div>
             )}
           </div>

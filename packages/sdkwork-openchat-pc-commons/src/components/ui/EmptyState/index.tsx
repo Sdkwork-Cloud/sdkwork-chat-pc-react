@@ -1,52 +1,24 @@
-﻿/**
- * EmptyState 绌虹姸鎬佺粍浠? *
- * 鑱岃矗锛氬湪鏁版嵁涓虹┖鏃舵彁渚涘弸濂界殑瑙嗚鍙嶉
- * 鐗规€э細
- * - 绮剧編鐨勬彃鐢婚鏍? * - 鍙嚜瀹氫箟鍥炬爣銆佹爣棰樸€佹弿杩? * - 鏀寔鎿嶄綔鎸夐挳
- */
-
 import React from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { cn } from "../../../utils/cn";
 import { Button } from "../Button";
 
-// ==================== 绫诲瀷瀹氫箟 ====================
-
 export interface EmptyStateProps {
-  /** 鍥炬爣 */
   icon?: React.ReactNode;
-  /** 鏍囬 */
   title?: string;
-  /** 鎻忚堪 */
   description?: string;
-  /** 鎿嶄綔鎸夐挳 */
   action?: React.ReactNode;
-  /** 灏哄 */
   size?: "small" | "medium" | "large";
-  /** 鑷畾涔夌被鍚?*/
   className?: string;
 }
-
-// ==================== 棰勮鍥炬爣 ====================
 
 const EmptyIcon: React.FC<{
   type?: "default" | "search" | "message" | "file";
 }> = ({ type = "default" }) => {
   const icons = {
     default: (
-      <svg
-        className="w-full h-full"
-        viewBox="0 0 120 120"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          cx="60"
-          cy="60"
-          r="50"
-          stroke="currentColor"
-          strokeWidth="2"
-          opacity="0.2"
-        />
+      <svg className="h-full w-full" viewBox="0 0 120 120" fill="none">
+        <circle cx="60" cy="60" r="50" stroke="currentColor" strokeWidth="2" opacity="0.2" />
         <circle cx="45" cy="50" r="8" fill="currentColor" opacity="0.4" />
         <circle cx="75" cy="50" r="8" fill="currentColor" opacity="0.4" />
         <path
@@ -59,20 +31,8 @@ const EmptyIcon: React.FC<{
       </svg>
     ),
     search: (
-      <svg
-        className="w-full h-full"
-        viewBox="0 0 120 120"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          cx="55"
-          cy="55"
-          r="30"
-          stroke="currentColor"
-          strokeWidth="3"
-          opacity="0.3"
-        />
+      <svg className="h-full w-full" viewBox="0 0 120 120" fill="none">
+        <circle cx="55" cy="55" r="30" stroke="currentColor" strokeWidth="3" opacity="0.3" />
         <path
           d="M78 78 L95 95"
           stroke="currentColor"
@@ -80,33 +40,12 @@ const EmptyIcon: React.FC<{
           strokeLinecap="round"
           opacity="0.3"
         />
-        <circle
-          cx="55"
-          cy="55"
-          r="20"
-          stroke="currentColor"
-          strokeWidth="2"
-          opacity="0.2"
-        />
+        <circle cx="55" cy="55" r="20" stroke="currentColor" strokeWidth="2" opacity="0.2" />
       </svg>
     ),
     message: (
-      <svg
-        className="w-full h-full"
-        viewBox="0 0 120 120"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <rect
-          x="20"
-          y="30"
-          width="80"
-          height="60"
-          rx="8"
-          stroke="currentColor"
-          strokeWidth="2"
-          opacity="0.3"
-        />
+      <svg className="h-full w-full" viewBox="0 0 120 120" fill="none">
+        <rect x="20" y="30" width="80" height="60" rx="8" stroke="currentColor" strokeWidth="2" opacity="0.3" />
         <path
           d="M35 50 H85 M35 65 H65"
           stroke="currentColor"
@@ -118,24 +57,9 @@ const EmptyIcon: React.FC<{
       </svg>
     ),
     file: (
-      <svg
-        className="w-full h-full"
-        viewBox="0 0 120 120"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M35 20 H70 L90 40 V100 H35 V20 Z"
-          stroke="currentColor"
-          strokeWidth="2"
-          opacity="0.3"
-        />
-        <path
-          d="M70 20 V40 H90"
-          stroke="currentColor"
-          strokeWidth="2"
-          opacity="0.3"
-        />
+      <svg className="h-full w-full" viewBox="0 0 120 120" fill="none">
+        <path d="M35 20 H70 L90 40 V100 H35 V20 Z" stroke="currentColor" strokeWidth="2" opacity="0.3" />
+        <path d="M70 20 V40 H90" stroke="currentColor" strokeWidth="2" opacity="0.3" />
         <path
           d="M45 55 H80 M45 70 H80 M45 85 H60"
           stroke="currentColor"
@@ -147,41 +71,27 @@ const EmptyIcon: React.FC<{
     ),
   };
 
-  return icons[type] || icons.default;
+  return icons[type];
 };
-
-// ==================== 缁勪欢瀹炵幇 ====================
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
   icon,
-  title = "鏆傛棤鏁版嵁",
-  description = "褰撳墠鍒楄〃涓虹┖",
+  title,
+  description,
   action,
   size = "medium",
   className,
 }) => {
+  const { tr } = useAppTranslation();
   const sizeClasses = {
-    small: {
-      container: "py-8",
-      icon: "w-16 h-16",
-      title: "text-base",
-      description: "text-sm",
-    },
-    medium: {
-      container: "py-12",
-      icon: "w-24 h-24",
-      title: "text-lg",
-      description: "text-base",
-    },
-    large: {
-      container: "py-16",
-      icon: "w-32 h-32",
-      title: "text-xl",
-      description: "text-lg",
-    },
+    small: { container: "py-8", icon: "h-16 w-16", title: "text-base", description: "text-sm" },
+    medium: { container: "py-12", icon: "h-24 w-24", title: "text-lg", description: "text-base" },
+    large: { container: "py-16", icon: "h-32 w-32", title: "text-xl", description: "text-lg" },
   };
 
   const currentSize = sizeClasses[size];
+  const resolvedTitle = title ?? tr("No data available.");
+  const resolvedDescription = description ?? tr("There is nothing to show right now.");
 
   return (
     <div
@@ -191,84 +101,78 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         className,
       )}
     >
-      {/* 鍥炬爣 */}
-      <div className={cn("text-text-muted mb-4", currentSize.icon)}>
-        {icon || <EmptyIcon />}
-      </div>
-
-      {/* 鏍囬 */}
-      <h3
-        className={cn("font-medium text-text-primary mb-2", currentSize.title)}
-      >
-        {title}
-      </h3>
-
-      {/* 鎻忚堪 */}
-      <p
-        className={cn("text-text-secondary max-w-xs", currentSize.description)}
-      >
-        {description}
+      <div className={cn("mb-4 text-text-muted", currentSize.icon)}>{icon ?? <EmptyIcon />}</div>
+      <h3 className={cn("mb-2 font-medium text-text-primary", currentSize.title)}>{resolvedTitle}</h3>
+      <p className={cn("max-w-xs text-text-secondary", currentSize.description)}>
+        {resolvedDescription}
       </p>
-
-      {/* 鎿嶄綔鎸夐挳 */}
-      {action && <div className="mt-6 animate-slideUp">{action}</div>}
+      {action ? <div className="mt-6 animate-slideUp">{action}</div> : null}
     </div>
   );
 };
 
-// ==================== 棰勮绌虹姸鎬?====================
+export const EmptySearch: React.FC<{ keyword?: string; onClear?: () => void }> = ({
+  keyword,
+  onClear,
+}) => {
+  const { tr } = useAppTranslation();
 
-export const EmptySearch: React.FC<{
-  keyword?: string;
-  onClear?: () => void;
-}> = ({ keyword, onClear }) => (
-  <EmptyState
-    icon={<EmptyIcon type="search" />}
-    title={keyword ? `鏈壘鍒?"${keyword}" 鐩稿叧缁撴灉` : "鏃犳悳绱㈢粨鏋?}
-    description="璇峰皾璇曚娇鐢ㄥ叾浠栧叧閿瘝鎼滅储"
-    action={
-      onClear && (
-        <Button variant="primary" onClick={onClear}>
-          娓呴櫎鎼滅储
-        </Button>
-      )
-    }
-  />
-);
+  return (
+    <EmptyState
+      icon={<EmptyIcon type="search" />}
+      title={
+        keyword
+          ? tr('No results found for "{{keyword}}"', { keyword })
+          : tr("No search results")
+      }
+      description={tr("Try a different keyword or clear the current search.")}
+      action={
+        onClear ? (
+          <Button variant="primary" onClick={onClear}>
+            {tr("Clear search")}
+          </Button>
+        ) : undefined
+      }
+    />
+  );
+};
 
-export const EmptyChat: React.FC<{ onStartChat?: () => void }> = ({
-  onStartChat,
-}) => (
-  <EmptyState
-    icon={<EmptyIcon type="message" />}
-    title="寮€濮嬫柊鐨勫璇?
-    description="閫夋嫨涓€涓仈绯讳汉鎴栫兢缁勫紑濮嬭亰澶?
-    action={
-      onStartChat && (
-        <Button variant="primary" onClick={onStartChat}>
-          鏂板缓瀵硅瘽
-        </Button>
-      )
-    }
-  />
-);
+export const EmptyChat: React.FC<{ onStartChat?: () => void }> = ({ onStartChat }) => {
+  const { tr } = useAppTranslation();
 
-export const EmptyFile: React.FC<{ onUpload?: () => void }> = ({
-  onUpload,
-}) => (
-  <EmptyState
-    icon={<EmptyIcon type="file" />}
-    title="鏆傛棤鏂囦欢"
-    description="鐐瑰嚮涓婁紶鎸夐挳娣诲姞鏂囦欢"
-    action={
-      onUpload && (
-        <Button variant="primary" onClick={onUpload}>
-          涓婁紶鏂囦欢
-        </Button>
-      )
-    }
-  />
-);
+  return (
+    <EmptyState
+      icon={<EmptyIcon type="message" />}
+      title={tr("Start a new conversation")}
+      description={tr("Choose a contact or group to begin chatting.")}
+      action={
+        onStartChat ? (
+          <Button variant="primary" onClick={onStartChat}>
+            {tr("New conversation")}
+          </Button>
+        ) : undefined
+      }
+    />
+  );
+};
+
+export const EmptyFile: React.FC<{ onUpload?: () => void }> = ({ onUpload }) => {
+  const { tr } = useAppTranslation();
+
+  return (
+    <EmptyState
+      icon={<EmptyIcon type="file" />}
+      title={tr("No files yet")}
+      description={tr("Upload a file to get started.")}
+      action={
+        onUpload ? (
+          <Button variant="primary" onClick={onUpload}>
+            {tr("Upload file")}
+          </Button>
+        ) : undefined
+      }
+    />
+  );
+};
 
 export default EmptyState;
-

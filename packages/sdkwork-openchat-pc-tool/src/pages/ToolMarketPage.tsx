@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { ToolCard } from "../components/ToolCard";
 import type { ToolCategoryInfo, ToolMarketItem } from "../entities/tool.entity";
 import { ToolResultService, ToolService } from "../services";
@@ -9,6 +10,7 @@ type ToolSortType = "popular" | "successRate" | "newest";
 
 export function ToolMarketPage() {
   const navigate = useNavigate();
+  const { tr, formatNumber } = useAppTranslation();
 
   const [categories, setCategories] = useState<ToolCategoryInfo[]>([]);
   const [tools, setTools] = useState<ToolMarketItem[]>([]);
@@ -33,7 +35,7 @@ export function ToolMarketPage() {
         }
         if (!result.success || !result.data) {
           setCategories([{ id: "all", name: "All", icon: "ALL" }]);
-          setErrorText(result.error || result.message || "Failed to load categories.");
+          setErrorText(result.error || result.message || tr("Failed to load categories."));
           return;
         }
         setCategories(result.data);
@@ -44,7 +46,7 @@ export function ToolMarketPage() {
           return;
         }
         setCategories([{ id: "all", name: "All", icon: "ALL" }]);
-        setErrorText(error instanceof Error ? error.message : "Failed to load categories.");
+        setErrorText(error instanceof Error ? error.message : tr("Failed to load categories."));
       }
     }
 
@@ -53,7 +55,7 @@ export function ToolMarketPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [tr]);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,7 +75,7 @@ export function ToolMarketPage() {
         }
         if (!result.success || !result.data) {
           setTools([]);
-          setErrorText(result.error || result.message || "Failed to load tool market.");
+          setErrorText(result.error || result.message || tr("Failed to load tool market."));
           return;
         }
         setTools(result.data);
@@ -82,7 +84,7 @@ export function ToolMarketPage() {
           return;
         }
         setTools([]);
-        setErrorText(error instanceof Error ? error.message : "Failed to load tool market.");
+        setErrorText(error instanceof Error ? error.message : tr("Failed to load tool market."));
       } finally {
         if (!cancelled) {
           setIsLoading(false);
@@ -95,14 +97,14 @@ export function ToolMarketPage() {
     return () => {
       cancelled = true;
     };
-  }, [category, keyword, sortBy]);
+  }, [category, keyword, sortBy, tr]);
 
   const emptyText = useMemo(() => {
     if (keyword.trim()) {
-      return "No tools match current search keyword.";
+      return tr("No tools match current search keyword.");
     }
-    return "No tools available in this category.";
-  }, [keyword]);
+    return tr("No tools available in this category.");
+  }, [keyword, tr]);
 
   const summary = useMemo(() => buildToolWorkspaceSummary(tools), [tools]);
   const library = useMemo(
@@ -122,13 +124,13 @@ export function ToolMarketPage() {
     try {
       const result = await ToolResultService.addTool(toolId);
       if (!result.success) {
-        setErrorText(result.error || result.message || "Failed to enable tool.");
+        setErrorText(result.error || result.message || tr("Failed to enable tool."));
         return;
       }
       setTools((prev) => prev.map((item) => (item.id === toolId ? { ...item, isEnabled: true } : item)));
-      setStatusText("Tool enabled. Open configuration workspace to complete credentials setup.");
+      setStatusText(tr("Tool enabled. Open configuration workspace to complete credentials setup."));
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Failed to enable tool.");
+      setErrorText(error instanceof Error ? error.message : tr("Failed to enable tool."));
     } finally {
       setProcessingToolId(null);
     }
@@ -143,7 +145,7 @@ export function ToolMarketPage() {
   const handleToggleFavorite = (toolId: string) => {
     const favorited = ToolService.toggleFavoriteTool(toolId);
     setFavoriteToolIds(ToolService.getFavoriteToolIds());
-    setStatusText(favorited ? "Tool added to favorites." : "Tool removed from favorites.");
+    setStatusText(favorited ? tr("Tool added to favorites.") : tr("Tool removed from favorites."));
     setErrorText(null);
   };
 
@@ -152,16 +154,16 @@ export function ToolMarketPage() {
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-text-primary">Tool Market</h1>
+            <h1 className="text-xl font-semibold text-text-primary">{tr("Tool Market")}</h1>
             <p className="mt-1 text-sm text-text-secondary">
-              Browse available integration tools and enable them for your workspace.
+              {tr("Browse available integration tools and enable them for your workspace.")}
             </p>
           </div>
           <button
             onClick={() => navigate("/tools/my")}
             className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
           >
-            My Tools
+            {tr("My Tools")}
           </button>
         </div>
       </header>
@@ -169,16 +171,16 @@ export function ToolMarketPage() {
       <div className="flex-1 overflow-auto p-6">
         <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
           <article className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Catalog tools</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{summary.total}</p>
+            <p className="text-xs text-text-muted">{tr("Catalog tools")}</p>
+            <p className="mt-1 text-xl font-semibold text-text-primary">{formatNumber(summary.total)}</p>
           </article>
           <article className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Enabled in workspace</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{summary.enabled}</p>
+            <p className="text-xs text-text-muted">{tr("Enabled in workspace")}</p>
+            <p className="mt-1 text-xl font-semibold text-text-primary">{formatNumber(summary.enabled)}</p>
           </article>
           <article className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Favorites</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{library.favorites.length}</p>
+            <p className="text-xs text-text-muted">{tr("Favorites")}</p>
+            <p className="mt-1 text-xl font-semibold text-text-primary">{formatNumber(library.favorites.length)}</p>
           </article>
         </div>
 
@@ -186,7 +188,7 @@ export function ToolMarketPage() {
           <input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
-            placeholder="Search by tool name or description"
+            placeholder={tr("Search by tool name or description")}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
           />
           <select
@@ -196,7 +198,7 @@ export function ToolMarketPage() {
           >
             {categories.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.icon} {item.name}
+                {item.icon} {tr(item.name)}
               </option>
             ))}
           </select>
@@ -205,9 +207,9 @@ export function ToolMarketPage() {
             onChange={(event) => setSortBy(event.target.value as ToolSortType)}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary focus:border-primary focus:outline-none"
           >
-            <option value="popular">Sort by popularity</option>
-            <option value="successRate">Sort by success rate</option>
-            <option value="newest">Sort by newest</option>
+            <option value="popular">{tr("Sort by popularity")}</option>
+            <option value="successRate">{tr("Sort by success rate")}</option>
+            <option value="newest">{tr("Sort by newest")}</option>
           </select>
         </div>
 
@@ -225,7 +227,7 @@ export function ToolMarketPage() {
 
         {recentVisibleTools.length > 0 ? (
           <div className="mt-4 rounded-xl border border-border bg-bg-secondary p-4">
-            <h2 className="text-sm font-semibold text-text-primary">Recently Used</h2>
+            <h2 className="text-sm font-semibold text-text-primary">{tr("Recently Used")}</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               {recentVisibleTools.map((tool) => (
                 <button
@@ -243,7 +245,7 @@ export function ToolMarketPage() {
         <div className="mt-5">
           {isLoading ? (
             <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-              Loading tool market...
+              {tr("Loading tool market...")}
             </div>
           ) : tools.length === 0 ? (
             <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
@@ -263,7 +265,7 @@ export function ToolMarketPage() {
                       onClick={() => handleOpenConfig(tool.id)}
                       className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-bg-hover"
                     >
-                      Open config
+                      {tr("Open config")}
                     </button>
                     <button
                       onClick={() => handleToggleFavorite(tool.id)}
@@ -273,7 +275,7 @@ export function ToolMarketPage() {
                           : "border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
                       }`}
                     >
-                      {favoriteToolIdSet.has(tool.id) ? "Favorited" : "Add favorite"}
+                      {favoriteToolIdSet.has(tool.id) ? tr("Favorited") : tr("Add favorite")}
                     </button>
                   </div>
                 </div>

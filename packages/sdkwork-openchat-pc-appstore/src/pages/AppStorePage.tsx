@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { type AppLanguage, useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { App, AppCategory } from "../entities/app.entity";
 import { AppCard, CategoryCarousel, FeaturedHero, SearchBar } from "../components";
 import {
@@ -31,38 +32,14 @@ type AppStoreTypeFilter = "all" | AppStoreCatalogType;
 type StoreTab = "today" | "charts" | "browse" | "library";
 type BrowseSort = "featured" | "rating" | "downloads" | "latest";
 
-const typeOptions: Array<{ key: AppStoreTypeFilter; label: string }> = [
-  { key: "all", label: "All" },
-  { key: "tool", label: "Tools" },
-  { key: "plugin", label: "Plugins" },
-  { key: "theme", label: "Themes" },
-];
-
-const tabOptions: Array<{ key: StoreTab; label: string; hint: string }> = [
-  { key: "today", label: "Today", hint: "Editorial highlights" },
-  { key: "charts", label: "Top Charts", hint: "Downloads and ratings" },
-  { key: "browse", label: "Browse", hint: "Category discovery" },
-  { key: "library", label: "Library", hint: "Installed and recent" },
-];
-
-const browseSortOptions: Array<{ key: BrowseSort; label: string }> = [
-  { key: "featured", label: "Featured first" },
-  { key: "rating", label: "Highest rating" },
-  { key: "downloads", label: "Most downloads" },
-  { key: "latest", label: "Newest release" },
-];
-
-function formatDownloads(value: number): string {
-  if (value >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(1)}M`;
-  }
-  if (value >= 1_000) {
-    return `${(value / 1_000).toFixed(1)}K`;
-  }
-  return String(value);
+function formatDownloads(value: number, locale: AppLanguage): string {
+  return new Intl.NumberFormat(locale, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
 }
 
-function formatDateTime(value?: string | null): string {
+function formatDateTime(value: string | null | undefined, locale: AppLanguage): string {
   if (!value) {
     return "-";
   }
@@ -70,7 +47,10 @@ function formatDateTime(value?: string | null): string {
   if (!Number.isFinite(timestamp)) {
     return "-";
   }
-  return new Date(timestamp).toLocaleString();
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(timestamp));
 }
 
 function sortBrowseApps(items: App[], sortBy: BrowseSort): App[] {
@@ -100,6 +80,7 @@ function sortBrowseApps(items: App[], sortBy: BrowseSort): App[] {
 }
 
 export function AppStorePage() {
+  const { tr, language } = useAppTranslation();
   const navigate = useNavigate();
   const [apps, setApps] = useState<App[]>([]);
   const [categoryId, setCategoryId] = useState("all");
@@ -114,6 +95,36 @@ export function AppStorePage() {
   const [errorText, setErrorText] = useState<string | null>(null);
   const [installStateMap, setInstallStateMap] = useState<Record<string, AppInstallState>>({});
 
+  const typeOptions = useMemo<Array<{ key: AppStoreTypeFilter; label: string }>>(
+    () => [
+      { key: "all", label: tr("All") },
+      { key: "tool", label: tr("Tools") },
+      { key: "plugin", label: tr("Plugins") },
+      { key: "theme", label: tr("Themes") },
+    ],
+    [tr],
+  );
+
+  const tabOptions = useMemo<Array<{ key: StoreTab; label: string; hint: string }>>(
+    () => [
+      { key: "today", label: tr("Today"), hint: tr("Editorial highlights") },
+      { key: "charts", label: tr("Top Charts"), hint: tr("Downloads and ratings") },
+      { key: "browse", label: tr("Browse"), hint: tr("Category discovery") },
+      { key: "library", label: tr("Library"), hint: tr("Installed and recent") },
+    ],
+    [tr],
+  );
+
+  const browseSortOptions = useMemo<Array<{ key: BrowseSort; label: string }>>(
+    () => [
+      { key: "featured", label: tr("Featured first") },
+      { key: "rating", label: tr("Highest rating") },
+      { key: "downloads", label: tr("Most downloads") },
+      { key: "latest", label: tr("Newest release") },
+    ],
+    [tr],
+  );
+
   useEffect(() => {
     let cancelled = false;
 
@@ -121,7 +132,7 @@ export function AppStorePage() {
       try {
         const result = await AppstoreResultService.getCategories();
         if (!result.success || !result.data) {
-          throw new Error(result.error || "Failed to load categories.");
+          throw new Error(result.error || tr("Failed to load categories."));
         }
         const data = result.data;
         if (cancelled) {
@@ -132,7 +143,7 @@ export function AppStorePage() {
         setCategories(hasAll ? data : [baseCategory, ...data]);
       } catch (error) {
         if (!cancelled) {
-          setErrorText(error instanceof Error ? error.message : "Failed to load categories.");
+          setErrorText(error instanceof Error ? error.message : tr("Failed to load categories."));
           setCategories([baseCategory]);
         }
       }
@@ -142,7 +153,7 @@ export function AppStorePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [tr]);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,7 +169,7 @@ export function AppStorePage() {
             pageSize: 48,
           });
           if (!result.success || !result.data) {
-            throw new Error(result.error || "Failed to load apps.");
+            throw new Error(result.error || tr("Failed to load apps."));
           }
           if (!cancelled) {
             setApps(result.data.apps);
@@ -166,7 +177,7 @@ export function AppStorePage() {
         } catch (error) {
           if (!cancelled) {
             setApps([]);
-            setErrorText(error instanceof Error ? error.message : "Failed to load apps.");
+            setErrorText(error instanceof Error ? error.message : tr("Failed to load apps."));
           }
         } finally {
           if (!cancelled) {
@@ -182,7 +193,7 @@ export function AppStorePage() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [categoryId, keyword]);
+  }, [categoryId, keyword, tr]);
 
   const storeApps = useMemo(() => filterAppStoreCatalog(apps), [apps]);
   const typeStats = useMemo(() => buildAppTypeStats(storeApps), [storeApps]);
@@ -260,7 +271,7 @@ export function AppStorePage() {
   };
 
   const getAppActionLabel = (app: App): string => {
-    return installStateMap[app.id]?.installed ? "OPEN" : "GET";
+    return installStateMap[app.id]?.installed ? tr("OPEN") : tr("GET");
   };
 
   const handleAppAction = async (app: App) => {
@@ -278,16 +289,16 @@ export function AppStorePage() {
     try {
       const result = await AppstoreResultService.installApp(app.id);
       if (!result.success || !result.data) {
-        throw new Error(result.error || "Failed to install app.");
+        throw new Error(result.error || tr("Failed to install app."));
       }
       const installed = result.data;
       setInstallStateMap((previous) => ({
         ...previous,
         [app.id]: installed,
       }));
-      setStatusText(`${app.name} installed. You can open it now.`);
+      setStatusText(tr("{{name}} installed. You can open it now.", { name: app.name }));
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Failed to install app.");
+      setErrorText(error instanceof Error ? error.message : tr("Failed to install app."));
     } finally {
       setProcessingAppId(null);
     }
@@ -306,7 +317,7 @@ export function AppStorePage() {
     try {
       const result = await AppstoreResultService.uninstallApp(app.id);
       if (!result.success) {
-        throw new Error(result.error || "Failed to remove app.");
+        throw new Error(result.error || tr("Failed to remove app."));
       }
       setInstallStateMap((previous) => ({
         ...previous,
@@ -318,9 +329,9 @@ export function AppStorePage() {
           openCount: 0,
         },
       }));
-      setStatusText(`${app.name} removed from your library.`);
+      setStatusText(tr("{{name}} removed from your library.", { name: app.name }));
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Failed to remove app.");
+      setErrorText(error instanceof Error ? error.message : tr("Failed to remove app."));
     } finally {
       setProcessingAppId(null);
     }
@@ -331,9 +342,11 @@ export function AppStorePage() {
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-text-primary">App Store</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-text-primary">{tr("App Store")}</h1>
             <p className="mt-1 text-sm text-text-secondary">
-              Apple-style marketplace for Tool, Plugin, and Theme packages. Agent and Skill remain independent modules.
+              {tr(
+                "Apple-style marketplace for Tool, Plugin, and Theme packages. Agent and Skill remain independent modules.",
+              )}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -341,13 +354,13 @@ export function AppStorePage() {
               onClick={() => navigate("/agents")}
               className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
             >
-              Agent Market
+              {tr("Agent Market")}
             </button>
             <button
               onClick={() => navigate("/skills")}
               className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
             >
-              Skill Market
+              {tr("Skill Market")}
             </button>
           </div>
         </div>
@@ -414,18 +427,18 @@ export function AppStorePage() {
 
         {isLoading ? (
           <div className="mt-4 rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-            Loading applications...
+            {tr("Loading applications...")}
           </div>
         ) : null}
 
         {!isLoading && visibleApps.length === 0 ? (
           <div className="mt-4 rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-            <p>No apps found for current filters.</p>
+            <p>{tr("No apps found for current filters.")}</p>
             <button
               onClick={resetFilters}
               className="mt-3 rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
             >
-              Reset filters
+              {tr("Reset filters")}
             </button>
           </div>
         ) : null}
@@ -435,7 +448,7 @@ export function AppStorePage() {
             {featuredApp ? (
               <section>
                 <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
-                  Today Spotlight
+                  {tr("Today Spotlight")}
                 </h2>
                 <FeaturedHero app={featuredApp} onClick={() => navigate(`/appstore/${featuredApp.id}`)} />
               </section>
@@ -444,9 +457,9 @@ export function AppStorePage() {
             {editorChoiceApps.length > 0 ? (
               <section>
                 <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-text-primary">Editors Choice</h2>
+                  <h2 className="text-lg font-semibold text-text-primary">{tr("Editors Choice")}</h2>
                   <button onClick={() => setActiveTab("browse")} className="text-xs font-medium text-primary hover:underline">
-                    View all
+                    {tr("View all")}
                   </button>
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -469,7 +482,7 @@ export function AppStorePage() {
 
             {trendingApps.length > 0 ? (
               <section>
-                <h2 className="mb-3 text-lg font-semibold text-text-primary">Trending</h2>
+                <h2 className="mb-3 text-lg font-semibold text-text-primary">{tr("Trending")}</h2>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                   {trendingApps.map((app) => (
                     <AppCard
@@ -493,9 +506,9 @@ export function AppStorePage() {
         {!isLoading && visibleApps.length > 0 && activeTab === "charts" ? (
           <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
             {[
-              { key: "hot", title: "Top Free", apps: rankingLanes.hot },
-              { key: "rating", title: "Top Rated", apps: rankingLanes.rating },
-              { key: "fresh", title: "New Releases", apps: rankingLanes.fresh },
+              { key: "hot", title: tr("Top Free"), apps: rankingLanes.hot },
+              { key: "rating", title: tr("Top Rated"), apps: rankingLanes.rating },
+              { key: "fresh", title: tr("New Releases"), apps: rankingLanes.fresh },
             ].map((lane) => (
               <section key={lane.key} className="rounded-2xl border border-border bg-bg-secondary p-4">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">{lane.title}</h2>
@@ -509,7 +522,7 @@ export function AppStorePage() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-text-primary">{app.name}</p>
                         <p className="truncate text-xs text-text-muted">
-                          {app.category.name} / {formatDownloads(app.downloads)}
+                          {app.category.name} / {formatDownloads(app.downloads, language)}
                         </p>
                       </div>
                       <button
@@ -533,15 +546,15 @@ export function AppStorePage() {
           <div className="mt-4 space-y-6">
             {installedLibrary.installed.length === 0 ? (
               <div className="rounded-2xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-                <p>No installed apps yet.</p>
+                <p>{tr("No installed apps yet.")}</p>
                 <p className="mt-1 text-xs text-text-muted">
-                  Install tool, plugin, or theme packages to build your desktop workspace.
+                  {tr("Install tool, plugin, or theme packages to build your desktop workspace.")}
                 </p>
                 <button
                   onClick={() => setActiveTab("browse")}
                   className="mt-3 rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                 >
-                  Browse App Catalog
+                  {tr("Browse App Catalog")}
                 </button>
               </div>
             ) : (
@@ -549,8 +562,10 @@ export function AppStorePage() {
                 {installedLibrary.recent.length > 0 ? (
                   <section>
                     <div className="mb-3 flex items-center justify-between">
-                      <h2 className="text-lg font-semibold text-text-primary">Recently Opened</h2>
-                      <span className="text-xs text-text-muted">{installedLibrary.recent.length} apps</span>
+                      <h2 className="text-lg font-semibold text-text-primary">{tr("Recently Opened")}</h2>
+                      <span className="text-xs text-text-muted">
+                        {tr("{{count}} apps", { count: installedLibrary.recent.length })}
+                      </span>
                     </div>
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                       {installedLibrary.recent.slice(0, 8).map((app) => {
@@ -564,12 +579,14 @@ export function AppStorePage() {
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-semibold text-text-primary">{app.name}</p>
                                 <p className="truncate text-xs text-text-muted">
-                                  Last opened {formatDateTime(lifecycle?.lastOpenedAt)}
+                                  {tr("Last opened {{time}}", {
+                                    time: formatDateTime(lifecycle?.lastOpenedAt, language),
+                                  })}
                                 </p>
                               </div>
                             </div>
                             <div className="mt-3 flex items-center justify-between text-[11px] text-text-muted">
-                              <span>{lifecycle?.openCount ?? 0} opens</span>
+                              <span>{tr("{{count}} opens", { count: lifecycle?.openCount ?? 0 })}</span>
                               <button
                                 onClick={() => {
                                   void handleAppAction(app);
@@ -577,7 +594,7 @@ export function AppStorePage() {
                                 disabled={processingAppId === app.id}
                                 className="rounded-full bg-bg-tertiary px-2.5 py-1 font-semibold text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
                               >
-                                OPEN
+                                {tr("OPEN")}
                               </button>
                             </div>
                           </article>
@@ -589,8 +606,10 @@ export function AppStorePage() {
 
                 <section>
                   <div className="mb-3 flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-text-primary">Installed Apps</h2>
-                    <span className="text-xs text-text-muted">{installedLibrary.installed.length} apps</span>
+                    <h2 className="text-lg font-semibold text-text-primary">{tr("Installed Apps")}</h2>
+                    <span className="text-xs text-text-muted">
+                      {tr("{{count}} apps", { count: installedLibrary.installed.length })}
+                    </span>
                   </div>
                   <div className="space-y-3">
                     {installedLibrary.installed.map((app) => {
@@ -621,7 +640,7 @@ export function AppStorePage() {
                                 disabled={processingAppId === app.id}
                                 className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                               >
-                                OPEN
+                                {tr("OPEN")}
                               </button>
                               <button
                                 onClick={() => {
@@ -630,17 +649,29 @@ export function AppStorePage() {
                                 disabled={processingAppId === app.id}
                                 className="rounded-full border border-warning/50 bg-warning/10 px-3 py-1.5 text-xs font-semibold text-warning transition-colors hover:bg-warning/20 disabled:cursor-not-allowed disabled:opacity-60"
                               >
-                                REMOVE
+                                {tr("REMOVE")}
                               </button>
                             </div>
                           </div>
 
                           <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-text-muted">
-                            <span className="rounded bg-bg-tertiary px-2 py-1">Installed {formatDateTime(lifecycle?.installedAt)}</span>
-                            <span className="rounded bg-bg-tertiary px-2 py-1">Last opened {formatDateTime(lifecycle?.lastOpenedAt)}</span>
-                            <span className="rounded bg-bg-tertiary px-2 py-1">Opens {lifecycle?.openCount ?? 0}</span>
+                            <span className="rounded bg-bg-tertiary px-2 py-1">
+                              {tr("Installed {{time}}", {
+                                time: formatDateTime(lifecycle?.installedAt, language),
+                              })}
+                            </span>
+                            <span className="rounded bg-bg-tertiary px-2 py-1">
+                              {tr("Last opened {{time}}", {
+                                time: formatDateTime(lifecycle?.lastOpenedAt, language),
+                              })}
+                            </span>
+                            <span className="rounded bg-bg-tertiary px-2 py-1">
+                              {tr("Opens {{count}}", { count: lifecycle?.openCount ?? 0 })}
+                            </span>
                             <span className="rounded bg-bg-tertiary px-2 py-1">{app.category.name}</span>
-                            <span className="rounded bg-bg-tertiary px-2 py-1">{formatDownloads(app.downloads)} downloads</span>
+                            <span className="rounded bg-bg-tertiary px-2 py-1">
+                              {tr("{{count}} downloads", { count: app.downloads })}
+                            </span>
                           </div>
                         </article>
                       );
@@ -655,7 +686,7 @@ export function AppStorePage() {
         {!isLoading && visibleApps.length > 0 && activeTab === "browse" ? (
           <div className="mt-4 space-y-8">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">Browse Order</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">{tr("Browse Order")}</h2>
               <select
                 value={browseSort}
                 onChange={(event) => setBrowseSort(event.target.value as BrowseSort)}
@@ -671,7 +702,7 @@ export function AppStorePage() {
 
             {latestApps.length > 0 ? (
               <section>
-                <h2 className="mb-3 text-lg font-semibold text-text-primary">Latest Releases</h2>
+                <h2 className="mb-3 text-lg font-semibold text-text-primary">{tr("Latest Releases")}</h2>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                   {latestApps.map((app) => (
                     <AppCard
@@ -691,7 +722,7 @@ export function AppStorePage() {
             ) : null}
 
             <section>
-              <h2 className="mb-3 text-lg font-semibold text-text-primary">All Apps</h2>
+              <h2 className="mb-3 text-lg font-semibold text-text-primary">{tr("All Apps")}</h2>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {browseApps.map((app) => (
                   <AppCard

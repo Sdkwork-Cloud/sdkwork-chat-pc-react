@@ -1,4 +1,4 @@
-﻿import { getAppSdkClientWithSession, type Page, type Result } from "@sdkwork/openchat-pc-kernel";
+import { getAppSdkClientWithSession, type Page, type Result } from "@sdkwork/openchat-pc-kernel";
 import type { Video, VideoComment, VideoFilter, VideoStats, VideoType } from "../types";
 
 const favoriteVideosStorageKey = "openchat.video.favoriteVideos";

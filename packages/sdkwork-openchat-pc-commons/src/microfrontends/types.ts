@@ -1,8 +1,4 @@
-/**
- * 微前端架构类型定义
- * 
- * 定义微前端的核心概念、配置和通信机制
- */
+
 
 export type MicroFrontendStatus = 'not_loaded' | 'loading' | 'loaded' | 'mounted' | 'unmounted' | 'error';
 

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { TerminalSession } from "../entities/terminalSession.entity";
 import { TerminalResultService, terminalService } from "../services";
 
 type SessionLogs = Record<string, string[]>;
 type SessionHistories = Record<string, string[]>;
+type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 const QUICK_COMMANDS = ["help", "pwd", "ls", "date", "whoami", "clear"];
 
@@ -26,11 +28,11 @@ function appendHistory(histories: SessionHistories, sessionId: string, command: 
   };
 }
 
-function getWelcomeLines(session: TerminalSession, isDesktop: boolean): string[] {
+function getWelcomeLines(session: TerminalSession, isDesktop: boolean, tr: Translate): string[] {
   return [
-    `$ session ${session.name} created (${session.id})`,
-    isDesktop ? "$ desktop PTY ready" : "$ web fallback shell ready",
-    "$ type 'help' to view available commands",
+    `$ ${tr("Session {{name}} created ({{id}})", { name: session.name, id: session.id })}`,
+    `$ ${isDesktop ? tr("Desktop PTY ready") : tr("Web fallback shell ready")}`,
+    `$ ${tr("Type 'help' to view available commands.")}`,
   ];
 }
 
@@ -48,6 +50,7 @@ function statusTone(status: TerminalSession["status"]): string {
 }
 
 export function TerminalPage() {
+  const { tr, formatNumber } = useAppTranslation();
   const [sessions, setSessions] = useState<TerminalSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [logsBySession, setLogsBySession] = useState<SessionLogs>({});
@@ -107,14 +110,14 @@ export function TerminalPage() {
       const sessionName = `terminal-${terminalService.getSessions().length + 1}`;
       const sessionResult = await TerminalResultService.createSession(sessionName);
       if (!sessionResult.success || !sessionResult.data) {
-        setStatusText(sessionResult.error || sessionResult.message || "Failed to create session.");
+        setStatusText(sessionResult.error || sessionResult.message || tr("Failed to create session."));
         return;
       }
       const session = sessionResult.data;
       attachSessionStream(session.id);
       setLogsBySession((prev) => ({
         ...prev,
-        [session.id]: prev[session.id] || getWelcomeLines(session, isDesktop),
+        [session.id]: prev[session.id] || getWelcomeLines(session, isDesktop, tr),
       }));
       setHistoriesBySession((prev) => ({
         ...prev,
@@ -123,10 +126,10 @@ export function TerminalPage() {
       refreshSessions();
       setActiveSessionId(session.id);
       setHistoryCursor(null);
-      setStatusText("Session created.");
+      setStatusText(tr("Session created."));
     } catch (error) {
       console.error("Failed to create terminal session", error);
-      setStatusText("Failed to create session.");
+      setStatusText(tr("Failed to create session."));
     } finally {
       setIsCreatingSession(false);
     }
@@ -144,7 +147,7 @@ export function TerminalPage() {
 
       const closeResult = await TerminalResultService.closeSession(sessionId);
       if (!closeResult.success) {
-        setStatusText(closeResult.error || closeResult.message || "Failed to close session.");
+        setStatusText(closeResult.error || closeResult.message || tr("Failed to close session."));
         return;
       }
 
@@ -169,11 +172,11 @@ export function TerminalPage() {
       if (nextSessions.length === 0) {
         await createSession();
       } else {
-        setStatusText("Session closed.");
+        setStatusText(tr("Session closed."));
       }
     } catch (error) {
       console.error("Failed to close terminal session", error);
-      setStatusText("Failed to close session.");
+      setStatusText(tr("Failed to close session."));
     }
   };
 
@@ -192,15 +195,15 @@ export function TerminalPage() {
     try {
       const writeResult = await TerminalResultService.writeSession(activeSession.id, `${input}\n`);
       if (!writeResult.success) {
-        setLogsBySession((prev) => appendLog(prev, activeSession.id, "execution failed"));
-        setStatusText(writeResult.error || writeResult.message || "Failed to execute command.");
+        setLogsBySession((prev) => appendLog(prev, activeSession.id, tr("Execution failed.")));
+        setStatusText(writeResult.error || writeResult.message || tr("Failed to execute command."));
         return;
       }
       refreshSessions();
     } catch (error) {
       console.error("Failed to execute command", error);
-      setLogsBySession((prev) => appendLog(prev, activeSession.id, "execution failed"));
-      setStatusText("Failed to execute command.");
+      setLogsBySession((prev) => appendLog(prev, activeSession.id, tr("Execution failed.")));
+      setStatusText(tr("Failed to execute command."));
     }
   };
 
@@ -216,7 +219,7 @@ export function TerminalPage() {
             const next = { ...prev };
             existing.forEach((session) => {
               if (!next[session.id]) {
-                next[session.id] = getWelcomeLines(session, isDesktop);
+                next[session.id] = getWelcomeLines(session, isDesktop, tr);
               }
             });
             return next;
@@ -246,7 +249,7 @@ export function TerminalPage() {
       Object.values(subscriptionsRef.current).forEach((unsubscribe) => unsubscribe());
       subscriptionsRef.current = {};
     };
-  }, []);
+  }, [isDesktop, tr]);
 
   useEffect(() => {
     logsBottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -263,25 +266,27 @@ export function TerminalPage() {
         <div className="border-b border-border p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h1 className="text-base font-semibold text-text-primary">Terminal Workspace</h1>
-              <p className="mt-1 text-xs text-text-secondary">{isDesktop ? "Desktop PTY" : "Web fallback shell"}</p>
+              <h1 className="text-base font-semibold text-text-primary">{tr("Terminal Workspace")}</h1>
+              <p className="mt-1 text-xs text-text-secondary">
+                {isDesktop ? tr("Desktop PTY") : tr("Web fallback shell")}
+              </p>
             </div>
             <button
               onClick={() => void createSession()}
               disabled={isCreatingSession}
               className="rounded-md bg-primary px-3 py-1.5 text-xs text-white disabled:opacity-60"
             >
-              {isCreatingSession ? "Creating..." : "New Session"}
+              {isCreatingSession ? tr("Creating...") : tr("New Session")}
             </button>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
             <div className="rounded-md border border-border bg-bg-primary px-2 py-1.5">
-              <p className="text-text-muted">Sessions</p>
-              <p className="font-semibold text-text-primary">{sessions.length}</p>
+              <p className="text-text-muted">{tr("Sessions")}</p>
+              <p className="font-semibold text-text-primary">{formatNumber(sessions.length)}</p>
             </div>
             <div className="rounded-md border border-border bg-bg-primary px-2 py-1.5">
-              <p className="text-text-muted">Mode</p>
-              <p className="font-semibold text-text-primary">{isDesktop ? "Desktop" : "Browser"}</p>
+              <p className="text-text-muted">{tr("Mode")}</p>
+              <p className="font-semibold text-text-primary">{isDesktop ? tr("Desktop") : tr("Browser")}</p>
             </div>
           </div>
         </div>
@@ -299,7 +304,7 @@ export function TerminalPage() {
                 >
                   <button onClick={() => setActiveSessionId(session.id)} className="w-full text-left">
                     <p className="line-clamp-1 text-sm font-semibold text-text-primary">{session.name}</p>
-                    <p className={`mt-1 text-xs ${statusTone(session.status)}`}>{session.status}</p>
+                    <p className={`mt-1 text-xs ${statusTone(session.status)}`}>{tr(session.status)}</p>
                     <p className="mt-1 line-clamp-1 text-[11px] text-text-muted">{session.cwd}</p>
                   </button>
                   <div className="mt-2 flex justify-end">
@@ -307,18 +312,18 @@ export function TerminalPage() {
                       onClick={() => void closeSession(session.id)}
                       className="rounded-md border border-border bg-bg-tertiary px-2 py-1 text-[11px] text-text-secondary hover:bg-bg-hover"
                     >
-                      Close
+                      {tr("Close")}
                     </button>
                   </div>
                 </div>
               );
             })}
-            {sessions.length === 0 ? <p className="text-sm text-text-muted">No sessions.</p> : null}
+            {sessions.length === 0 ? <p className="text-sm text-text-muted">{tr("No sessions.")}</p> : null}
           </div>
         </div>
 
         <div className="border-t border-border p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Quick Commands</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Quick Commands")}</p>
           <div className="flex flex-wrap gap-2">
             {QUICK_COMMANDS.map((item) => (
               <button
@@ -342,10 +347,15 @@ export function TerminalPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-semibold text-text-primary">
-                {activeSession ? `${activeSession.name} (${activeSession.status})` : "No active session"}
+                {activeSession ? `${activeSession.name} (${tr(activeSession.status)})` : tr("No active session")}
               </h2>
               <p className="mt-1 text-xs text-text-muted">
-                {activeSession ? `cwd: ${activeSession.cwd} | shell: ${activeSession.shell}` : "Create or choose a session."}
+                {activeSession
+                  ? tr("Working directory: {{cwd}} | Shell: {{shell}}", {
+                      cwd: activeSession.cwd,
+                      shell: activeSession.shell,
+                    })
+                  : tr("Create or choose a session.")}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -359,7 +369,7 @@ export function TerminalPage() {
                 disabled={!activeSessionId}
                 className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover disabled:opacity-60"
               >
-                Clear View
+                {tr("Clear View")}
               </button>
               <button
                 onClick={() => {
@@ -370,7 +380,7 @@ export function TerminalPage() {
                 disabled={!activeSessionId}
                 className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover disabled:opacity-60"
               >
-                Close Session
+                {tr("Close Session")}
               </button>
             </div>
           </div>
@@ -380,9 +390,9 @@ export function TerminalPage() {
         <div className="min-h-0 flex-1 p-6">
           <div className="h-full overflow-auto rounded-xl border border-border bg-[#05060A] p-4 font-mono text-sm text-emerald-400">
             {!activeSession ? (
-              <p className="text-emerald-500/80">No active session.</p>
+              <p className="text-emerald-500/80">{tr("No active session.")}</p>
             ) : activeLogs.length === 0 ? (
-              <p className="text-emerald-500/80">No output. Run a command to start.</p>
+              <p className="text-emerald-500/80">{tr("No output. Run a command to start.")}</p>
             ) : (
               activeLogs.map((line, index) => (
                 <div key={`${line}-${index}`} className="whitespace-pre-wrap break-all">
@@ -432,7 +442,7 @@ export function TerminalPage() {
                   setCommand(activeHistory[nextCursor]);
                 }
               }}
-              placeholder="Enter command and press Enter"
+              placeholder={tr("Enter command and press Enter")}
               disabled={!activeSession}
               className="h-10 flex-1 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none disabled:opacity-60"
             />
@@ -441,10 +451,10 @@ export function TerminalPage() {
               disabled={!activeSession}
               className="rounded-lg bg-primary px-4 py-2 text-sm text-white disabled:opacity-60"
             >
-              Run
+              {tr("Run")}
             </button>
           </div>
-          <p className="mt-2 text-xs text-text-muted">History navigation: ArrowUp / ArrowDown</p>
+          <p className="mt-2 text-xs text-text-muted">{tr("History navigation: ArrowUp / ArrowDown")}</p>
         </footer>
       </div>
     </section>

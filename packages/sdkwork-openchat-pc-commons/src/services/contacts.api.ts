@@ -1,4 +1,4 @@
-﻿import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
+import { getAppSdkClientWithSession } from "@sdkwork/openchat-pc-kernel";
 
 export interface Friend {
   id: string;

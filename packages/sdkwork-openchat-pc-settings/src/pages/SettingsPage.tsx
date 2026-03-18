@@ -18,6 +18,11 @@ import {
   type UserCenterUpdateSettingsInput,
 } from "../services";
 import type { AppInfo, FeedbackSupportInfo, SettingsState } from "../types";
+import {
+  AppLanguage,
+  formatDateTime as formatDateTimeRuntime,
+  useAppTranslation,
+} from "@sdkwork/openchat-pc-i18n";
 
 type SettingTab =
   | "account"
@@ -30,19 +35,52 @@ type SettingTab =
   | "privacy"
   | "about";
 
-const settingTabItems: Array<{ id: SettingTab; label: string }> = [
-  { id: "account", label: "Account" },
-  { id: "imconfig", label: "IM Config" },
-  { id: "installer", label: "Installer" },
-  { id: "desktop", label: "Desktop" },
-  { id: "openclawSettings", label: "OpenClaw Config" },
-  { id: "general", label: "General" },
-  { id: "notifications", label: "Notifications" },
-  { id: "privacy", label: "Privacy" },
-  { id: "about", label: "About" },
+const settingTabItems: SettingTab[] = [
+  "account",
+  "imconfig",
+  "installer",
+  "desktop",
+  "openclawSettings",
+  "general",
+  "notifications",
+  "privacy",
+  "about",
 ];
 
-const settingTabSet = new Set<SettingTab>(settingTabItems.map((item) => item.id));
+const settingTabSet = new Set<SettingTab>(settingTabItems);
+
+const SETTING_TAB_TRANSLATION_KEYS: Record<SettingTab, string> = {
+  account: "settings.tabs.account",
+  imconfig: "settings.tabs.imconfig",
+  installer: "settings.tabs.installer",
+  desktop: "settings.tabs.desktop",
+  openclawSettings: "settings.tabs.openClaw",
+  general: "settings.tabs.general",
+  notifications: "settings.tabs.notifications",
+  privacy: "settings.tabs.privacy",
+  about: "settings.tabs.about",
+};
+
+const LANGUAGE_LABEL_KEYS: Record<AppLanguage, string> = {
+  "zh-CN": "settings.language.zh-CN",
+  "en-US": "settings.language.en-US",
+};
+const SETTINGS_ACCOUNT_LANGUAGES: readonly AppLanguage[] = ["zh-CN", "en-US"];
+
+const THEME_OPTION_KEYS: Record<SettingsState["theme"], string> = {
+  light: "settings.general.appearance.theme.light",
+  dark: "settings.general.appearance.theme.dark",
+  blue: "settings.general.appearance.theme.blue",
+  green: "settings.general.appearance.theme.system",
+  purple: "settings.general.appearance.theme.purple",
+  system: "settings.general.appearance.theme.system",
+};
+
+const FONT_SIZE_OPTION_KEYS: Record<SettingsState["preferences"]["fontSize"], string> = {
+  small: "settings.general.appearance.fontSize.small",
+  medium: "settings.general.appearance.fontSize.medium",
+  large: "settings.general.appearance.fontSize.large",
+};
 
 function resolveSettingTabFromPath(pathname: string): SettingTab | null {
   if (pathname === "/settings" || pathname.startsWith("/settings/account")) {
@@ -305,20 +343,20 @@ function safeText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function formatDateTime(value: unknown): string {
+function pickHistoryTime(item: Record<string, unknown>): string {
+  return safeText(item.createdAt) || safeText(item.updatedAt) || safeText(item.timestamp) || safeText(item.time);
+}
+
+function formatHistoryTime(value: unknown): string {
   const raw = safeText(value);
   if (!raw) {
     return "--";
   }
-  const parsed = new Date(raw);
-  if (Number.isNaN(parsed.getTime())) {
-    return raw;
+  const formatted = formatDateTimeRuntime(raw);
+  if (formatted) {
+    return formatted;
   }
-  return parsed.toLocaleString();
-}
-
-function pickHistoryTime(item: Record<string, unknown>): string {
-  return safeText(item.createdAt) || safeText(item.updatedAt) || safeText(item.timestamp) || safeText(item.time);
+  return raw;
 }
 
 function mapAccountHistoryRows(content: Record<string, unknown>[] | undefined, fallbackLabel: string): AccountHistoryRow[] {
@@ -337,7 +375,7 @@ function mapAccountHistoryRows(content: Record<string, unknown>[] | undefined, f
     return {
       id: identifier,
       title,
-      timeText: formatDateTime(pickHistoryTime(item)),
+      timeText: formatHistoryTime(pickHistoryTime(item)),
       detail,
     };
   });
@@ -472,6 +510,42 @@ export function SettingsPage() {
   const { user, logout } = useAuth();
   const { setTheme } = useTheme();
   const location = useLocation();
+  const { tr, setLanguage: setRuntimeLanguage } = useAppTranslation();
+  const tabs = useMemo(
+    () =>
+      settingTabItems.map((tabId) => ({
+        id: tabId,
+        label: tr(SETTING_TAB_TRANSLATION_KEYS[tabId]),
+      })),
+    [tr],
+  );
+  const pickProfileValue = (
+    primary?: string,
+    secondary?: string,
+    fallbackKey?: string,
+    fallbackValue = "--",
+  ) => {
+    const first = primary?.trim();
+    if (first) {
+      return first;
+    }
+    const second = secondary?.trim();
+    if (second) {
+      return second;
+    }
+    if (fallbackKey) {
+      return tr(fallbackKey);
+    }
+    return fallbackValue;
+  };
+  const languageOptions = useMemo(
+    () =>
+      SETTINGS_ACCOUNT_LANGUAGES.map((language) => ({
+        value: language,
+        label: tr(LANGUAGE_LABEL_KEYS[language] ?? language),
+      })),
+    [tr],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -559,8 +633,6 @@ export function SettingsPage() {
     };
   }, []);
 
-  const tabs = useMemo<Array<{ id: SettingTab; label: string }>>(() => settingTabItems, []);
-
   useEffect(() => {
     const tabFromPath = resolveSettingTabFromPath(location.pathname);
     if (tabFromPath && tabFromPath !== activeTab) {
@@ -578,6 +650,8 @@ export function SettingsPage() {
       setAccountAddressLoading(true);
       setAccountHistoryLoading(true);
       setAccountSettingsLoading(true);
+      const loginFallbackLabel = tr("settings.account.history.login");
+      const generationFallbackLabel = tr("settings.account.history.generation");
       try {
         const [profileResult, addressesResult, loginResult, generationResult, settingsResult] = await Promise.allSettled([
           userCenterService.getUserProfile(),
@@ -615,13 +689,15 @@ export function SettingsPage() {
         }
 
         if (loginResult.status === "fulfilled") {
-          setAccountLoginHistory(mapAccountHistoryRows(loginResult.value.content, "Login"));
+          setAccountLoginHistory(mapAccountHistoryRows(loginResult.value.content, loginFallbackLabel));
         } else {
           console.warn("Failed to load account login history from SDK.", loginResult.reason);
         }
 
         if (generationResult.status === "fulfilled") {
-          setAccountGenerationHistory(mapAccountHistoryRows(generationResult.value.content, "Generation"));
+          setAccountGenerationHistory(
+            mapAccountHistoryRows(generationResult.value.content, generationFallbackLabel),
+          );
         } else {
           console.warn("Failed to load account generation history from SDK.", generationResult.reason);
         }
@@ -648,10 +724,17 @@ export function SettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeTab]);
+  }, [activeTab, tr]);
 
   const handleSelectTab = (tab: SettingTab) => {
     setActiveTab(tab);
+  };
+
+  const handleAccountLanguageChange = (nextLanguage: string) => {
+    const normalizedLanguage = (SETTINGS_ACCOUNT_LANGUAGES.find((language) => language === nextLanguage) ??
+      "zh-CN") as AppLanguage;
+    setAccountSettingsDraft((prev) => ({ ...prev, language: normalizedLanguage }));
+    void setRuntimeLanguage(normalizedLanguage);
   };
 
   const showSettingsSave =
@@ -663,17 +746,19 @@ export function SettingsPage() {
     try {
       const result = await SettingsResultService.updateSettings(settings);
       if (!result.success) {
-        setSaveMessage(result.error || result.message || "Save failed. Local changes are still in memory.");
+        setSaveMessage(
+          result.error || result.message || tr("settings.messages.saveFailedLocalChanges"),
+        );
         return;
       }
 
       if (result.data) {
         setSettings(result.data);
       }
-      setSaveMessage("Settings saved.");
+      setSaveMessage(tr("settings.messages.settingsSaved"));
     } catch (error) {
       console.error("Failed to save settings.", error);
-      setSaveMessage("Save failed. Local changes are still in memory.");
+      setSaveMessage(tr("settings.messages.saveFailedLocalChanges"));
     } finally {
       setIsSaving(false);
     }
@@ -696,36 +781,42 @@ export function SettingsPage() {
         detail: next,
       }),
     );
-    setSaveMessage("IM config saved to local profile.");
+    setSaveMessage(tr("settings.messages.imConfigSaved"));
   };
 
   const handleToggleDevAutoLogin = (enabled: boolean) => {
     if (enabled) {
       localStorage.removeItem(DEV_AUTO_LOGIN_KEY);
       setDevAutoLoginDisabled(false);
-      setSaveMessage("Dev auto-login enabled.");
+      setSaveMessage(tr("settings.messages.devAutoLoginEnabled"));
       return;
     }
 
     localStorage.setItem(DEV_AUTO_LOGIN_KEY, "true");
     setDevAutoLoginDisabled(true);
-    setSaveMessage("Dev auto-login disabled.");
+    setSaveMessage(tr("settings.messages.devAutoLoginDisabled"));
   };
 
   const handleCheckUpdate = async () => {
     setIsCheckingUpdate(true);
     try {
       const next = await SettingsResultService.checkForUpdates();
-      if (!next.success || !next.data) {
-        setSaveMessage(next.error || next.message || "Update check failed.");
-        return;
-      }
+        if (!next.success || !next.data) {
+          setSaveMessage(
+            next.error || next.message || tr("settings.messages.updateCheckFailed"),
+          );
+          return;
+        }
 
       setAppInfo((prev) => ({ ...prev, ...next.data }));
-      setSaveMessage(next.data.updateAvailable ? "New version detected." : "You are up to date.");
+        setSaveMessage(
+          next.data.updateAvailable
+            ? tr("settings.messages.updateAvailable")
+            : tr("settings.messages.updateUpToDate"),
+        );
     } catch (error) {
       console.error("Failed to check updates.", error);
-      setSaveMessage("Update check failed.");
+      setSaveMessage(tr("settings.messages.updateCheckFailed"));
     } finally {
       setIsCheckingUpdate(false);
     }
@@ -773,10 +864,10 @@ export function SettingsPage() {
         bio: accountDraft.bio.trim() || undefined,
       });
       setAccountProfile(updated);
-      setSaveMessage("Profile updated.");
+      setSaveMessage(tr("settings.messages.profileUpdated"));
     } catch (error) {
       console.error("Failed to update account profile.", error);
-      setSaveMessage(error instanceof Error ? error.message : "Profile update failed.");
+      setSaveMessage(error instanceof Error ? error.message : tr("settings.messages.profileUpdateFailed"));
     } finally {
       setAccountSaving(false);
     }
@@ -784,11 +875,11 @@ export function SettingsPage() {
 
   const handleChangeAccountPassword = async () => {
     if (!passwordDraft.oldPassword || !passwordDraft.newPassword || !passwordDraft.confirmPassword) {
-      setSaveMessage("Please complete all password fields.");
+      setSaveMessage(tr("settings.messages.passwordFieldsRequired"));
       return;
     }
     if (passwordDraft.newPassword !== passwordDraft.confirmPassword) {
-      setSaveMessage("New password and confirmation do not match.");
+      setSaveMessage(tr("settings.messages.passwordMismatch"));
       return;
     }
 
@@ -805,10 +896,10 @@ export function SettingsPage() {
         newPassword: "",
         confirmPassword: "",
       });
-      setSaveMessage("Password changed.");
+      setSaveMessage(tr("settings.messages.passwordChanged"));
     } catch (error) {
       console.error("Failed to change account password.", error);
-      setSaveMessage(error instanceof Error ? error.message : "Password change failed.");
+      setSaveMessage(error instanceof Error ? error.message : tr("settings.messages.passwordChangeFailed"));
     } finally {
       setAccountSaving(false);
     }
@@ -826,7 +917,7 @@ export function SettingsPage() {
   const handleBindAccountEmail = async () => {
     const email = accountBindingDraft.email.trim();
     if (!email) {
-      setSaveMessage("Please enter email.");
+      setSaveMessage(tr("settings.messages.emailRequired"));
       return;
     }
     setAccountBindingSaving(true);
@@ -838,10 +929,10 @@ export function SettingsPage() {
       );
       applyAccountBindingProfile(updated);
       setAccountBindingDraft((prev) => ({ ...prev, emailCode: "" }));
-      setSaveMessage("Email bound.");
+      setSaveMessage(tr("settings.messages.emailBound"));
     } catch (error) {
       console.error("Failed to bind account email.", error);
-      setSaveMessage(error instanceof Error ? error.message : "Email bind failed.");
+      setSaveMessage(error instanceof Error ? error.message : tr("settings.messages.emailBindFailed"));
     } finally {
       setAccountBindingSaving(false);
     }
@@ -854,10 +945,10 @@ export function SettingsPage() {
       const updated = await userCenterService.unbindEmail();
       applyAccountBindingProfile(updated);
       setAccountBindingDraft((prev) => ({ ...prev, emailCode: "" }));
-      setSaveMessage("Email unbound.");
+      setSaveMessage(tr("settings.messages.emailUnbound"));
     } catch (error) {
       console.error("Failed to unbind account email.", error);
-      setSaveMessage(error instanceof Error ? error.message : "Email unbind failed.");
+      setSaveMessage(error instanceof Error ? error.message : tr("settings.messages.emailUnbindFailed"));
     } finally {
       setAccountBindingSaving(false);
     }
@@ -866,7 +957,7 @@ export function SettingsPage() {
   const handleBindAccountPhone = async () => {
     const phone = accountBindingDraft.phone.trim();
     if (!phone) {
-      setSaveMessage("Please enter phone.");
+      setSaveMessage(tr("settings.messages.phoneRequired"));
       return;
     }
     setAccountBindingSaving(true);
@@ -878,10 +969,10 @@ export function SettingsPage() {
       );
       applyAccountBindingProfile(updated);
       setAccountBindingDraft((prev) => ({ ...prev, phoneCode: "" }));
-      setSaveMessage("Phone bound.");
+      setSaveMessage(tr("settings.messages.phoneBound"));
     } catch (error) {
       console.error("Failed to bind account phone.", error);
-      setSaveMessage(error instanceof Error ? error.message : "Phone bind failed.");
+      setSaveMessage(error instanceof Error ? error.message : tr("settings.messages.phoneBindFailed"));
     } finally {
       setAccountBindingSaving(false);
     }
@@ -894,10 +985,10 @@ export function SettingsPage() {
       const updated = await userCenterService.unbindPhone();
       applyAccountBindingProfile(updated);
       setAccountBindingDraft((prev) => ({ ...prev, phoneCode: "" }));
-      setSaveMessage("Phone unbound.");
+      setSaveMessage(tr("settings.messages.phoneUnbound"));
     } catch (error) {
       console.error("Failed to unbind account phone.", error);
-      setSaveMessage(error instanceof Error ? error.message : "Phone unbind failed.");
+      setSaveMessage(error instanceof Error ? error.message : tr("settings.messages.phoneUnbindFailed"));
     } finally {
       setAccountBindingSaving(false);
     }
@@ -910,8 +1001,13 @@ export function SettingsPage() {
     const thirdPartyUserId = platform === "wechat"
       ? accountBindingDraft.wechatUserId.trim()
       : accountBindingDraft.qqUserId.trim();
+    const platformLabel = tr(`settings.account.binding.platform.${platform}`);
     if (!code && !thirdPartyUserId) {
-      setSaveMessage(`Please enter ${platform.toUpperCase()} code or user ID.`);
+      setSaveMessage(
+        tr("settings.account.binding.socialCodeRequired", {
+          platform: platformLabel,
+        }),
+      );
       return;
     }
     setAccountBindingSaving(true);
@@ -926,24 +1022,37 @@ export function SettingsPage() {
       } else {
         setAccountBindingDraft((prev) => ({ ...prev, qqCode: "", qqUserId: "" }));
       }
-      setSaveMessage(`${platform.toUpperCase()} account bound.`);
+      setSaveMessage(
+        tr("settings.account.binding.bindSuccess", { platform: platformLabel }),
+      );
     } catch (error) {
       console.error(`Failed to bind ${platform} account.`, error);
-      setSaveMessage(error instanceof Error ? error.message : `${platform.toUpperCase()} bind failed.`);
+      setSaveMessage(
+        error instanceof Error
+          ? error.message
+          : tr("settings.account.binding.bindFailed", { platform: platformLabel }),
+      );
     } finally {
       setAccountBindingSaving(false);
     }
   };
 
   const handleUnbindAccountSocial = async (platform: "wechat" | "qq") => {
+    const platformLabel = tr(`settings.account.binding.platform.${platform}`);
     setAccountBindingSaving(true);
     setSaveMessage("");
     try {
       await userCenterService.unbindThirdParty(platform);
-      setSaveMessage(`${platform.toUpperCase()} account unbound.`);
+      setSaveMessage(
+        tr("settings.account.binding.unbindSuccess", { platform: platformLabel }),
+      );
     } catch (error) {
       console.error(`Failed to unbind ${platform} account.`, error);
-      setSaveMessage(error instanceof Error ? error.message : `${platform.toUpperCase()} unbind failed.`);
+      setSaveMessage(
+        error instanceof Error
+          ? error.message
+          : tr("settings.account.binding.unbindFailed", { platform: platformLabel }),
+      );
     } finally {
       setAccountBindingSaving(false);
     }
@@ -966,7 +1075,11 @@ export function SettingsPage() {
       setAccountSettingsDraft(toAccountUserSettingsDraft(userSettings));
     } catch (error) {
       console.error("Failed to reload account data.", error);
-      setSaveMessage(error instanceof Error ? error.message : "Failed to reload account data.");
+      setSaveMessage(
+        error instanceof Error
+          ? error.message
+          : tr("settings.messages.reloadAccountDataFailed"),
+      );
     } finally {
       setAccountAddressLoading(false);
       setAccountHistoryLoading(false);
@@ -997,7 +1110,7 @@ export function SettingsPage() {
     const phone = accountAddressDraft.phone.trim();
     const addressDetail = accountAddressDraft.addressDetail.trim();
     if (!name || !phone || !addressDetail) {
-      setSaveMessage("Address name, phone and detail are required.");
+      setSaveMessage(tr("settings.messages.addressFieldsRequired"));
       return;
     }
 
@@ -1022,10 +1135,16 @@ export function SettingsPage() {
       }
       await reloadAccountExtendedData();
       resetAccountAddressDraft();
-      setSaveMessage(wasEditing ? "Address updated." : "Address created.");
+      setSaveMessage(
+        wasEditing
+          ? tr("settings.messages.addressUpdated")
+          : tr("settings.messages.addressCreated"),
+      );
     } catch (error) {
       console.error("Failed to save account address.", error);
-      setSaveMessage(error instanceof Error ? error.message : "Address save failed.");
+      setSaveMessage(
+        error instanceof Error ? error.message : tr("settings.messages.addressSaveFailed"),
+      );
     } finally {
       setAccountAddressSaving(false);
     }
@@ -1035,7 +1154,7 @@ export function SettingsPage() {
     if (addressId === undefined || addressId === null) {
       return;
     }
-    const confirmed = window.confirm("Delete this address?");
+    const confirmed = window.confirm(tr("settings.messages.confirmDeleteAddress"));
     if (!confirmed) {
       return;
     }
@@ -1047,10 +1166,12 @@ export function SettingsPage() {
       if (editingAccountAddressId && editingAccountAddressId === String(addressId)) {
         resetAccountAddressDraft();
       }
-      setSaveMessage("Address deleted.");
+      setSaveMessage(tr("settings.messages.addressDeleted"));
     } catch (error) {
       console.error("Failed to delete account address.", error);
-      setSaveMessage(error instanceof Error ? error.message : "Address delete failed.");
+      setSaveMessage(
+        error instanceof Error ? error.message : tr("settings.messages.addressDeleteFailed"),
+      );
     } finally {
       setAccountAddressSaving(false);
     }
@@ -1065,10 +1186,14 @@ export function SettingsPage() {
     try {
       await userCenterService.setDefaultAddress(addressId);
       await reloadAccountExtendedData();
-      setSaveMessage("Default address updated.");
+      setSaveMessage(tr("settings.messages.defaultAddressUpdated"));
     } catch (error) {
       console.error("Failed to set default account address.", error);
-      setSaveMessage(error instanceof Error ? error.message : "Set default address failed.");
+      setSaveMessage(
+        error instanceof Error
+          ? error.message
+          : tr("settings.messages.defaultAddressFailed"),
+      );
     } finally {
       setAccountAddressSaving(false);
     }
@@ -1082,10 +1207,12 @@ export function SettingsPage() {
         toAccountUserSettingsPayload(accountSettingsDraft),
       );
       setAccountSettingsDraft(toAccountUserSettingsDraft(updated));
-      setSaveMessage("User settings updated.");
+      setSaveMessage(tr("settings.messages.userSettingsUpdated"));
     } catch (error) {
       console.error("Failed to update account user settings.", error);
-      setSaveMessage(error instanceof Error ? error.message : "User settings update failed.");
+      setSaveMessage(
+        error instanceof Error ? error.message : tr("settings.messages.userSettingsUpdateFailed"),
+      );
     } finally {
       setAccountSettingsSaving(false);
     }
@@ -1095,7 +1222,7 @@ export function SettingsPage() {
     return (
       <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary p-6">
         <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-          Loading settings...
+          {tr("settings.loading")}
         </div>
       </section>
     );
@@ -1104,8 +1231,8 @@ export function SettingsPage() {
   return (
     <section className="flex h-full min-w-0 flex-1 overflow-hidden bg-bg-primary">
       <aside className="w-56 border-r border-border bg-bg-secondary p-4">
-        <h1 className="px-2 text-lg font-semibold text-text-primary">Settings</h1>
-        <p className="px-2 pt-1 text-xs text-text-secondary">Manage account, IM connectivity, and preferences.</p>
+        <h1 className="px-2 text-lg font-semibold text-text-primary">{tr("settings.title")}</h1>
+        <p className="px-2 pt-1 text-xs text-text-secondary">{tr("settings.description")}</p>
         <nav className="mt-4 space-y-1">
           {tabs.map((tab) => (
             <button
@@ -1127,48 +1254,80 @@ export function SettingsPage() {
         {activeTab === "account" ? (
           <div className="space-y-4">
             <div className="rounded-xl border border-border bg-bg-secondary p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Profile</h2>
+              <h2 className="text-sm font-semibold text-text-primary">
+                {tr("settings.account.profile.title")}
+              </h2>
               <div className="mt-3 space-y-2 text-sm text-text-secondary">
-                <p>Nickname: {accountProfile?.nickname || user?.nickname || "Not set"}</p>
-                <p>User ID: {accountProfile?.userId || user?.id || "-"}</p>
-                <p>Email: {accountProfile?.email || user?.email || "Not bound"}</p>
-                <p>Phone: {accountProfile?.phone || user?.phone || "Not bound"}</p>
+                <p>
+                  {tr("settings.account.profile.nickname", {
+                    value: pickProfileValue(
+                      accountProfile?.nickname,
+                      user?.nickname,
+                      "settings.account.profile.notSet",
+                    ),
+                  })}
+                </p>
+                <p>
+                  {tr("settings.account.profile.userId", {
+                    value: pickProfileValue(accountProfile?.userId, user?.id, undefined, "-"),
+                  })}
+                </p>
+                <p>
+                  {tr("settings.account.profile.email", {
+                    value: pickProfileValue(
+                      accountProfile?.email,
+                      user?.email,
+                      "settings.account.profile.notBound",
+                    ),
+                  })}
+                </p>
+                <p>
+                  {tr("settings.account.profile.phone", {
+                    value: pickProfileValue(
+                      accountProfile?.phone,
+                      user?.phone,
+                      "settings.account.profile.notBound",
+                    ),
+                  })}
+                </p>
               </div>
             </div>
 
             <div className="rounded-xl border border-border bg-bg-secondary p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Edit Profile</h2>
+              <h2 className="text-sm font-semibold text-text-primary">
+                {tr("settings.account.editProfile.title")}
+              </h2>
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm text-text-secondary">
-                  Nickname
+                  {tr("settings.account.editProfile.nickname")}
                   <input
                     value={accountDraft.nickname}
                     onChange={(event) =>
                       setAccountDraft((prev) => ({ ...prev, nickname: event.target.value }))
                     }
-                    placeholder="Enter nickname"
+                    placeholder={tr("settings.account.editProfile.nicknamePlaceholder")}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                   />
                 </label>
                 <label className="text-sm text-text-secondary">
-                  Region
+                  {tr("settings.account.editProfile.region")}
                   <input
                     value={accountDraft.region}
                     onChange={(event) =>
                       setAccountDraft((prev) => ({ ...prev, region: event.target.value }))
                     }
-                    placeholder="Enter region"
+                    placeholder={tr("settings.account.editProfile.regionPlaceholder")}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                   />
                 </label>
                 <label className="text-sm text-text-secondary md:col-span-2">
-                  Bio
+                  {tr("settings.account.editProfile.bio")}
                   <textarea
                     value={accountDraft.bio}
                     onChange={(event) =>
                       setAccountDraft((prev) => ({ ...prev, bio: event.target.value }))
                     }
-                    placeholder="Tell others about yourself"
+                    placeholder={tr("settings.account.editProfile.bioPlaceholder")}
                     rows={3}
                     className="mt-1 w-full rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
                   />
@@ -1183,16 +1342,20 @@ export function SettingsPage() {
                   disabled={accountSaving}
                   className="rounded-lg border border-primary/40 bg-primary-soft px-4 py-2 text-sm text-primary transition hover:bg-primary/20 disabled:opacity-60"
                 >
-                  {accountSaving ? "Saving..." : "Save Profile"}
+                  {accountSaving
+                    ? tr("settings.account.editProfile.saving")
+                    : tr("settings.account.editProfile.save")}
                 </button>
               </div>
             </div>
 
             <div className="rounded-xl border border-border bg-bg-secondary p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Change Password</h2>
+              <h2 className="text-sm font-semibold text-text-primary">
+                {tr("settings.account.changePassword.title")}
+              </h2>
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
                 <label className="text-sm text-text-secondary">
-                  Current Password
+                  {tr("settings.account.changePassword.current")}
                   <input
                     type="password"
                     value={passwordDraft.oldPassword}
@@ -1203,7 +1366,7 @@ export function SettingsPage() {
                   />
                 </label>
                 <label className="text-sm text-text-secondary">
-                  New Password
+                  {tr("settings.account.changePassword.new")}
                   <input
                     type="password"
                     value={passwordDraft.newPassword}
@@ -1214,7 +1377,7 @@ export function SettingsPage() {
                   />
                 </label>
                 <label className="text-sm text-text-secondary">
-                  Confirm Password
+                  {tr("settings.account.changePassword.confirm")}
                   <input
                     type="password"
                     value={passwordDraft.confirmPassword}
@@ -1234,39 +1397,46 @@ export function SettingsPage() {
                   disabled={accountSaving}
                   className="rounded-lg border border-primary/40 bg-primary-soft px-4 py-2 text-sm text-primary transition hover:bg-primary/20 disabled:opacity-60"
                 >
-                  {accountSaving ? "Submitting..." : "Update Password"}
+                  {accountSaving
+                    ? tr("settings.account.changePassword.submitting")
+                    : tr("settings.account.changePassword.update")}
                 </button>
               </div>
             </div>
 
             <div className="rounded-xl border border-border bg-bg-secondary p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Account Binding</h2>
+              <h2 className="text-sm font-semibold text-text-primary">
+                {tr("settings.account.binding.title")}
+              </h2>
               <p className="mt-1 text-xs text-text-muted">
-                Bind email/phone/WeChat/QQ through SDK user & bind APIs.
+                {tr("settings.account.binding.description")}
               </p>
               <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
                 <div className="rounded-lg border border-border bg-bg-primary p-3">
-                  <div className="text-xs text-text-secondary">Email</div>
-                  <div className="mt-1 text-[11px] text-text-muted">Current: {accountProfile?.email || "Not bound"}</div>
+                  <div className="text-xs text-text-secondary">{tr("settings.account.binding.email")}</div>
+                  <div className="mt-1 text-[11px] text-text-muted">
+                    {tr("settings.account.binding.current")}{" "}
+                    {accountProfile?.email || user?.email || tr("settings.account.binding.notBound")}
+                  </div>
                   <label className="mt-2 block text-sm text-text-secondary">
-                    Email
+                    {tr("settings.account.binding.email")}
                     <input
                       value={accountBindingDraft.email}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, email: event.target.value }))
                       }
-                      placeholder="you@example.com"
+                      placeholder={tr("settings.account.binding.emailPlaceholder")}
                       className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                     />
                   </label>
                   <label className="mt-2 block text-sm text-text-secondary">
-                    Verify Code (optional)
+                    {tr("settings.account.binding.verifyCodeOptional")}
                     <input
                       value={accountBindingDraft.emailCode}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, emailCode: event.target.value }))
                       }
-                      placeholder="Email verify code"
+                      placeholder={tr("settings.account.binding.emailVerifyCodePlaceholder")}
                       className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                     />
                   </label>
@@ -1279,7 +1449,11 @@ export function SettingsPage() {
                       disabled={accountBindingSaving}
                       className="rounded-lg border border-primary/40 bg-primary-soft px-3 py-1.5 text-xs text-primary transition hover:bg-primary/20 disabled:opacity-60"
                     >
-                      {accountBindingSaving ? "Processing..." : "Bind Email"}
+                      {accountBindingSaving
+                        ? tr("settings.account.binding.processing")
+                        : tr("settings.account.binding.bind", {
+                            channel: tr("settings.account.binding.email"),
+                          })}
                     </button>
                     <button
                       type="button"
@@ -1289,33 +1463,36 @@ export function SettingsPage() {
                       disabled={accountBindingSaving}
                       className="rounded-lg border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition hover:bg-bg-hover disabled:opacity-60"
                     >
-                      Unbind
+                      {tr("settings.account.binding.unbind")}
                     </button>
                   </div>
                 </div>
 
                 <div className="rounded-lg border border-border bg-bg-primary p-3">
-                  <div className="text-xs text-text-secondary">Phone</div>
-                  <div className="mt-1 text-[11px] text-text-muted">Current: {accountProfile?.phone || "Not bound"}</div>
+                  <div className="text-xs text-text-secondary">{tr("settings.account.binding.phone")}</div>
+                  <div className="mt-1 text-[11px] text-text-muted">
+                    {tr("settings.account.binding.current")}{" "}
+                    {accountProfile?.phone || user?.phone || tr("settings.account.binding.notBound")}
+                  </div>
                   <label className="mt-2 block text-sm text-text-secondary">
-                    Phone
+                    {tr("settings.account.binding.phone")}
                     <input
                       value={accountBindingDraft.phone}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, phone: event.target.value }))
                       }
-                      placeholder="Phone number"
+                      placeholder={tr("settings.account.binding.phonePlaceholder")}
                       className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                     />
                   </label>
                   <label className="mt-2 block text-sm text-text-secondary">
-                    Verify Code (optional)
+                    {tr("settings.account.binding.verifyCodeOptional")}
                     <input
                       value={accountBindingDraft.phoneCode}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, phoneCode: event.target.value }))
                       }
-                      placeholder="SMS verify code"
+                      placeholder={tr("settings.account.binding.phoneVerifyCodePlaceholder")}
                       className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                     />
                   </label>
@@ -1328,7 +1505,11 @@ export function SettingsPage() {
                       disabled={accountBindingSaving}
                       className="rounded-lg border border-primary/40 bg-primary-soft px-3 py-1.5 text-xs text-primary transition hover:bg-primary/20 disabled:opacity-60"
                     >
-                      {accountBindingSaving ? "Processing..." : "Bind Phone"}
+                      {accountBindingSaving
+                        ? tr("settings.account.binding.processing")
+                        : tr("settings.account.binding.bind", {
+                            channel: tr("settings.account.binding.phone"),
+                          })}
                     </button>
                     <button
                       type="button"
@@ -1338,32 +1519,32 @@ export function SettingsPage() {
                       disabled={accountBindingSaving}
                       className="rounded-lg border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition hover:bg-bg-hover disabled:opacity-60"
                     >
-                      Unbind
+                      {tr("settings.account.binding.unbind")}
                     </button>
                   </div>
                 </div>
 
                 <div className="rounded-lg border border-border bg-bg-primary p-3">
-                  <div className="text-xs text-text-secondary">WeChat</div>
+                  <div className="text-xs text-text-secondary">{tr("settings.account.binding.wechat")}</div>
                   <label className="mt-2 block text-sm text-text-secondary">
-                    Auth Code
+                    {tr("settings.account.binding.authCode")}
                     <input
                       value={accountBindingDraft.wechatCode}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, wechatCode: event.target.value }))
                       }
-                      placeholder="WeChat auth code"
+                      placeholder={tr("settings.account.binding.wechatAuthCodePlaceholder")}
                       className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                     />
                   </label>
                   <label className="mt-2 block text-sm text-text-secondary">
-                    Third-party User ID (optional)
+                    {tr("settings.account.binding.thirdPartyUserIdOptional")}
                     <input
                       value={accountBindingDraft.wechatUserId}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, wechatUserId: event.target.value }))
                       }
-                      placeholder="openid/unionid"
+                      placeholder={tr("settings.account.binding.openUnionPlaceholder")}
                       className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                     />
                   </label>
@@ -1376,7 +1557,11 @@ export function SettingsPage() {
                       disabled={accountBindingSaving}
                       className="rounded-lg border border-primary/40 bg-primary-soft px-3 py-1.5 text-xs text-primary transition hover:bg-primary/20 disabled:opacity-60"
                     >
-                      {accountBindingSaving ? "Processing..." : "Bind WeChat"}
+                      {accountBindingSaving
+                        ? tr("settings.account.binding.processing")
+                        : tr("settings.account.binding.bind", {
+                            channel: tr("settings.account.binding.wechat"),
+                          })}
                     </button>
                     <button
                       type="button"
@@ -1386,32 +1571,32 @@ export function SettingsPage() {
                       disabled={accountBindingSaving}
                       className="rounded-lg border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition hover:bg-bg-hover disabled:opacity-60"
                     >
-                      Unbind
+                      {tr("settings.account.binding.unbind")}
                     </button>
                   </div>
                 </div>
 
                 <div className="rounded-lg border border-border bg-bg-primary p-3">
-                  <div className="text-xs text-text-secondary">QQ</div>
+                  <div className="text-xs text-text-secondary">{tr("settings.account.binding.qq")}</div>
                   <label className="mt-2 block text-sm text-text-secondary">
-                    Auth Code
+                    {tr("settings.account.binding.authCode")}
                     <input
                       value={accountBindingDraft.qqCode}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, qqCode: event.target.value }))
                       }
-                      placeholder="QQ auth code"
+                      placeholder={tr("settings.account.binding.qqAuthCodePlaceholder")}
                       className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                     />
                   </label>
                   <label className="mt-2 block text-sm text-text-secondary">
-                    Third-party User ID (optional)
+                    {tr("settings.account.binding.thirdPartyUserIdOptional")}
                     <input
                       value={accountBindingDraft.qqUserId}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, qqUserId: event.target.value }))
                       }
-                      placeholder="openid/unionid"
+                      placeholder={tr("settings.account.binding.openUnionPlaceholder")}
                       className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                     />
                   </label>
@@ -1424,7 +1609,11 @@ export function SettingsPage() {
                       disabled={accountBindingSaving}
                       className="rounded-lg border border-primary/40 bg-primary-soft px-3 py-1.5 text-xs text-primary transition hover:bg-primary/20 disabled:opacity-60"
                     >
-                      {accountBindingSaving ? "Processing..." : "Bind QQ"}
+                      {accountBindingSaving
+                        ? tr("settings.account.binding.processing")
+                        : tr("settings.account.binding.bind", {
+                            channel: tr("settings.account.binding.qq"),
+                          })}
                     </button>
                     <button
                       type="button"
@@ -1434,7 +1623,7 @@ export function SettingsPage() {
                       disabled={accountBindingSaving}
                       className="rounded-lg border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition hover:bg-bg-hover disabled:opacity-60"
                     >
-                      Unbind
+                      {tr("settings.account.binding.unbind")}
                     </button>
                   </div>
                 </div>
@@ -1443,7 +1632,9 @@ export function SettingsPage() {
 
             <div className="rounded-xl border border-border bg-bg-secondary p-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-text-primary">Addresses</h2>
+                <h2 className="text-sm font-semibold text-text-primary">
+                  {tr("settings.account.addresses.title")}
+                </h2>
                 <button
                   type="button"
                   onClick={() => {
@@ -1451,74 +1642,74 @@ export function SettingsPage() {
                   }}
                   className="text-xs text-primary hover:underline"
                 >
-                  Refresh
+                  {tr("settings.account.addresses.refresh")}
                 </button>
               </div>
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm text-text-secondary">
-                  Contact Name
+                  {tr("settings.account.addresses.contactName")}
                   <input
                     value={accountAddressDraft.name}
                     onChange={(event) =>
                       setAccountAddressDraft((prev) => ({ ...prev, name: event.target.value }))
                     }
-                    placeholder="Receiver name"
+                    placeholder={tr("settings.account.addresses.contactNamePlaceholder")}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                   />
                 </label>
                 <label className="text-sm text-text-secondary">
-                  Phone
+                  {tr("settings.account.addresses.phone")}
                   <input
                     value={accountAddressDraft.phone}
                     onChange={(event) =>
                       setAccountAddressDraft((prev) => ({ ...prev, phone: event.target.value }))
                     }
-                    placeholder="Receiver phone"
+                    placeholder={tr("settings.account.addresses.phonePlaceholder")}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                   />
                 </label>
                 <label className="text-sm text-text-secondary">
-                  Province
+                  {tr("settings.account.addresses.province")}
                   <input
                     value={accountAddressDraft.provinceCode}
                     onChange={(event) =>
                       setAccountAddressDraft((prev) => ({ ...prev, provinceCode: event.target.value }))
                     }
-                    placeholder="Province"
+                    placeholder={tr("settings.account.addresses.provincePlaceholder")}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                   />
                 </label>
                 <label className="text-sm text-text-secondary">
-                  City
+                  {tr("settings.account.addresses.city")}
                   <input
                     value={accountAddressDraft.cityCode}
                     onChange={(event) =>
                       setAccountAddressDraft((prev) => ({ ...prev, cityCode: event.target.value }))
                     }
-                    placeholder="City"
+                    placeholder={tr("settings.account.addresses.cityPlaceholder")}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                   />
                 </label>
                 <label className="text-sm text-text-secondary">
-                  District
+                  {tr("settings.account.addresses.district")}
                   <input
                     value={accountAddressDraft.districtCode}
                     onChange={(event) =>
                       setAccountAddressDraft((prev) => ({ ...prev, districtCode: event.target.value }))
                     }
-                    placeholder="District"
+                    placeholder={tr("settings.account.addresses.districtPlaceholder")}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                   />
                 </label>
                 <label className="text-sm text-text-secondary md:col-span-2">
-                  Address Detail
+                  {tr("settings.account.addresses.detail")}
                   <textarea
                     value={accountAddressDraft.addressDetail}
                     onChange={(event) =>
                       setAccountAddressDraft((prev) => ({ ...prev, addressDetail: event.target.value }))
                     }
                     rows={2}
-                    placeholder="Street / building / room"
+                    placeholder={tr("settings.account.addresses.detailPlaceholder")}
                     className="mt-1 w-full rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
                   />
                 </label>
@@ -1530,7 +1721,7 @@ export function SettingsPage() {
                       setAccountAddressDraft((prev) => ({ ...prev, isDefault: event.target.checked }))
                     }
                   />
-                  Set as default
+                  {tr("settings.account.addresses.defaultAction")}
                 </label>
               </div>
               <div className="mt-3 flex items-center gap-2">
@@ -1542,7 +1733,11 @@ export function SettingsPage() {
                   disabled={accountAddressSaving}
                   className="rounded-lg border border-primary/40 bg-primary-soft px-4 py-2 text-sm text-primary transition hover:bg-primary/20 disabled:opacity-60"
                 >
-                  {accountAddressSaving ? "Submitting..." : editingAccountAddressId ? "Update Address" : "Add Address"}
+                  {accountAddressSaving
+                    ? tr("settings.account.addresses.submitting")
+                    : editingAccountAddressId
+                      ? tr("settings.account.addresses.update")
+                      : tr("settings.account.addresses.add")}
                 </button>
                 {editingAccountAddressId ? (
                   <button
@@ -1550,17 +1745,19 @@ export function SettingsPage() {
                     onClick={resetAccountAddressDraft}
                     className="rounded-lg border border-border bg-bg-tertiary px-4 py-2 text-sm text-text-secondary transition hover:bg-bg-hover"
                   >
-                    Cancel Edit
+                    {tr("settings.account.addresses.cancelEdit")}
                   </button>
                 ) : null}
               </div>
               {accountAddressLoading ? (
-                <div className="mt-2 text-xs text-text-muted">Loading addresses...</div>
+                <div className="mt-2 text-xs text-text-muted">
+                  {tr("settings.account.addresses.loading")}
+                </div>
               ) : null}
               <div className="mt-3 space-y-2">
                 {accountAddresses.length === 0 ? (
                   <div className="rounded-lg border border-border bg-bg-primary px-3 py-2 text-xs text-text-muted">
-                    No saved addresses.
+                    {tr("settings.account.addresses.empty")}
                   </div>
                 ) : accountAddresses.map((address) => (
                   <div key={address.id || `${address.name}-${address.phone}`} className="rounded-lg border border-border bg-bg-primary px-3 py-2">
@@ -1573,14 +1770,16 @@ export function SettingsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         {address.isDefault ? (
-                          <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] text-primary">Default</span>
+                          <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] text-primary">
+                            {tr("settings.account.addresses.defaultBadge")}
+                          </span>
                         ) : null}
                         <button
                           type="button"
                           onClick={() => handleEditAccountAddress(address)}
                           className="text-xs text-primary hover:underline"
                         >
-                          Edit
+                          {tr("settings.account.addresses.edit")}
                         </button>
                         {!address.isDefault ? (
                           <button
@@ -1590,7 +1789,7 @@ export function SettingsPage() {
                             }}
                             className="text-xs text-primary hover:underline"
                           >
-                            Set Default
+                            {tr("settings.account.addresses.setDefault")}
                           </button>
                         ) : null}
                         <button
@@ -1600,7 +1799,7 @@ export function SettingsPage() {
                           }}
                           className="text-xs text-red-400 hover:underline"
                         >
-                          Delete
+                          {tr("settings.account.addresses.delete")}
                         </button>
                       </div>
                     </div>
@@ -1611,7 +1810,9 @@ export function SettingsPage() {
 
             <div className="rounded-xl border border-border bg-bg-secondary p-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-text-primary">User Settings</h2>
+                <h2 className="text-sm font-semibold text-text-primary">
+                  {tr("settings.account.userSettings.title")}
+                </h2>
                 <button
                   type="button"
                   onClick={() => {
@@ -1619,15 +1820,17 @@ export function SettingsPage() {
                   }}
                   className="text-xs text-primary hover:underline"
                 >
-                  Refresh
+                  {tr("settings.account.userSettings.refresh")}
                 </button>
               </div>
               {accountSettingsLoading ? (
-                <div className="mt-2 text-xs text-text-muted">Loading user settings...</div>
+                <div className="mt-2 text-xs text-text-muted">
+                  {tr("settings.account.userSettings.loading")}
+                </div>
               ) : null}
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm text-text-secondary">
-                  Theme
+                  {tr("settings.account.userSettings.theme")}
                   <select
                     value={accountSettingsDraft.theme}
                     onChange={(event) =>
@@ -1635,22 +1838,23 @@ export function SettingsPage() {
                     }
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                   >
-                    <option value="system">System</option>
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
+                    <option value="system">{tr(THEME_OPTION_KEYS.system)}</option>
+                    <option value="light">{tr(THEME_OPTION_KEYS.light)}</option>
+                    <option value="dark">{tr(THEME_OPTION_KEYS.dark)}</option>
                   </select>
                 </label>
                 <label className="text-sm text-text-secondary">
-                  Language
+                  {tr("settings.account.userSettings.language")}
                   <select
                     value={accountSettingsDraft.language}
-                    onChange={(event) =>
-                      setAccountSettingsDraft((prev) => ({ ...prev, language: event.target.value }))
-                    }
+                    onChange={(event) => handleAccountLanguageChange(event.target.value)}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                   >
-                    <option value="zh-CN">简体中文</option>
-                    <option value="en-US">English</option>
+                    {languageOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
               </div>
@@ -1670,7 +1874,7 @@ export function SettingsPage() {
                       }))
                     }
                   />
-                  System Notifications
+                  {tr("settings.account.userSettings.notifications.system")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
                   <input
@@ -1686,7 +1890,7 @@ export function SettingsPage() {
                       }))
                     }
                   />
-                  Message Notifications
+                  {tr("settings.account.userSettings.notifications.message")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
                   <input
@@ -1702,7 +1906,7 @@ export function SettingsPage() {
                       }))
                     }
                   />
-                  Activity Notifications
+                  {tr("settings.account.userSettings.notifications.activity")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
                   <input
@@ -1718,7 +1922,7 @@ export function SettingsPage() {
                       }))
                     }
                   />
-                  Promotion Notifications
+                  {tr("settings.account.userSettings.notifications.promotion")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
                   <input
@@ -1734,7 +1938,7 @@ export function SettingsPage() {
                       }))
                     }
                   />
-                  Sound
+                  {tr("settings.account.userSettings.notifications.sound")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
                   <input
@@ -1750,7 +1954,7 @@ export function SettingsPage() {
                       }))
                     }
                   />
-                  Vibration
+                  {tr("settings.account.userSettings.notifications.vibration")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
                   <input
@@ -1766,7 +1970,7 @@ export function SettingsPage() {
                       }))
                     }
                   />
-                  Public Profile
+                  {tr("settings.account.userSettings.privacy.publicProfile")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
                   <input
@@ -1782,7 +1986,7 @@ export function SettingsPage() {
                       }))
                     }
                   />
-                  Allow Search
+                  {tr("settings.account.userSettings.privacy.allowSearch")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
                   <input
@@ -1798,7 +2002,7 @@ export function SettingsPage() {
                       }))
                     }
                   />
-                  Allow Friend Request
+                  {tr("settings.account.userSettings.privacy.allowFriendRequest")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
                   <input
@@ -1808,7 +2012,7 @@ export function SettingsPage() {
                       setAccountSettingsDraft((prev) => ({ ...prev, autoPlay: event.target.checked }))
                     }
                   />
-                  Auto Play
+                  {tr("settings.account.userSettings.performance.autoPlay")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
                   <input
@@ -1818,7 +2022,7 @@ export function SettingsPage() {
                       setAccountSettingsDraft((prev) => ({ ...prev, highQuality: event.target.checked }))
                     }
                   />
-                  High Quality
+                  {tr("settings.account.userSettings.performance.highQuality")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
                   <input
@@ -1828,7 +2032,7 @@ export function SettingsPage() {
                       setAccountSettingsDraft((prev) => ({ ...prev, dataSaver: event.target.checked }))
                     }
                   />
-                  Data Saver
+                  {tr("settings.account.userSettings.performance.dataSaver")}
                 </label>
               </div>
 
@@ -1841,22 +2045,32 @@ export function SettingsPage() {
                   disabled={accountSettingsSaving}
                   className="rounded-lg border border-primary/40 bg-primary-soft px-4 py-2 text-sm text-primary transition hover:bg-primary/20 disabled:opacity-60"
                 >
-                  {accountSettingsSaving ? "Saving..." : "Save User Settings"}
+                  {accountSettingsSaving
+                    ? tr("settings.account.userSettings.saving")
+                    : tr("settings.account.userSettings.save")}
                 </button>
               </div>
             </div>
 
             <div className="rounded-xl border border-border bg-bg-secondary p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Recent Activity</h2>
+              <h2 className="text-sm font-semibold text-text-primary">
+                {tr("settings.account.activity.title")}
+              </h2>
               {accountHistoryLoading ? (
-                <div className="mt-2 text-xs text-text-muted">Loading activity records...</div>
+                <div className="mt-2 text-xs text-text-muted">
+                  {tr("settings.account.activity.loading")}
+                </div>
               ) : null}
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="rounded-lg border border-border bg-bg-primary p-3">
-                  <h3 className="text-xs font-semibold text-text-primary">Login History</h3>
+                  <h3 className="text-xs font-semibold text-text-primary">
+                    {tr("settings.account.activity.loginHistory")}
+                  </h3>
                   <div className="mt-2 space-y-2">
                     {accountLoginHistory.length === 0 ? (
-                      <div className="text-xs text-text-muted">No login records.</div>
+                      <div className="text-xs text-text-muted">
+                        {tr("settings.account.activity.noLoginRecords")}
+                      </div>
                     ) : accountLoginHistory.map((item) => (
                       <div key={`login-${item.id}`} className="rounded border border-border px-2 py-1.5">
                         <div className="text-xs text-text-primary">{item.title}</div>
@@ -1867,10 +2081,14 @@ export function SettingsPage() {
                   </div>
                 </div>
                 <div className="rounded-lg border border-border bg-bg-primary p-3">
-                  <h3 className="text-xs font-semibold text-text-primary">Generation History</h3>
+                  <h3 className="text-xs font-semibold text-text-primary">
+                    {tr("settings.account.activity.generationHistory")}
+                  </h3>
                   <div className="mt-2 space-y-2">
                     {accountGenerationHistory.length === 0 ? (
-                      <div className="text-xs text-text-muted">No generation records.</div>
+                      <div className="text-xs text-text-muted">
+                        {tr("settings.account.activity.noGenerationRecords")}
+                      </div>
                     ) : accountGenerationHistory.map((item) => (
                       <div key={`generation-${item.id}`} className="rounded border border-border px-2 py-1.5">
                         <div className="text-xs text-text-primary">{item.title}</div>
@@ -1885,9 +2103,9 @@ export function SettingsPage() {
 
             {IS_DEV ? (
               <div className="rounded-xl border border-border bg-bg-secondary p-4">
-                <h2 className="text-sm font-semibold text-text-primary">Development</h2>
+                <h2 className="text-sm font-semibold text-text-primary">{tr("settings.development.title")}</h2>
                 <div className="mt-3 flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Auto-login test account</span>
+                  <span className="text-sm text-text-secondary">{tr("settings.development.autoLogin")}</span>
                   <Toggle
                     checked={!devAutoLoginDisabled}
                     onChange={handleToggleDevAutoLogin}
@@ -1904,7 +2122,7 @@ export function SettingsPage() {
                 }}
                 className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-300 transition hover:bg-red-500/20"
               >
-                Logout
+                {tr("settings.account.actions.logout")}
               </button>
             </div>
           </div>
@@ -1913,43 +2131,45 @@ export function SettingsPage() {
         {activeTab === "imconfig" ? (
           <div className="space-y-4">
             <div className="rounded-xl border border-border bg-bg-secondary p-4">
-              <h2 className="text-sm font-semibold text-text-primary">IM Connection Config</h2>
+              <h2 className="text-sm font-semibold text-text-primary">
+                {tr("settings.imconfig.title")}
+              </h2>
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm text-text-secondary">
-                  WebSocket URL
+                  {tr("settings.imconfig.websocket")}
                   <input
                     value={imDraft.wsUrl}
                     onChange={(event) =>
                       setImDraft((prev) => ({ ...prev, wsUrl: event.target.value }))
                     }
-                    placeholder="ws://localhost:5200"
+                    placeholder={tr("settings.imconfig.websocketPlaceholder")}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                   />
                 </label>
                 <label className="text-sm text-text-secondary">
-                  HTTP API URL
+                  {tr("settings.imconfig.httpApi")}
                   <input
                     value={imDraft.serverUrl}
                     onChange={(event) =>
                       setImDraft((prev) => ({ ...prev, serverUrl: event.target.value }))
                     }
-                    placeholder="http://localhost:3000"
+                    placeholder={tr("settings.imconfig.httpApiPlaceholder")}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                   />
                 </label>
                 <label className="text-sm text-text-secondary">
-                  Device ID
+                  {tr("settings.imconfig.deviceId")}
                   <input
                     value={imDraft.deviceId}
                     onChange={(event) =>
                       setImDraft((prev) => ({ ...prev, deviceId: event.target.value }))
                     }
-                    placeholder="Optional custom device identifier"
+                    placeholder={tr("settings.imconfig.deviceIdPlaceholder")}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                   />
                 </label>
                 <label className="text-sm text-text-secondary">
-                  Device Type
+                  {tr("settings.imconfig.deviceType")}
                   <select
                     value={imDraft.deviceFlag}
                     onChange={(event) =>
@@ -1960,49 +2180,63 @@ export function SettingsPage() {
                     }
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                   >
-                    <option value="PC">PC</option>
-                    <option value="WEB">WEB</option>
-                    <option value="DESKTOP">DESKTOP</option>
+                    <option value="PC">{tr("settings.imconfig.deviceTypeOptions.PC")}</option>
+                    <option value="WEB">{tr("settings.imconfig.deviceTypeOptions.WEB")}</option>
+                    <option value="DESKTOP">{tr("settings.imconfig.deviceTypeOptions.DESKTOP")}</option>
                   </select>
                 </label>
                 <label className="text-sm text-text-secondary">
-                  UID
+                  {tr("settings.imconfig.uid")}
                   <input
                     value={imDraft.uid}
                     onChange={(event) =>
                       setImDraft((prev) => ({ ...prev, uid: event.target.value }))
                     }
-                    placeholder="User UID for SDK auth"
+                    placeholder={tr("settings.imconfig.uidPlaceholder")}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                   />
                 </label>
                 <label className="text-sm text-text-secondary">
-                  Token
+                  {tr("settings.imconfig.token")}
                   <input
                     value={imDraft.token}
                     onChange={(event) =>
                       setImDraft((prev) => ({ ...prev, token: event.target.value }))
                     }
-                    placeholder="IM token"
+                    placeholder={tr("settings.imconfig.tokenPlaceholder")}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                   />
                 </label>
               </div>
               <div className="mt-4 rounded-lg border border-border bg-bg-primary p-3 text-xs text-text-muted">
-                <p>Saved UID: {imDraft.uid || "-"}</p>
-                <p>Saved Token: {imDraft.token ? "Configured" : "Not configured"}</p>
+                <p
+                  className="text-xs text-text-muted"
+                >
+                  {tr("settings.imconfig.savedUid", {
+                    value: imDraft.uid || tr("settings.imconfig.notConfigured"),
+                  })}
+                </p>
+                <p
+                  className="text-xs text-text-muted"
+                >
+                  {tr("settings.imconfig.savedToken", {
+                    value: imDraft.token
+                      ? tr("settings.imconfig.tokenConfigured")
+                      : tr("settings.imconfig.tokenNotConfigured"),
+                  })}
+                </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleSaveIMConfig}
-                className="rounded-lg bg-primary px-4 py-2 text-sm text-white transition hover:brightness-110"
-              >
-                Save IM Config
-              </button>
-            </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleSaveIMConfig}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm text-white transition hover:brightness-110"
+                >
+                {tr("settings.imconfig.save")}
+                </button>
+              </div>
           </div>
         ) : null}
 
@@ -2021,10 +2255,12 @@ export function SettingsPage() {
         {activeTab === "general" ? (
           <div className="space-y-4">
             <div className="rounded-xl border border-border bg-bg-secondary p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Appearance</h2>
+              <h2 className="text-sm font-semibold text-text-primary">
+                {tr("settings.general.appearance.title")}
+              </h2>
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm text-text-secondary">
-                  Theme
+                  {tr("settings.general.appearance.theme")}
                   <select
                     value={settings.theme}
                     onChange={(event) => {
@@ -2036,15 +2272,15 @@ export function SettingsPage() {
                     }}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                   >
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                    <option value="blue">Blue</option>
-                    <option value="purple">Purple</option>
-                    <option value="system">System</option>
+                    <option value="light">{tr(THEME_OPTION_KEYS.light)}</option>
+                    <option value="dark">{tr(THEME_OPTION_KEYS.dark)}</option>
+                    <option value="blue">{tr(THEME_OPTION_KEYS.blue)}</option>
+                    <option value="purple">{tr(THEME_OPTION_KEYS.purple)}</option>
+                    <option value="system">{tr(THEME_OPTION_KEYS.system)}</option>
                   </select>
                 </label>
                 <label className="text-sm text-text-secondary">
-                  Font Size
+                  {tr("settings.general.appearance.fontSize")}
                   <select
                     value={settings.preferences.fontSize}
                     onChange={(event) =>
@@ -2058,19 +2294,23 @@ export function SettingsPage() {
                     }
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                   >
-                    <option value="small">Small</option>
-                    <option value="medium">Medium</option>
-                    <option value="large">Large</option>
+                    <option value="small">{tr(FONT_SIZE_OPTION_KEYS.small)}</option>
+                    <option value="medium">{tr(FONT_SIZE_OPTION_KEYS.medium)}</option>
+                    <option value="large">{tr(FONT_SIZE_OPTION_KEYS.large)}</option>
                   </select>
                 </label>
               </div>
             </div>
 
             <div className="rounded-xl border border-border bg-bg-secondary p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Preferences</h2>
+              <h2 className="text-sm font-semibold text-text-primary">
+                {tr("settings.general.preferences.title")}
+              </h2>
               <div className="mt-3 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Compact mode</span>
+                  <span className="text-sm text-text-secondary">
+                    {tr("settings.general.preferences.compactMode")}
+                  </span>
                   <Toggle
                     checked={settings.preferences.compactMode}
                     onChange={(value) =>
@@ -2082,7 +2322,9 @@ export function SettingsPage() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Auto-download images</span>
+                  <span className="text-sm text-text-secondary">
+                    {tr("settings.general.preferences.autoDownloadImages")}
+                  </span>
                   <Toggle
                     checked={settings.preferences.autoDownload.images}
                     onChange={(value) =>
@@ -2097,7 +2339,9 @@ export function SettingsPage() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Auto-download videos</span>
+                  <span className="text-sm text-text-secondary">
+                    {tr("settings.general.preferences.autoDownloadVideos")}
+                  </span>
                   <Toggle
                     checked={settings.preferences.autoDownload.videos}
                     onChange={(value) =>
@@ -2119,10 +2363,14 @@ export function SettingsPage() {
         {activeTab === "notifications" ? (
           <div className="space-y-4">
             <div className="rounded-xl border border-border bg-bg-secondary p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Message Notifications</h2>
+              <h2 className="text-sm font-semibold text-text-primary">
+                {tr("settings.notifications.title")}
+              </h2>
               <div className="mt-3 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Message preview</span>
+                  <span className="text-sm text-text-secondary">
+                    {tr("settings.notifications.messagePreview")}
+                  </span>
                   <Toggle
                     checked={settings.notifications.messagePreview}
                     onChange={(value) =>
@@ -2134,7 +2382,9 @@ export function SettingsPage() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Message sound</span>
+                  <span className="text-sm text-text-secondary">
+                    {tr("settings.notifications.messageSound")}
+                  </span>
                   <Toggle
                     checked={settings.notifications.messageSound}
                     onChange={(value) =>
@@ -2146,7 +2396,9 @@ export function SettingsPage() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Do not disturb</span>
+                  <span className="text-sm text-text-secondary">
+                    {tr("settings.notifications.doNotDisturb")}
+                  </span>
                   <Toggle
                     checked={settings.notifications.doNotDisturb}
                     onChange={(value) =>
@@ -2160,8 +2412,8 @@ export function SettingsPage() {
               </div>
               {settings.notifications.doNotDisturb ? (
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                  <label className="text-sm text-text-secondary">
-                    Start
+                <label className="text-sm text-text-secondary">
+                    {tr("settings.notifications.dndStart")}
                     <input
                       type="time"
                       value={settings.notifications.doNotDisturbStart}
@@ -2177,8 +2429,8 @@ export function SettingsPage() {
                       className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                     />
                   </label>
-                  <label className="text-sm text-text-secondary">
-                    End
+                <label className="text-sm text-text-secondary">
+                    {tr("settings.notifications.dndEnd")}
                     <input
                       type="time"
                       value={settings.notifications.doNotDisturbEnd}
@@ -2203,10 +2455,12 @@ export function SettingsPage() {
         {activeTab === "privacy" ? (
           <div className="space-y-4">
             <div className="rounded-xl border border-border bg-bg-secondary p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Visibility</h2>
+              <h2 className="text-sm font-semibold text-text-primary">
+                {tr("settings.privacy.title")}
+              </h2>
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm text-text-secondary">
-                  Online Status
+                  {tr("settings.privacy.onlineStatus")}
                   <select
                     value={settings.privacy.onlineStatus}
                     onChange={(event) =>
@@ -2220,13 +2474,19 @@ export function SettingsPage() {
                     }
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                   >
-                    <option value="everyone">Everyone</option>
-                    <option value="contacts">Contacts only</option>
-                    <option value="nobody">Nobody</option>
+                    <option value="everyone">
+                      {tr("settings.privacy.visibility.everyone")}
+                    </option>
+                    <option value="contacts">
+                      {tr("settings.privacy.visibility.contacts")}
+                    </option>
+                    <option value="nobody">
+                      {tr("settings.privacy.visibility.nobody")}
+                    </option>
                   </select>
                 </label>
                 <label className="text-sm text-text-secondary">
-                  Phone Visibility
+                  {tr("settings.privacy.phoneVisibility")}
                   <select
                     value={settings.privacy.phoneNumber}
                     onChange={(event) =>
@@ -2240,15 +2500,17 @@ export function SettingsPage() {
                     }
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                   >
-                    <option value="everyone">Everyone</option>
-                    <option value="contacts">Contacts only</option>
-                    <option value="nobody">Nobody</option>
+                    <option value="everyone">{tr("settings.privacy.visibility.everyone")}</option>
+                    <option value="contacts">{tr("settings.privacy.visibility.contactsOnly")}</option>
+                    <option value="nobody">{tr("settings.privacy.visibility.nobody")}</option>
                   </select>
                 </label>
               </div>
               <div className="mt-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Allow search by phone</span>
+                  <span className="text-sm text-text-secondary">
+                    {tr("settings.privacy.allowSearchByPhone")}
+                  </span>
                   <Toggle
                     checked={settings.privacy.addByPhone}
                     onChange={(value) =>
@@ -2260,7 +2522,9 @@ export function SettingsPage() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Allow search by username</span>
+                  <span className="text-sm text-text-secondary">
+                    {tr("settings.privacy.allowSearchByUsername")}
+                  </span>
                   <Toggle
                     checked={settings.privacy.addByUsername}
                     onChange={(value) =>
@@ -2272,7 +2536,9 @@ export function SettingsPage() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Read receipts</span>
+                  <span className="text-sm text-text-secondary">
+                    {tr("settings.privacy.readReceipts")}
+                  </span>
                   <Toggle
                     checked={settings.privacy.readReceipts}
                     onChange={(value) =>
@@ -2291,12 +2557,26 @@ export function SettingsPage() {
         {activeTab === "about" ? (
           <div className="space-y-4">
             <div className="rounded-xl border border-border bg-bg-secondary p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Application Info</h2>
+              <h2 className="text-sm font-semibold text-text-primary">
+                {tr("settings.about.application.title")}
+              </h2>
               <div className="mt-3 space-y-2 text-sm text-text-secondary">
-                <p>Version: {appInfo.version}</p>
-                <p>Build: {appInfo.buildNumber}</p>
-                <p>Platform: {appInfo.platform}</p>
-                <p>Status: {appInfo.updateAvailable ? "Update available" : "Up to date"}</p>
+                <p>
+                  {tr("settings.about.application.version", { value: appInfo.version })}
+                </p>
+                <p>
+                  {tr("settings.about.application.build", { value: appInfo.buildNumber })}
+                </p>
+                <p>
+                  {tr("settings.about.application.platform", { value: appInfo.platform })}
+                </p>
+                <p>
+                  {tr("settings.about.application.status", {
+                    status: appInfo.updateAvailable
+                      ? tr("settings.about.application.status.updateAvailable")
+                      : tr("settings.about.application.status.upToDate"),
+                  })}
+                </p>
               </div>
               <div className="mt-4">
                 <button
@@ -2307,49 +2587,55 @@ export function SettingsPage() {
                   disabled={isCheckingUpdate}
                   className="rounded-lg border border-border bg-bg-tertiary px-4 py-2 text-sm text-text-secondary transition hover:bg-bg-hover disabled:opacity-60"
                 >
-                  {isCheckingUpdate ? "Checking..." : "Check for Updates"}
+                  {isCheckingUpdate
+                    ? tr("settings.about.application.checking")
+                    : tr("settings.about.application.checkUpdates")}
                 </button>
               </div>
             </div>
 
             <div className="rounded-xl border border-border bg-bg-secondary p-4">
-              <h2 className="text-sm font-semibold text-text-primary">Feedback</h2>
+              <h2 className="text-sm font-semibold text-text-primary">
+                {tr("settings.about.feedback.title")}
+              </h2>
               <p className="mt-1 text-xs text-text-secondary">
-                Submit product issues or suggestions. We will follow up through your contact info.
+                {tr("settings.about.feedback.description")}
               </p>
 
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm text-text-secondary">
-                  Feedback Type
+                  {tr("settings.about.feedback.type")}
                   <select
                     value={feedbackType}
                     onChange={(event) => setFeedbackType(event.target.value)}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                   >
-                    <option value="suggestion">Suggestion</option>
-                    <option value="bug">Bug</option>
-                    <option value="experience">Experience</option>
-                    <option value="other">Other</option>
+                    <option value="suggestion">{tr("settings.about.feedback.types.suggestion")}</option>
+                    <option value="bug">{tr("settings.about.feedback.types.bug")}</option>
+                    <option value="experience">
+                      {tr("settings.about.feedback.types.experience")}
+                    </option>
+                    <option value="other">{tr("settings.about.feedback.types.other")}</option>
                   </select>
                 </label>
 
                 <label className="text-sm text-text-secondary">
-                  Contact (optional)
+                  {tr("settings.about.feedback.contact")}
                   <input
                     value={feedbackContact}
                     onChange={(event) => setFeedbackContact(event.target.value)}
-                    placeholder="Email / phone / IM"
+                    placeholder={tr("settings.about.feedback.contactPlaceholder")}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted"
                   />
                 </label>
               </div>
 
               <label className="mt-3 block text-sm text-text-secondary">
-                Content
+                {tr("settings.about.feedback.content")}
                 <textarea
                   value={feedbackContent}
                   onChange={(event) => setFeedbackContent(event.target.value)}
-                  placeholder="Describe your issue or suggestion..."
+                  placeholder={tr("settings.about.feedback.contentPlaceholder")}
                   className="mt-1 min-h-[120px] w-full rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
                 />
               </label>
@@ -2363,7 +2649,9 @@ export function SettingsPage() {
                   disabled={feedbackSubmitting}
                   className="rounded-lg bg-primary px-4 py-2 text-sm text-white transition hover:brightness-110 disabled:opacity-60"
                 >
-                  {feedbackSubmitting ? "Submitting..." : "Submit Feedback"}
+                  {feedbackSubmitting
+                    ? tr("settings.about.feedback.submitting")
+                    : tr("settings.about.feedback.submit")}
                 </button>
                 {feedbackMessage ? (
                   <p className="text-sm text-text-secondary">{feedbackMessage}</p>
@@ -2371,9 +2659,21 @@ export function SettingsPage() {
               </div>
 
               <div className="mt-4 rounded-lg border border-border bg-bg-primary p-3 text-xs text-text-muted">
-                <p>Support Email: {feedbackSupport.email || "-"}</p>
-                <p>Hotline: {feedbackSupport.hotline || "-"}</p>
-                <p>Working Hours: {feedbackSupport.workingHours || "-"}</p>
+                <p>
+                  {tr("settings.about.feedback.supportEmail", {
+                    value: feedbackSupport.email || "-",
+                  })}
+                </p>
+                <p>
+                  {tr("settings.about.feedback.supportHotline", {
+                    value: feedbackSupport.hotline || "-",
+                  })}
+                </p>
+                <p>
+                  {tr("settings.about.feedback.supportHours", {
+                    value: feedbackSupport.workingHours || "-",
+                  })}
+                </p>
               </div>
             </div>
           </div>
@@ -2389,7 +2689,7 @@ export function SettingsPage() {
               disabled={isSaving}
               className="rounded-lg bg-primary px-4 py-2 text-sm text-white transition hover:brightness-110 disabled:opacity-60"
             >
-              {isSaving ? "Saving..." : "Save Settings"}
+              {isSaving ? tr("settings.actions.saving") : tr("settings.actions.saveSettings")}
             </button>
           ) : null}
           {saveMessage ? <p className="text-sm text-text-secondary">{saveMessage}</p> : null}

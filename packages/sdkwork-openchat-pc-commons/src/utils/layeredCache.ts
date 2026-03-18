@@ -1,7 +1,4 @@
-﻿/**
- * 鍒嗗眰缂撳瓨绯荤粺瀹炵幇
- * 
- * 鍒嗗眰缂撳瓨绯荤粺閫氳繃缁勫悎澶氱缂撳瓨绛栫暐锛屾彁渚涙洿楂樻晥銆佹洿鐏垫椿鐨勭紦瀛樿В鍐虫柟妗堛€? * 瀹冩敮鎸佸绾х紦瀛橈紝濡傚唴瀛樼紦瀛樸€丩ocalStorage 缂撳瓨绛夛紝骞惰嚜鍔ㄧ鐞嗙紦瀛樺悓姝ャ€? */
+
 
 import { ARCCache } from './arcCache';
 
@@ -150,13 +147,11 @@ export class LayeredCache<K, V> implements CacheLayer<K, V> {
     this.onEvict = options.onEvict;
   }
 
-  /**
-   * 鑾峰彇缂撳瓨鍊?   * 浠庢渶楂樺眰寮€濮嬫煡鎵撅紝鎵惧埌鍚庡皢鍊煎悓姝ュ埌鎵€鏈変笂灞傜紦瀛?   */
+  
   async get(key: K): Promise<V | undefined> {
     let value: V | undefined;
     let foundAt = -1;
 
-    // 浠庢渶楂樺眰寮€濮嬫煡鎵?    for (let i = 0; i < this.layers.length; i++) {
       const layer = this.layers[i];
       value = await layer.get(key);
       
@@ -166,7 +161,6 @@ export class LayeredCache<K, V> implements CacheLayer<K, V> {
       }
     }
 
-    // 濡傛灉鎵惧埌浜嗗€硷紝灏嗗叾鍚屾鍒版墍鏈変笂灞傜紦瀛?    if (value !== undefined && foundAt > 0) {
       for (let i = 0; i < foundAt; i++) {
         await this.layers[i].set(key, value);
       }
@@ -175,17 +169,14 @@ export class LayeredCache<K, V> implements CacheLayer<K, V> {
     return value;
   }
 
-  /**
-   * 璁剧疆缂撳瓨鍊?   * 璁剧疆鍒版墍鏈夌紦瀛樺眰
-   */
+  
   async set(key: K, value: V): Promise<void> {
     for (const layer of this.layers) {
       await layer.set(key, value);
     }
   }
 
-  /**
-   * 鍒犻櫎缂撳瓨鍊?   * 浠庢墍鏈夌紦瀛樺眰涓垹闄?   */
+  
   async delete(key: K): Promise<boolean> {
     let deleted = false;
 
@@ -195,24 +186,18 @@ export class LayeredCache<K, V> implements CacheLayer<K, V> {
     }
 
     if (deleted && this.onEvict) {
-      // 娉ㄦ剰锛氳繖閲屾垜浠病鏈夎幏鍙栧埌鍊硷紝鎵€浠ユ棤娉曡皟鐢?onEvict
-      // 濡傛灉闇€瑕侊紝鍙互鍦ㄥ垹闄ゅ墠鍏堣幏鍙栧€?    }
 
     return deleted;
   }
 
-  /**
-   * 娓呴櫎鎵€鏈夌紦瀛?   * 娓呴櫎鎵€鏈夌紦瀛樺眰
-   */
+  
   async clear(): Promise<void> {
     for (const layer of this.layers) {
       await layer.clear();
     }
   }
 
-  /**
-   * 妫€鏌ョ紦瀛樻槸鍚﹀寘鍚敭
-   * 浠庢渶楂樺眰寮€濮嬫鏌?   */
+  
   async has(key: K): Promise<boolean> {
     for (const layer of this.layers) {
       if (await layer.has(key)) {
@@ -222,35 +207,29 @@ export class LayeredCache<K, V> implements CacheLayer<K, V> {
     return false;
   }
 
-  /**
-   * 鑾峰彇缂撳瓨澶у皬
-   * 杩斿洖鏈€楂樺眰缂撳瓨鐨勫ぇ灏?   */
+  
   get size(): Promise<number> {
     return this.layers[0].size;
   }
 
-  /**
-   * 娣诲姞缂撳瓨灞?   */
+  
   addLayer(layer: CacheLayer<K, V>): void {
     this.layers.push(layer);
   }
 
-  /**
-   * 绉婚櫎缂撳瓨灞?   */
+  
   removeLayer(index: number): void {
     if (index >= 0 && index < this.layers.length) {
       this.layers.splice(index, 1);
     }
   }
 
-  /**
-   * 鑾峰彇缂撳瓨灞?   */
+  
   getLayer(index: number): CacheLayer<K, V> | undefined {
     return this.layers[index];
   }
 }
 
-// 渚挎嵎鍑芥暟锛氬垱寤洪粯璁ゅ垎灞傜紦瀛?export function createDefaultCache<K, V>(capacity: number = 1000): LayeredCache<K, V> {
   const memoryLayer = new MemoryCacheLayer<K, V>(capacity);
   const localStorageLayer = new LocalStorageCacheLayer<K, V>();
 

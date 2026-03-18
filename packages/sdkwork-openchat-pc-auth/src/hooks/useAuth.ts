@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { IS_DEV } from "@sdkwork/openchat-pc-kernel";
 import type {
   AuthState,

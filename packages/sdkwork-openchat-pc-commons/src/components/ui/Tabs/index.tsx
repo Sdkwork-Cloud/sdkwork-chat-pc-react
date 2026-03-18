@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { cn } from "../../../lib/utils";
 
 interface TabsContextValue {
@@ -116,4 +116,3 @@ export const TabsContent = React.forwardRef<HTMLDivElement, TabsContentProps>(
 TabsContent.displayName = "TabsContent";
 
 export default Tabs;
-

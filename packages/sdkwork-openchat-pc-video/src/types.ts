@@ -1,4 +1,4 @@
-﻿import type { BaseEntity } from '@sdkwork/openchat-pc-contracts';
+import type { BaseEntity } from '@sdkwork/openchat-pc-contracts';
 
 export type VideoType = 'neural' | 'matrix' | 'aurora' | 'cyber' | 'nature';
 

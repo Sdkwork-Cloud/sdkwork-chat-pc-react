@@ -22,6 +22,7 @@
   "dependencies": {
     "@sdkwork/openchat-pc-auth": "workspace:*",
     "@sdkwork/openchat-pc-contracts": "workspace:*",
+    "@sdkwork/openchat-pc-i18n": "workspace:*",
     "@sdkwork/openchat-pc-kernel": "workspace:*",
     "@sdkwork/openchat-pc-ui": "workspace:*",
     "lucide-react": "^0.575.0",

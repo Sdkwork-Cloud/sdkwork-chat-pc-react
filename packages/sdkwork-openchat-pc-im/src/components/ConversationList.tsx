@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getFriends, type Friend } from "@sdkwork/openchat-pc-contacts";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { Conversation } from "../entities/conversation.entity";
 import { AddFriendModal } from "./AddFriendModal";
 import { ConversationItem } from "./ConversationItem";
@@ -19,53 +20,9 @@ interface ConversationListProps {
   onNewConversation?: (payload?: NewConversationPayload) => void;
 }
 
-const menuItems = [
-  {
-    id: "group",
-    label: "Create Group",
-    icon: (
-      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-        />
-      </svg>
-    ),
-  },
-  {
-    id: "friend",
-    label: "Add Contact",
-    icon: (
-      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-        />
-      </svg>
-    ),
-  },
-  {
-    id: "note",
-    label: "New Note",
-    icon: (
-      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-        />
-      </svg>
-    ),
-  },
-] as const;
-
 export const ConversationList = memo(
   ({ conversations, selectedId, onSelect, onNewConversation }: ConversationListProps) => {
+    const { tr } = useAppTranslation();
     const [searchKeyword, setSearchKeyword] = useState("");
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
@@ -78,6 +35,55 @@ export const ConversationList = memo(
     const menuRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
 
+    const menuItems = useMemo(
+      () =>
+        [
+          {
+            id: "group",
+            label: tr("Create Group"),
+            icon: (
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                />
+              </svg>
+            ),
+          },
+          {
+            id: "friend",
+            label: tr("Add Contact"),
+            icon: (
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                />
+              </svg>
+            ),
+          },
+          {
+            id: "note",
+            label: tr("New Note"),
+            icon: (
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            ),
+          },
+        ] as const,
+      [tr],
+    );
+
     const loadFriends = useCallback(async () => {
       setIsLoadingFriends(true);
       setFriendLoadError(null);
@@ -85,11 +91,11 @@ export const ConversationList = memo(
         const list = await getFriends();
         setFriends(list);
       } catch (error) {
-        setFriendLoadError(error instanceof Error ? error.message : "Failed to load contacts.");
+        setFriendLoadError(error instanceof Error ? error.message : tr("Failed to load contacts."));
       } finally {
         setIsLoadingFriends(false);
       }
-    }, []);
+    }, [tr]);
 
     useEffect(() => {
       void loadFriends();
@@ -154,7 +160,7 @@ export const ConversationList = memo(
             <div className="group relative flex-1">
               <input
                 type="text"
-                placeholder="Search conversations..."
+                placeholder={tr("Search conversations...")}
                 value={searchKeyword}
                 onChange={(event) => setSearchKeyword(event.target.value)}
                 className="h-10 w-full rounded-xl border border-border bg-bg-tertiary pl-10 pr-4 text-sm text-text-primary transition-all placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -183,7 +189,7 @@ export const ConversationList = memo(
                     ? "rotate-45 border-primary bg-primary text-white shadow-glow-primary"
                     : "border-border bg-bg-tertiary text-text-primary hover:border-primary hover:bg-bg-hover hover:text-primary"
                 }`}
-                title="More actions"
+                title={tr("More actions")}
               >
                 <svg
                   className="h-5 w-5 transition-transform duration-200"
@@ -231,7 +237,7 @@ export const ConversationList = memo(
             ))
           ) : (
             <div className="px-4 py-8 text-center text-sm text-text-muted">
-              No matching conversations.
+              {tr("No matching conversations.")}
             </div>
           )}
         </div>

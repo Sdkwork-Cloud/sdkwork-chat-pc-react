@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Input } from "@sdkwork/openchat-pc-ui";
 import type { SkillCategoryInfo, SkillMarketItem } from "../entities/skill.entity";
 import { SkillResultService } from "../services";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 
 interface SkillSelectorProps {
   selectedSkills: string[];
@@ -9,6 +10,8 @@ interface SkillSelectorProps {
 }
 
 export function SkillSelector({ selectedSkills, onSkillsChange }: SkillSelectorProps) {
+  const { tr, formatNumber } = useAppTranslation();
+
   const [skills, setSkills] = useState<SkillMarketItem[]>([]);
   const [categories, setCategories] = useState<SkillCategoryInfo[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
@@ -24,25 +27,25 @@ export function SkillSelector({ selectedSkills, onSkillsChange }: SkillSelectorP
         const result = await SkillResultService.getCategories();
         if (!cancelled) {
           if (!result.success || !result.data) {
-            setErrorText(result.error || result.message || "Failed to load categories.");
+            setErrorText(result.error || result.message || tr("Failed to load categories."));
             setCategories([{ id: "all", name: "All", icon: "ALL" }]);
             return;
           }
           setCategories(result.data);
         }
       } catch (error) {
-        if (!cancelled) {
-          setErrorText(error instanceof Error ? error.message : "Failed to load categories.");
-          setCategories([{ id: "all", name: "All", icon: "ALL" }]);
+          if (!cancelled) {
+            setErrorText(error instanceof Error ? error.message : tr("Failed to load categories."));
+            setCategories([{ id: "all", name: "All", icon: "ALL" }]);
+          }
         }
-      }
-    };
+      };
 
     void loadCategories();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [tr]);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,7 +61,7 @@ export function SkillSelector({ selectedSkills, onSkillsChange }: SkillSelectorP
           );
           if (!cancelled) {
             if (!result.success || !result.data) {
-              setErrorText(result.error || result.message || "Failed to load skills.");
+              setErrorText(result.error || result.message || tr("Failed to load skills."));
               setSkills([]);
               return;
             }
@@ -66,7 +69,7 @@ export function SkillSelector({ selectedSkills, onSkillsChange }: SkillSelectorP
           }
         } catch (error) {
           if (!cancelled) {
-            setErrorText(error instanceof Error ? error.message : "Failed to load skills.");
+            setErrorText(error instanceof Error ? error.message : tr("Failed to load skills."));
             setSkills([]);
           }
         } finally {
@@ -83,7 +86,7 @@ export function SkillSelector({ selectedSkills, onSkillsChange }: SkillSelectorP
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [activeCategory, searchKeyword]);
+  }, [activeCategory, searchKeyword, tr]);
 
   const toggleSkill = (skillId: string) => {
     if (selectedSkills.includes(skillId)) {
@@ -96,7 +99,7 @@ export function SkillSelector({ selectedSkills, onSkillsChange }: SkillSelectorP
   return (
     <div className="space-y-4">
       <Input
-        placeholder="Search skills..."
+        placeholder={tr("Search skills...")}
         value={searchKeyword}
         onChange={setSearchKeyword}
         allowClear
@@ -124,7 +127,7 @@ export function SkillSelector({ selectedSkills, onSkillsChange }: SkillSelectorP
                 : "border border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
             }`}
           >
-            {category.icon} {category.name}
+            {category.icon} {tr(category.name)}
           </button>
         ))}
       </div>
@@ -134,10 +137,12 @@ export function SkillSelector({ selectedSkills, onSkillsChange }: SkillSelectorP
       ) : null}
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-8 text-sm text-text-muted">Loading skills...</div>
+        <div className="flex items-center justify-center py-8 text-sm text-text-muted">
+          {tr("Loading skills...")}
+        </div>
       ) : skills.length === 0 ? (
         <div className="rounded-lg border border-border bg-bg-secondary px-3 py-6 text-center text-sm text-text-muted">
-          No skill matches current filter.
+          {tr("No skill matches current filter.")}
         </div>
       ) : (
         <div className="grid max-h-[320px] grid-cols-1 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
@@ -167,7 +172,7 @@ export function SkillSelector({ selectedSkills, onSkillsChange }: SkillSelectorP
       )}
 
       <div className="border-t border-border pt-2 text-xs text-text-muted">
-        Selected skills: {selectedSkills.length}
+        {tr("Selected skills: {{count}}", { count: selectedSkills.length })}
       </div>
     </div>
   );

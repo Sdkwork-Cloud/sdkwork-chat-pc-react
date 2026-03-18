@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { CreationResultService, CreationService } from "../services";
 import type { CreationItem, CreationStats, CreationTemplate, CreationType } from "../types";
 import {
@@ -16,6 +17,8 @@ const typeOptions: Array<{ value: CreationType; label: string }> = [
 ];
 
 export function CreationPage() {
+  const { tr } = useAppTranslation();
+
   const ratioOptions = CreationService.getRatios();
   const styleOptions = CreationService.getStyles();
 
@@ -101,13 +104,18 @@ export function CreationPage() {
       setItems(list);
 
       if (!statsRes.success || !templatesRes.success || !listSuccess) {
-        setErrorText(statsRes.message || templatesRes.message || listMessage || "Some creation data could not be loaded.");
+        setErrorText(
+          statsRes.message ||
+            templatesRes.message ||
+            listMessage ||
+            tr("Some creation data could not be loaded."),
+        );
       }
     } catch (error) {
       setItems([]);
       setTemplates([]);
       setStats(null);
-      setErrorText(error instanceof Error ? error.message : "Failed to load creation data.");
+      setErrorText(error instanceof Error ? error.message : tr("Failed to load creation data."));
     } finally {
       setIsLoading(false);
     }
@@ -161,12 +169,12 @@ export function CreationPage() {
     const nextProviders = CreationService.getModelProviders(template.type);
     setProvider(nextProviders[0]?.id || "");
     setModel(nextProviders[0]?.models[0] || "");
-    setStatusText(`Template applied: ${template.name}`);
+    setStatusText(tr("Template applied: {{name}}", { name: template.name }));
   };
 
   const handleCreate = async () => {
     if (!prompt.trim()) {
-      setStatusText("Please provide a prompt.");
+      setStatusText(tr("Please provide a prompt."));
       return;
     }
 
@@ -184,16 +192,16 @@ export function CreationPage() {
       });
 
       if (!result.success) {
-        setStatusText(result.message || "Failed to create content.");
+        setStatusText(result.message || tr("Failed to create content."));
         return;
       }
 
       setPrompt("");
       setNegativePrompt("");
-      setStatusText("Creation generated successfully.");
+      setStatusText(tr("Creation generated successfully."));
       await loadData();
     } catch (error) {
-      setStatusText(error instanceof Error ? error.message : "Failed to create content.");
+      setStatusText(error instanceof Error ? error.message : tr("Failed to create content."));
     } finally {
       setIsCreating(false);
     }
@@ -206,13 +214,13 @@ export function CreationPage() {
     try {
       const result = await CreationResultService.like(id);
       if (!result.success) {
-        setStatusText(result.message || "Failed to like this creation.");
+        setStatusText(result.message || tr("Failed to like this creation."));
         return;
       }
 
       await loadData();
     } catch (error) {
-      setStatusText(error instanceof Error ? error.message : "Failed to like this creation.");
+      setStatusText(error instanceof Error ? error.message : tr("Failed to like this creation."));
     } finally {
       setProcessingId(null);
     }
@@ -225,14 +233,14 @@ export function CreationPage() {
     try {
       const result = await CreationResultService.deleteCreation(id);
       if (!result.success) {
-        setStatusText(result.message || "Failed to delete creation.");
+        setStatusText(result.message || tr("Failed to delete creation."));
         return;
       }
 
-      setStatusText("Creation deleted.");
+      setStatusText(tr("Creation deleted."));
       await loadData();
     } catch (error) {
-      setStatusText(error instanceof Error ? error.message : "Failed to delete creation.");
+      setStatusText(error instanceof Error ? error.message : tr("Failed to delete creation."));
     } finally {
       setProcessingId(null);
     }
@@ -241,24 +249,24 @@ export function CreationPage() {
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <h1 className="text-xl font-semibold text-text-primary">AI Creation</h1>
+        <h1 className="text-xl font-semibold text-text-primary">{tr("AI Creation")}</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Generate, browse, and manage image, video, music, text, and 3D content.
+          {tr("Generate, browse, and manage image, video, music, text, and 3D content.")}
         </p>
       </header>
 
       <div className="flex-1 overflow-auto p-6">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Current Results</p>
+            <p className="text-xs text-text-muted">{tr("Current Results")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.total}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Result Likes</p>
+            <p className="text-xs text-text-muted">{tr("Result Likes")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.likes}</p>
           </div>
           <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">Result Views</p>
+            <p className="text-xs text-text-muted">{tr("Result Views")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.views}</p>
           </div>
         </div>
@@ -266,13 +274,16 @@ export function CreationPage() {
         <div className="mt-3 flex flex-wrap gap-2">
           {typeOptions.map((option) => (
             <span key={option.value} className="rounded-full border border-border bg-bg-secondary px-2 py-1 text-xs text-text-secondary">
-              {option.label}: {workspaceSummary.typeDistribution[option.value]}
+              {tr("{{label}}: {{count}}", {
+                label: tr(option.label),
+                count: workspaceSummary.typeDistribution[option.value],
+              })}
             </span>
           ))}
         </div>
 
         <div className="mt-5 rounded-xl border border-border bg-bg-secondary p-4">
-          <h2 className="text-sm font-semibold text-text-primary">Create Content</h2>
+          <h2 className="text-sm font-semibold text-text-primary">{tr("Create Content")}</h2>
           <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-6">
             <select
               value={formType}
@@ -281,7 +292,7 @@ export function CreationPage() {
             >
               {typeOptions.map((item) => (
                 <option key={item.value} value={item.value}>
-                  {item.label}
+                  {tr(item.label)}
                 </option>
               ))}
             </select>
@@ -293,7 +304,7 @@ export function CreationPage() {
             >
               {ratioOptions.map((item) => (
                 <option key={item.value} value={item.value}>
-                  {item.label}
+                  {tr(item.label)}
                 </option>
               ))}
             </select>
@@ -305,7 +316,7 @@ export function CreationPage() {
             >
               {styleOptions.map((item) => (
                 <option key={item} value={item}>
-                  {item}
+                  {tr(item)}
                 </option>
               ))}
             </select>
@@ -339,14 +350,14 @@ export function CreationPage() {
               disabled={isCreating}
               className="rounded-lg bg-primary px-4 py-2 text-sm text-white disabled:opacity-60"
             >
-              {isCreating ? "Generating..." : "Create"}
+              {isCreating ? tr("Generating...") : tr("Create")}
             </button>
           </div>
 
           <textarea
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
-            placeholder="Enter prompt"
+            placeholder={tr("Enter prompt")}
             rows={4}
             className="mt-3 w-full rounded-lg border border-border bg-bg-tertiary p-3 text-sm text-text-primary"
           />
@@ -354,7 +365,7 @@ export function CreationPage() {
           <textarea
             value={negativePrompt}
             onChange={(event) => setNegativePrompt(event.target.value)}
-            placeholder="Negative prompt (optional)"
+            placeholder={tr("Negative prompt (optional)")}
             rows={2}
             className="mt-3 w-full rounded-lg border border-border bg-bg-tertiary p-3 text-sm text-text-primary"
           />
@@ -363,9 +374,9 @@ export function CreationPage() {
         </div>
 
         <div className="mt-5">
-          <h3 className="text-sm font-semibold text-text-primary">Templates</h3>
+          <h3 className="text-sm font-semibold text-text-primary">{tr("Templates")}</h3>
           {templates.length === 0 ? (
-            <p className="mt-2 text-xs text-text-secondary">No templates available.</p>
+            <p className="mt-2 text-xs text-text-secondary">{tr("No templates available.")}</p>
           ) : (
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
               {templates.map((template) => (
@@ -377,7 +388,7 @@ export function CreationPage() {
                     onClick={() => handleApplyTemplate(template)}
                     className="mt-3 rounded-md border border-border bg-bg-tertiary px-3 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                   >
-                    Apply Template
+                    {tr("Apply Template")}
                   </button>
                 </article>
               ))}
@@ -389,7 +400,7 @@ export function CreationPage() {
           <input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
-            placeholder="Search by title, prompt, style, or author"
+            placeholder={tr("Search by title, prompt, style, or author")}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
           />
           <select
@@ -397,10 +408,10 @@ export function CreationPage() {
             onChange={(event) => setTypeFilter(event.target.value as "all" | CreationType)}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
           >
-            <option value="all">All types</option>
+            <option value="all">{tr("All types")}</option>
             {typeOptions.map((item) => (
               <option key={item.value} value={item.value}>
-                {item.label}
+                {tr(item.label)}
               </option>
             ))}
           </select>
@@ -409,7 +420,7 @@ export function CreationPage() {
         <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
           <div className="rounded-xl border border-border bg-bg-secondary p-3">
             <div className="mb-2 flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Favorites</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Favorites")}</h4>
               <span className="text-[11px] text-text-muted">{workspaceLibrary.favorites.length}</span>
             </div>
             <div className="space-y-1">
@@ -423,14 +434,14 @@ export function CreationPage() {
                 </button>
               ))}
               {workspaceLibrary.favorites.length === 0 ? (
-                <p className="text-[11px] text-text-muted">No favorites yet.</p>
+                <p className="text-[11px] text-text-muted">{tr("No favorites yet.")}</p>
               ) : null}
             </div>
           </div>
 
           <div className="rounded-xl border border-border bg-bg-secondary p-3">
             <div className="mb-2 flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Recent Opened</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Recent Opened")}</h4>
               <span className="text-[11px] text-text-muted">{workspaceLibrary.recent.length}</span>
             </div>
             <div className="space-y-1">
@@ -444,14 +455,14 @@ export function CreationPage() {
                 </button>
               ))}
               {workspaceLibrary.recent.length === 0 ? (
-                <p className="text-[11px] text-text-muted">No recent history.</p>
+                <p className="text-[11px] text-text-muted">{tr("No recent history.")}</p>
               ) : null}
             </div>
           </div>
 
           <div className="rounded-xl border border-border bg-bg-secondary p-3">
             <div className="mb-2 flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Trending</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Trending")}</h4>
               <span className="text-[11px] text-text-muted">{workspaceLibrary.trending.length}</span>
             </div>
             <div className="space-y-1">
@@ -465,7 +476,7 @@ export function CreationPage() {
                 </button>
               ))}
               {workspaceLibrary.trending.length === 0 ? (
-                <p className="text-[11px] text-text-muted">No trending items.</p>
+                <p className="text-[11px] text-text-muted">{tr("No trending items.")}</p>
               ) : null}
             </div>
           </div>
@@ -480,11 +491,11 @@ export function CreationPage() {
         <div className="mt-5">
           {isLoading ? (
             <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-              Loading creations...
+              {tr("Loading creations...")}
             </div>
           ) : workspaceItems.length === 0 ? (
             <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-              No creations found.
+              {tr("No creations found.")}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -501,65 +512,67 @@ export function CreationPage() {
                     alt={item.title}
                     className="h-44 w-full rounded-lg object-cover"
                   />
-                  <div className="mt-3 flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-text-primary">{item.title}</h3>
-                    {favoriteSet.has(item.id) ? (
-                      <span className="rounded bg-warning/20 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
-                        Fav
+                    <div className="mt-3 flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-text-primary">{item.title}</h3>
+                      {favoriteSet.has(item.id) ? (
+                        <span className="rounded bg-warning/20 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                          {tr("Fav")}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-xs text-text-secondary">{item.prompt}</p>
+
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-muted">
+                      <span>{item.type}</span>
+                      <span>{item.style}</span>
+                      <span>{item.ratio}</span>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between text-xs text-text-muted">
+                      <span>{item.author}</span>
+                      <span>{item.model || "-"}</span>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="text-xs text-text-muted">
+                        {tr("Likes {{likes}} | Views {{views}}", { likes: item.likes, views: item.views })}
                       </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-xs text-text-secondary">{item.prompt}</p>
-
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-muted">
-                    <span>{item.type}</span>
-                    <span>{item.style}</span>
-                    <span>{item.ratio}</span>
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between text-xs text-text-muted">
-                    <span>{item.author}</span>
-                    <span>{item.model || "-"}</span>
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between">
-                    <span className="text-xs text-text-muted">Likes {item.likes} | Views {item.views}</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void handleLike(item.id);
-                        }}
-                        className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
-                      >
-                        Like
-                      </button>
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleToggleFavorite(item.id);
-                        }}
-                        className={`rounded-md border px-2.5 py-1 text-xs ${
-                          favoriteSet.has(item.id)
-                            ? "border-warning/40 bg-warning/20 text-warning"
-                            : "border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
-                        }`}
-                      >
-                        {favoriteSet.has(item.id) ? "Favorited" : "Favorite"}
-                      </button>
-                      {item.author === "Me" && (
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={(event) => {
                             event.stopPropagation();
-                            void handleDelete(item.id);
+                            void handleLike(item.id);
                           }}
                           className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                         >
-                          Delete
+                          {tr("Like")}
                         </button>
-                      )}
+                        <button
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleToggleFavorite(item.id);
+                          }}
+                          className={`rounded-md border px-2.5 py-1 text-xs ${
+                            favoriteSet.has(item.id)
+                              ? "border-warning/40 bg-warning/20 text-warning"
+                              : "border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
+                          }`}
+                        >
+                          {favoriteSet.has(item.id) ? tr("Favorited") : tr("Favorite")}
+                        </button>
+                        {item.author === "Me" && (
+                          <button
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void handleDelete(item.id);
+                            }}
+                            className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
+                          >
+                            {tr("Delete")}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
                 </article>
               ))}
             </div>
@@ -571,4 +584,3 @@ export function CreationPage() {
 }
 
 export default CreationPage;
-

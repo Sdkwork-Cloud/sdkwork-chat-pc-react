@@ -1,4 +1,5 @@
-﻿import { memo, useCallback, useEffect, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useState, type ReactNode } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 
 interface WindowControlsProps {
   showTitleBar?: boolean;
@@ -9,8 +10,25 @@ interface WindowControlsProps {
 
 type WindowState = "normal" | "maximized" | "minimized";
 
+interface ControlLabels {
+  close: string;
+  minimize: string;
+  maximize: string;
+  restore: string;
+}
+
+interface ControlProps {
+  onMinimize: () => void;
+  onMaximize: () => void;
+  onClose: () => void;
+  windowState: WindowState;
+  labels: ControlLabels;
+}
+
 function isDesktopEnv(): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof window === "undefined") {
+    return false;
+  }
   return "__TAURI_IPC__" in window;
 }
 
@@ -35,6 +53,7 @@ export const WindowControls = memo(function WindowControls({
   className = "",
   style = "macos",
 }: WindowControlsProps) {
+  const { tr } = useAppTranslation();
   const [windowState, setWindowState] = useState<WindowState>("normal");
   const [desktop, setDesktop] = useState(false);
 
@@ -49,7 +68,7 @@ export const WindowControls = memo(function WindowControls({
 
   const handleMaximize = useCallback(async () => {
     await callWindowApi("toggleMaximize");
-    setWindowState((prev) => (prev === "maximized" ? "normal" : "maximized"));
+    setWindowState((previous) => (previous === "maximized" ? "normal" : "maximized"));
   }, []);
 
   const handleClose = useCallback(async () => {
@@ -60,15 +79,26 @@ export const WindowControls = memo(function WindowControls({
     return null;
   }
 
+  const labels: ControlLabels = {
+    close: tr("Close"),
+    minimize: tr("Minimize"),
+    maximize: tr("Maximize"),
+    restore: tr("Restore"),
+  };
+
   return (
     <div
-      className={`z-[9999] ${showTitleBar ? "fixed top-0 right-0 h-10 w-full flex items-center bg-bg-secondary/80 backdrop-blur-sm border-b border-border" : "flex items-center"} ${className}`}
+      className={`z-[9999] ${
+        showTitleBar
+          ? "fixed top-0 right-0 flex h-10 w-full items-center border-b border-border bg-bg-secondary/80 backdrop-blur-sm"
+          : "flex items-center"
+      } ${className}`}
       onDoubleClick={showTitleBar ? handleMaximize : undefined}
       data-tauri-drag-region={showTitleBar ? true : undefined}
     >
       {showTitleBar ? (
-        <div className="flex-1 h-full flex items-center px-4" data-tauri-drag-region>
-          {title ? <span className="text-sm text-text-secondary font-medium select-none">{title}</span> : null}
+        <div className="flex h-full flex-1 items-center px-4" data-tauri-drag-region>
+          {title ? <span className="select-none text-sm font-medium text-text-secondary">{title}</span> : null}
         </div>
       ) : null}
 
@@ -79,6 +109,7 @@ export const WindowControls = memo(function WindowControls({
             onMaximize={handleMaximize}
             onClose={handleClose}
             windowState={windowState}
+            labels={labels}
           />
         ) : (
           <WindowsControls
@@ -86,6 +117,7 @@ export const WindowControls = memo(function WindowControls({
             onMaximize={handleMaximize}
             onClose={handleClose}
             windowState={windowState}
+            labels={labels}
           />
         )}
       </div>
@@ -93,61 +125,94 @@ export const WindowControls = memo(function WindowControls({
   );
 });
 
-interface MacOSControlsProps {
-  onMinimize: () => void;
-  onMaximize: () => void;
-  onClose: () => void;
-  windowState: WindowState;
-}
-
 const MacOSControls = memo(function MacOSControls({
   onMinimize,
   onMaximize,
   onClose,
   windowState,
-}: MacOSControlsProps) {
+  labels,
+}: ControlProps) {
   return (
     <div className="flex items-center space-x-2">
-      <button onClick={onClose} className="w-3 h-3 rounded-full bg-[#FF5F57] border border-[#E0443E]/30" title="Close" />
-      <button onClick={onMinimize} className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]/30" title="Minimize" />
       <button
+        type="button"
+        onClick={onClose}
+        className="h-3 w-3 rounded-full border border-[#E0443E]/30 bg-[#FF5F57]"
+        title={labels.close}
+        aria-label={labels.close}
+      />
+      <button
+        type="button"
+        onClick={onMinimize}
+        className="h-3 w-3 rounded-full border border-[#DEA123]/30 bg-[#FFBD2E]"
+        title={labels.minimize}
+        aria-label={labels.minimize}
+      />
+      <button
+        type="button"
         onClick={onMaximize}
-        className="w-3 h-3 rounded-full bg-[#28C840] border border-[#1AAB29]/30"
-        title={windowState === "maximized" ? "Restore" : "Maximize"}
+        className="h-3 w-3 rounded-full border border-[#1AAB29]/30 bg-[#28C840]"
+        title={windowState === "maximized" ? labels.restore : labels.maximize}
+        aria-label={windowState === "maximized" ? labels.restore : labels.maximize}
       />
     </div>
   );
 });
-
-interface WindowsControlsProps {
-  onMinimize: () => void;
-  onMaximize: () => void;
-  onClose: () => void;
-  windowState: WindowState;
-}
 
 const WindowsControls = memo(function WindowsControls({
   onMinimize,
   onMaximize,
   onClose,
   windowState,
-}: WindowsControlsProps) {
-  const buttonClass = "w-12 h-10 flex items-center justify-center text-[#94A3B8] hover:text-white transition-colors duration-200";
+  labels,
+}: ControlProps) {
+  const buttonClass =
+    "flex h-10 w-12 items-center justify-center text-[#94A3B8] transition-colors duration-200 hover:text-white";
 
   return (
     <div className="flex items-center -mr-2">
-      <button onClick={onMinimize} className={`${buttonClass} hover:bg-[rgba(255,255,255,0.1)]`} title="Minimize">
-        <span className="text-sm">-</span>
+      <button
+        type="button"
+        onClick={onMinimize}
+        className={`${buttonClass} hover:bg-[rgba(255,255,255,0.1)]`}
+        title={labels.minimize}
+        aria-label={labels.minimize}
+      >
+        <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 16 16">
+          <path strokeLinecap="round" strokeWidth="1.5" d="M3 8h10" />
+        </svg>
       </button>
-      <button onClick={onMaximize} className={`${buttonClass} hover:bg-[rgba(255,255,255,0.1)]`} title={windowState === "maximized" ? "Restore" : "Maximize"}>
-        <span className="text-sm">□</span>
+      <button
+        type="button"
+        onClick={onMaximize}
+        className={`${buttonClass} hover:bg-[rgba(255,255,255,0.1)]`}
+        title={windowState === "maximized" ? labels.restore : labels.maximize}
+        aria-label={windowState === "maximized" ? labels.restore : labels.maximize}
+      >
+        {windowState === "maximized" ? (
+          <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 16 16">
+            <path strokeWidth="1.2" d="M5 3.5h7.5V11" />
+            <path strokeWidth="1.2" d="M3.5 5h7.5v7.5H3.5z" />
+          </svg>
+        ) : (
+          <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 16 16">
+            <rect x="3.5" y="3.5" width="9" height="9" strokeWidth="1.2" />
+          </svg>
+        )}
       </button>
-      <button onClick={onClose} className={`${buttonClass} hover:bg-[#E81123] hover:text-white`} title="Close">
-        <span className="text-sm">×</span>
+      <button
+        type="button"
+        onClick={onClose}
+        className={`${buttonClass} hover:bg-[#E81123] hover:text-white`}
+        title={labels.close}
+        aria-label={labels.close}
+      >
+        <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 16 16">
+          <path strokeLinecap="round" strokeWidth="1.5" d="M4 4l8 8m0-8l-8 8" />
+        </svg>
       </button>
     </div>
   );
 });
 
 export default WindowControls;
-

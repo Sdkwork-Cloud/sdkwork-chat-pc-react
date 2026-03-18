@@ -1,10 +1,5 @@
-﻿/**
- * Agent 娆㈣繋缁勪欢
- *
- * 鑱岃矗锛氭樉绀烘櫤鑳戒綋鐨勬杩庝俊鎭拰绀轰緥闂
- */
-
 import { memo } from "react";
+import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { Agent } from "@sdkwork/openchat-pc-agent";
 
 interface AgentWelcomeProps {
@@ -12,95 +7,74 @@ interface AgentWelcomeProps {
   onSendMessage: (message: string) => void;
 }
 
-export const AgentWelcome = memo(
-  ({ agent, onSendMessage }: AgentWelcomeProps) => {
-    const config = agent.config as any;
-    const welcomeMessage =
-      config?.welcomeMessage ||
-      `浣犲ソ锛佹垜鏄?${agent.name}锛屾湁浠€涔堟垜鍙互甯姪浣犵殑鍚楋紵`;
-    const exampleQuestions = config?.exampleQuestions || [
-      "浣犺兘鍋氫粈涔堬紵",
-      "缁欐垜璁蹭釜绗戣瘽",
-      "甯垜瑙ｉ噴涓€涓嬩粈涔堟槸浜哄伐鏅鸿兘",
-    ];
+export const AgentWelcome = memo(({ agent, onSendMessage }: AgentWelcomeProps) => {
+  const { tr } = useAppTranslation();
+  const config = agent.config as {
+    welcomeMessage?: string;
+    exampleQuestions?: string[];
+  };
 
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-bg-primary relative overflow-hidden p-8">
-        {/* 鑳屾櫙瑁呴グ */}
-        <div className="absolute inset-0 pointer-events-none opacity-20">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-[100px]" />
-          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/20 rounded-full blur-[100px]" />
-        </div>
+  const welcomeMessage =
+    config?.welcomeMessage
+    || tr("Hello! I am {{name}}. How can I help you today?", { name: agent.name });
+  const exampleQuestions = config?.exampleQuestions || [
+    tr("What can you do?"),
+    tr("Tell me a joke."),
+    tr("Explain what artificial intelligence is."),
+  ];
 
-        <div className="text-center animate-fade-in relative z-10 max-w-lg">
-          {/* Agent Avatar */}
-          <div className="w-24 h-24 mx-auto mb-6 rounded-[32px] bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20 shadow-glow-primary">
-            <span className="text-5xl">{agent.avatar || "馃"}</span>
-          </div>
-
-          {/* Agent Name */}
-          <h3 className="text-2xl font-bold text-text-primary mb-2 tracking-tight">
-            {agent.name}
-          </h3>
-
-          {/* Description */}
-          {agent.description && (
-            <p className="text-text-tertiary text-sm mb-6">
-              {agent.description}
-            </p>
-          )}
-
-          {/* Welcome Message */}
-          <p className="text-text-secondary text-sm mb-8 leading-relaxed">
-            {welcomeMessage}
-          </p>
-
-          {/* Example Questions */}
-          {exampleQuestions.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-xs text-text-muted uppercase tracking-wide">
-                鍙互杩欐牱闂垜
-              </p>
-              <div className="flex flex-col gap-2">
-                {exampleQuestions
-                  .slice(0, 4)
-                  .map((question: string, index: number) => (
-                    <button
-                      key={index}
-                      onClick={() => onSendMessage(question)}
-                      className="px-6 py-3 bg-bg-secondary hover:bg-bg-tertiary border border-border hover:border-primary rounded-xl text-sm text-text-secondary hover:text-text-primary transition-all text-left"
-                    >
-                      {question}
-                    </button>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Capabilities */}
-          {agent.capabilities && agent.capabilities.length > 0 && (
-            <div className="mt-8 pt-6 border-t border-border">
-              <p className="text-xs text-text-muted mb-3">鎴戠殑鑳藉姏</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {agent.capabilities.slice(0, 4).map((cap) => (
-                  <span
-                    key={cap.name}
-                    className="px-3 py-1.5 bg-primary/10 text-primary text-xs rounded-lg"
-                  >
-                    {cap.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+  return (
+    <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-bg-primary p-8">
+      <div className="pointer-events-none absolute inset-0 opacity-20">
+        <div className="absolute left-1/4 top-1/4 h-64 w-64 rounded-full bg-primary/20 blur-[100px]" />
+        <div className="absolute bottom-1/4 right-1/4 h-64 w-64 rounded-full bg-purple-500/20 blur-[100px]" />
       </div>
-    );
-  },
-);
+
+      <div className="relative z-10 max-w-lg animate-fade-in text-center">
+        <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[32px] border border-primary/20 bg-gradient-to-br from-primary/20 to-primary/5 shadow-glow-primary">
+          <span className="text-5xl">{agent.avatar || "🤖"}</span>
+        </div>
+
+        <h3 className="mb-2 text-2xl font-bold tracking-tight text-text-primary">{agent.name}</h3>
+
+        {agent.description ? (
+          <p className="mb-6 text-sm text-text-tertiary">{agent.description}</p>
+        ) : null}
+
+        <p className="mb-8 text-sm leading-relaxed text-text-secondary">{welcomeMessage}</p>
+
+        {exampleQuestions.length > 0 ? (
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-wide text-text-muted">{tr("Try asking me")}</p>
+            <div className="flex flex-col gap-2">
+              {exampleQuestions.slice(0, 4).map((question, index) => (
+                <button
+                  key={`${question}-${index}`}
+                  onClick={() => onSendMessage(question)}
+                  className="rounded-xl border border-border bg-bg-secondary px-6 py-3 text-left text-sm text-text-secondary transition-all hover:border-primary hover:bg-bg-tertiary hover:text-text-primary"
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {agent.capabilities && agent.capabilities.length > 0 ? (
+          <div className="mt-8 border-t border-border pt-6">
+            <p className="mb-3 text-xs text-text-muted">{tr("My capabilities")}</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {agent.capabilities.slice(0, 4).map((capability) => (
+                <span key={capability.name} className="rounded-lg bg-primary/10 px-3 py-1.5 text-xs text-primary">
+                  {capability.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+});
 
 AgentWelcome.displayName = "AgentWelcome";
-
-
-
-

@@ -1,8 +1,4 @@
-/**
- * 会话实体
- * 
- * 职责：定义会话领域模型
- */
+
 
 export type ConversationType = 'ai' | 'group' | 'customer' | 'single' | 'user';
 

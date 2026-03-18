@@ -1,9 +1,7 @@
-﻿import type { ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { BaseComponentProps } from "../common";
 
-/**
- * 鍏ㄥ眬缁勪欢濂戠害绫诲瀷
- */
+
 
 export interface SlotComponentProps extends BaseComponentProps {
   headerSlot?: ReactNode;

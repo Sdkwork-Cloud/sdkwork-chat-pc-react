@@ -1,11 +1,4 @@
-﻿/**
- * Terminal Service
- *
- * 独立于主应用 src 的终端服务实现，负责：
- * 1. 会话生命周期管理
- * 2. 命令执行与输出流
- * 3. 数据订阅分发
- */
+
 
 import type { TerminalSession } from "../entities/terminalSession.entity";
 import {
@@ -59,7 +52,6 @@ class TerminalService {
   }
 
   async resizeSession(_id: string, _cols: number, _rows: number): Promise<void> {
-    // Web/模拟实现无需处理尺寸变化
   }
 
   async closeSession(id: string): Promise<void> {
@@ -70,7 +62,6 @@ class TerminalService {
     this.sessions.delete(id);
     this.dataCallbacks.delete(id);
 
-    // 重新指定主会话
     const [first] = this.getSessions();
     if (first) {
       this.sessions.set(first.id, { ...first, isPrimary: true });

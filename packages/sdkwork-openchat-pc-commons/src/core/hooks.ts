@@ -1,10 +1,7 @@
-/**
- * 核心Hooks
- */
+
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-// 实时查询Hook
 export function useLiveQuery<T>(
   fetcher: () => Promise<T>,
   deps: unknown[] = [],
@@ -42,7 +39,6 @@ export function useLiveQuery<T>(
   return { data, loading, error, refetch, viewStatus, refresh: refetch };
 }
 
-// 防抖Hook
 export function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -59,7 +55,6 @@ export function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-// 节流Hook
 export function useThrottle<T>(value: T, limit: number): T {
   const [throttledValue, setThrottledValue] = useState(value);
   const lastRan = useRef(Date.now());

@@ -1,17 +1,30 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use sys_locale::get_locale;
 use tauri::{Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem};
 
 mod commands;
 mod pty;
 
+fn resolve_native_label(key: &str) -> &'static str {
+    let locale = get_locale().unwrap_or_default();
+    let is_chinese = locale.to_lowercase().starts_with("zh");
+
+    match (is_chinese, key) {
+        (true, "show") => "显示",
+        (true, "quit") => "退出",
+        (_, "show") => "Show",
+        (_, "quit") => "Quit",
+        _ => "",
+    }
+}
+
 fn main() {
-    // 创建系统托盘菜单
     let tray_menu = SystemTrayMenu::new()
-        .add_item(SystemTrayMenuItem::new("显示", "show"))
+        .add_item(SystemTrayMenuItem::new(resolve_native_label("show"), "show"))
         .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(SystemTrayMenuItem::new("退出", "quit"));
+        .add_item(SystemTrayMenuItem::new(resolve_native_label("quit"), "quit"));
 
     let system_tray = SystemTray::new().with_menu(tray_menu);
 
