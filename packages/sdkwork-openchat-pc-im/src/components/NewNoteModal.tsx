@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { Modal, ModalButtonGroup } from "@sdkwork/openchat-pc-ui";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface NewNoteModalProps {
   isOpen: boolean;
@@ -92,22 +93,22 @@ export function NewNoteModal({ isOpen, onClose, onSuccess }: NewNoteModalProps) 
       <div className="flex h-[520px] min-h-0 flex-col">
         <div className="flex items-center justify-between border-b border-border px-5 py-3">
           <div className="flex rounded-lg bg-bg-tertiary p-1">
-            <button
+            <SharedUi.Button
               onClick={() => setTab("edit")}
               className={`rounded px-3 py-1.5 text-xs transition-colors ${
                 tab === "edit" ? "bg-primary text-white" : "text-text-tertiary hover:text-text-primary"
               }`}
             >
               {tr("Edit")}
-            </button>
-            <button
+            </SharedUi.Button>
+            <SharedUi.Button
               onClick={() => setTab("preview")}
               className={`rounded px-3 py-1.5 text-xs transition-colors ${
                 tab === "preview" ? "bg-primary text-white" : "text-text-tertiary hover:text-text-primary"
               }`}
             >
               {tr("Preview")}
-            </button>
+            </SharedUi.Button>
           </div>
           <span className="text-xs text-text-muted">
             {tr("{{count}} chars", { count: content.length })}
@@ -116,13 +117,13 @@ export function NewNoteModal({ isOpen, onClose, onSuccess }: NewNoteModalProps) 
 
         {tab === "edit" ? (
           <div className="flex min-h-0 flex-1 flex-col gap-4 p-5">
-            <input
+            <SharedUi.Input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder={tr("Note title")}
               className="h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary outline-none focus:border-primary"
             />
-            <textarea
+            <SharedUi.Textarea
               value={content}
               onChange={(event) => setContent(event.target.value)}
               placeholder={tr("Write your note here.")}

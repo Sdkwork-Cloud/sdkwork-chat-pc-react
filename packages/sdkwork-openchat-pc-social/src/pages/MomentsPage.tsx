@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { MomentsResultService } from "../services";
 import type { Moment, SocialStats } from "../types";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 const currentUserId = "current_user";
 
@@ -229,7 +230,7 @@ export function MomentsPage() {
           <aside className="flex min-h-0 flex-col rounded-xl border border-border bg-bg-secondary">
             <div className="border-b border-border p-4">
               <h2 className="text-sm font-semibold text-text-primary">{tr("Create Moment")}</h2>
-              <textarea
+              <SharedUi.Textarea
                 value={publishText}
                 onChange={(event) => setPublishText(event.target.value)}
                 placeholder={tr("Share an update with your team")}
@@ -237,24 +238,24 @@ export function MomentsPage() {
                 className="mt-3 w-full rounded-lg border border-border bg-bg-tertiary p-3 text-sm text-text-primary"
               />
               <div className="mt-2 flex gap-2">
-                <input
+                <SharedUi.Input
                   value={publishLocation}
                   onChange={(event) => setPublishLocation(event.target.value)}
                   placeholder={tr("Location (optional)")}
                   className="h-9 flex-1 rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                 />
-                <button
+                <SharedUi.Button
                   onClick={() => void handlePublish()}
                   disabled={isPublishing}
                   className="rounded-md bg-primary px-3 py-1.5 text-xs text-white disabled:opacity-60"
                 >
                   {isPublishing ? tr("Publishing...") : tr("Publish")}
-                </button>
+                </SharedUi.Button>
               </div>
             </div>
 
             <div className="border-b border-border p-4">
-              <input
+              <SharedUi.Input
                 value={keyword}
                 onChange={(event) => setKeyword(event.target.value)}
                 placeholder={tr("Search by author, content, location")}
@@ -290,7 +291,7 @@ export function MomentsPage() {
                   {displayMoments.map((item) => {
                     const selected = item.id === selectedMomentId;
                     return (
-                      <button
+                      <SharedUi.Button
                         key={item.id}
                         onClick={() => setSelectedMomentId(item.id)}
                         className={`w-full px-4 py-3 text-left ${
@@ -304,7 +305,7 @@ export function MomentsPage() {
                           {tr("Likes {{count}}", { count: item.likes })} |{" "}
                           {tr("Comments {{count}}", { count: item.comments.length })}
                         </p>
-                      </button>
+                      </SharedUi.Button>
                     );
                   })}
                 </div>
@@ -342,19 +343,19 @@ export function MomentsPage() {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <button
+                          <SharedUi.Button
                             onClick={() => void handleLike(selectedMoment.id)}
                             className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                           >
                             {selectedMoment.hasLiked ? tr("Unlike") : tr("Like")}
-                          </button>
+                          </SharedUi.Button>
                           {selectedMoment.authorId === currentUserId ? (
-                            <button
+                            <SharedUi.Button
                               onClick={() => void handleDeleteMoment(selectedMoment.id)}
                               className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                             >
                               {tr("Delete")}
-                            </button>
+                            </SharedUi.Button>
                           ) : null}
                         </div>
                       </header>
@@ -395,12 +396,12 @@ export function MomentsPage() {
                                 <p className="mt-1 text-xs text-text-secondary">{comment.text}</p>
                                 {comment.userId === currentUserId ? (
                                   <div className="mt-2 flex justify-end">
-                                    <button
+                                    <SharedUi.Button
                                       onClick={() => void handleDeleteComment(selectedMoment.id, comment.id)}
                                       className="rounded border border-border bg-bg-tertiary px-1.5 py-0.5 text-[11px] text-text-secondary"
                                     >
                                       {tr("Delete")}
-                                    </button>
+                                    </SharedUi.Button>
                                   </div>
                                 ) : null}
                               </div>
@@ -408,7 +409,7 @@ export function MomentsPage() {
                           )}
                         </div>
                         <div className="mt-3 flex items-center gap-2">
-                          <input
+                          <SharedUi.Input
                             value={selectedInput}
                             onChange={(event) =>
                               setCommentInputs((prev) => ({ ...prev, [selectedMoment.id]: event.target.value }))
@@ -416,12 +417,12 @@ export function MomentsPage() {
                             placeholder={tr("Write a comment")}
                             className="h-8 flex-1 rounded-md border border-border bg-bg-tertiary px-2 text-xs text-text-primary"
                           />
-                          <button
+                          <SharedUi.Button
                             onClick={() => void handleAddComment(selectedMoment.id)}
                             className="rounded-md bg-primary px-2.5 py-1 text-xs text-white"
                           >
                             {tr("Send")}
-                          </button>
+                          </SharedUi.Button>
                         </div>
                       </section>
                     </article>

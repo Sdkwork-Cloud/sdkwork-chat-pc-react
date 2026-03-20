@@ -1,6 +1,19 @@
-import { toast } from "sonner";
+import { createElement, type ComponentProps } from "react";
+import { Toaster as SonnerToaster, toast } from "sonner";
 
 export type ToastType = "success" | "error" | "warning" | "info";
+
+export function Toaster(props: ComponentProps<typeof SonnerToaster>) {
+  return createElement(SonnerToaster, {
+    position: "top-right",
+    richColors: true,
+    closeButton: true,
+    toastOptions: {
+      className: "border border-border bg-bg-secondary text-text-primary",
+    },
+    ...props,
+  });
+}
 
 export function useToast() {
   const showToast = (message: string, type: ToastType = "info") => {

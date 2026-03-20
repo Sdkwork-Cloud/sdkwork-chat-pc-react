@@ -3,6 +3,7 @@ import { Crown, Gem, Sparkles, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAppTranslation } from '@sdkwork/openchat-pc-i18n';
 import { type VipPlan, type VipWorkspaceData, vipService } from '../services';
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 function BenefitList({ data }: { data: VipWorkspaceData | null }) {
   const { tr } = useAppTranslation();
@@ -133,14 +134,14 @@ export function VipPage() {
               {tr('Premium generation speed, dedicated benefits, and advanced asset privileges.')}
             </p>
           </div>
-          <button
+          <SharedUi.Button
             type="button"
             onClick={() => void loadData(true)}
             className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
             disabled={isRefreshing}
           >
             {isRefreshing ? tr('Refreshing...') : tr('Refresh')}
-          </button>
+          </SharedUi.Button>
         </div>
       </header>
 
@@ -248,14 +249,14 @@ export function VipPage() {
                     ) : null}
                   </div>
 
-                  <button
+                  <SharedUi.Button
                     type="button"
                     onClick={() => void handleSubscribe(plan)}
                     disabled={purchasingPackId !== null}
                     className="mt-4 w-full rounded-lg bg-gradient-to-r from-indigo-500 to-cyan-500 px-3 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {purchasingPackId === plan.id ? tr('Processing...') : tr('Subscribe')}
-                  </button>
+                  </SharedUi.Button>
                 </article>
               ))}
 

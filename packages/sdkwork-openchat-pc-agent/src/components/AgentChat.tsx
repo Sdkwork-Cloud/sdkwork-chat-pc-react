@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { Agent, AgentMessage, AgentSession, ChatMessage } from "../entities/agent.entity";
 import { AgentResultService } from "../services";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface AgentChatProps {
   agent: Agent;
@@ -246,13 +247,13 @@ export const AgentChat: React.FC<AgentChatProps> = ({
             {exampleQuestions.length > 0 ? (
               <div className="mt-6 space-y-2">
                 {exampleQuestions.slice(0, 3).map((question) => (
-                  <button
+                  <SharedUi.Button
                     key={question}
                     onClick={() => setInput(question)}
                     className="block w-full rounded-xl bg-[var(--bg-tertiary)] px-4 py-2 text-left text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
                   >
                     {question}
-                  </button>
+                  </SharedUi.Button>
                 ))}
               </div>
             ) : null}
@@ -337,7 +338,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
       {error ? (
         <div className="mx-4 mb-2 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
+          <SharedUi.Button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -346,13 +347,13 @@ export const AgentChat: React.FC<AgentChatProps> = ({
                 d="M6 18L18 6M6 6l12 12"
               />
             </svg>
-          </button>
+          </SharedUi.Button>
         </div>
       ) : null}
 
       <div className="flex-shrink-0 border-t border-[var(--border-color)] bg-[var(--bg-secondary)] p-4">
         <div className="flex gap-3">
-          <textarea
+          <SharedUi.Textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
@@ -361,7 +362,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
             rows={1}
             className="flex-1 resize-none rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-3 text-sm text-[var(--text-primary)] transition-all placeholder:text-[var(--text-muted)] focus:border-[var(--ai-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--ai-primary)]/20"
           />
-          <button
+          <SharedUi.Button
             onClick={() => void handleSend()}
             disabled={!input.trim() || loading}
             className="rounded-xl bg-[var(--ai-primary)] px-5 py-3 text-white shadow-[var(--shadow-md)] transition-all hover:bg-[var(--ai-primary-hover)] hover:shadow-[var(--shadow-lg)] disabled:cursor-not-allowed disabled:opacity-50"
@@ -374,7 +375,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
                 d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
               />
             </svg>
-          </button>
+          </SharedUi.Button>
         </div>
       </div>
     </div>

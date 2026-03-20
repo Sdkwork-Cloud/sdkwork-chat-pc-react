@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { Agent } from "@sdkwork/openchat-pc-agent";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface AgentWelcomeProps {
   agent: Agent;
@@ -48,13 +49,13 @@ export const AgentWelcome = memo(({ agent, onSendMessage }: AgentWelcomeProps) =
             <p className="text-xs uppercase tracking-wide text-text-muted">{tr("Try asking me")}</p>
             <div className="flex flex-col gap-2">
               {exampleQuestions.slice(0, 4).map((question, index) => (
-                <button
+                <SharedUi.Button
                   key={`${question}-${index}`}
                   onClick={() => onSendMessage(question)}
                   className="rounded-xl border border-border bg-bg-secondary px-6 py-3 text-left text-sm text-text-secondary transition-all hover:border-primary hover:bg-bg-tertiary hover:text-text-primary"
                 >
                   {question}
-                </button>
+                </SharedUi.Button>
               ))}
             </div>
           </div>

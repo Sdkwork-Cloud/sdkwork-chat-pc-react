@@ -4,6 +4,7 @@ import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { IS_DEV } from "@sdkwork/openchat-pc-kernel";
 import { Modal, ModalButtonGroup } from "@sdkwork/openchat-pc-ui";
 import { GroupResultService } from "../services";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 type CreateGroupResponseLike = {
   success?: boolean;
@@ -151,7 +152,7 @@ export function CreateGroupModal({
           <div className="space-y-3 border-b border-border p-4">
             <div className="space-y-2">
               <label className="text-xs text-text-muted">{tr("Group name")}</label>
-              <input
+              <SharedUi.Input
                 value={groupName}
                 onChange={(event) => setGroupName(event.target.value)}
                 placeholder={tr("Example: Product Review Team")}
@@ -160,7 +161,7 @@ export function CreateGroupModal({
             </div>
             <div className="space-y-2">
               <label className="text-xs text-text-muted">{tr("Find members")}</label>
-              <input
+              <SharedUi.Input
                 value={keyword}
                 onChange={(event) => setKeyword(event.target.value)}
                 placeholder={tr("Search by id or name")}
@@ -199,7 +200,7 @@ export function CreateGroupModal({
                     key={friend.id}
                     className="flex cursor-pointer items-center rounded-lg border border-border bg-bg-primary p-2.5 transition-colors hover:border-primary/40 hover:bg-bg-hover"
                   >
-                    <input
+                    <SharedUi.Input
                       type="checkbox"
                       checked={selected}
                       onChange={() => toggleMember(friend.id)}
@@ -241,12 +242,12 @@ export function CreateGroupModal({
                   <div className="ml-2.5 min-w-0 flex-1 text-sm text-text-primary">
                     {getFriendDisplayName(friend)}
                   </div>
-                  <button
+                  <SharedUi.Button
                     onClick={() => toggleMember(friend.id)}
                     className="rounded px-2 py-1 text-xs text-text-tertiary hover:bg-bg-hover hover:text-error"
                   >
                     {tr("Remove")}
-                  </button>
+                  </SharedUi.Button>
                 </div>
               ))
             )}

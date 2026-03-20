@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface AppointmentItem {
   id: string;
@@ -226,7 +227,7 @@ export function AppointmentsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-xs uppercase tracking-wide text-text-muted">
                   {tr("Status Filter")}
-                  <select
+                  <SharedUi.Select
                     value={statusFilter}
                     onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
                     className="mt-2 h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -235,11 +236,11 @@ export function AppointmentsPage() {
                     <option value="scheduled">{tr("Scheduled")}</option>
                     <option value="in-progress">{tr("In Progress")}</option>
                     <option value="done">{tr("Done")}</option>
-                  </select>
+                  </SharedUi.Select>
                 </label>
                 <label className="text-xs uppercase tracking-wide text-text-muted">
                   {tr("Search")}
-                  <input
+                  <SharedUi.Input
                     ref={searchInputRef}
                     value={keyword}
                     onChange={(event) => setKeyword(event.target.value)}
@@ -275,7 +276,7 @@ export function AppointmentsPage() {
                 {filtered.map((item) => {
                   const active = selected?.id === item.id;
                   return (
-                    <button
+                    <SharedUi.Button
                       key={item.id}
                       type="button"
                       onClick={() => setSelectedId(item.id)}
@@ -290,7 +291,7 @@ export function AppointmentsPage() {
                       <p className="mt-1 text-[11px] text-text-muted">
                         {formatDateTime(item.startAt)} - {getStatusLabel(item.status)}
                       </p>
-                    </button>
+                    </SharedUi.Button>
                   );
                 })}
                 {filtered.length === 0 ? <p className="text-xs text-text-muted">{tr("No appointments.")}</p> : null}
@@ -320,7 +321,7 @@ export function AppointmentsPage() {
                   <div className="rounded-lg border border-border bg-bg-primary p-4">
                     <h3 className="text-sm font-semibold text-text-primary">{tr("Quick Actions")}</h3>
                     <div className="mt-3 grid gap-2">
-                      <button
+                      <SharedUi.Button
                         type="button"
                         onClick={() =>
                           notifyAction(tr('Started desktop call for "{{title}}".', { title: tr(selected.title) }))
@@ -328,8 +329,8 @@ export function AppointmentsPage() {
                         className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-hover"
                       >
                         {tr("Start Desktop Call (Enter)")}
-                      </button>
-                      <button
+                      </SharedUi.Button>
+                      <SharedUi.Button
                         type="button"
                         onClick={() =>
                           notifyAction(tr('Opened shared notes for "{{title}}".', { title: tr(selected.title) }))
@@ -337,8 +338,8 @@ export function AppointmentsPage() {
                         className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-hover"
                       >
                         {tr("Open Shared Notes")}
-                      </button>
-                      <button
+                      </SharedUi.Button>
+                      <SharedUi.Button
                         type="button"
                         onClick={() =>
                           notifyAction(tr('Created follow-up task for "{{title}}".', { title: tr(selected.title) }))
@@ -346,8 +347,8 @@ export function AppointmentsPage() {
                         className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-hover"
                       >
                         {tr("Add Follow-up Task")}
-                      </button>
-                      <button
+                      </SharedUi.Button>
+                      <SharedUi.Button
                         type="button"
                         onClick={() => {
                           void copyLocation();
@@ -355,7 +356,7 @@ export function AppointmentsPage() {
                         className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-hover"
                       >
                         {tr("Copy Meeting Location")}
-                      </button>
+                      </SharedUi.Button>
                     </div>
                     <p className="mt-3 rounded-md border border-border bg-bg-tertiary px-3 py-2 text-xs text-text-secondary">
                       {actionMessage}

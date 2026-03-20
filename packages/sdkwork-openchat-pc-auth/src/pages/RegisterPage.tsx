@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { UseAuthReturn } from "../hooks/useAuth";
 import { appAuthService } from "../services";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface RegisterPageProps {
   auth: UseAuthReturn;
@@ -200,7 +201,7 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
           <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4">
             <div>
               <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Phone or Email")}</label>
-              <input
+              <SharedUi.Input
                 type="text"
                 value={target}
                 onChange={(event) => setTarget(event.target.value)}
@@ -213,7 +214,7 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
             <div>
               <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Verification Code")}</label>
               <div className="flex gap-2">
-                <input
+                <SharedUi.Input
                   type="text"
                   value={code}
                   onChange={(event) => setCode(event.target.value)}
@@ -221,21 +222,21 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
                   className="flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
                   disabled={submitting || auth.isLoading}
                 />
-                <button
+                <SharedUi.Button
                   type="button"
                   onClick={() => void handleSendCode()}
                   disabled={!canSendCode}
                   className="rounded-xl bg-[var(--ai-primary)] px-4 py-2.5 text-white transition-colors hover:bg-[var(--ai-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--bg-tertiary)]"
                 >
                   {countdown > 0 ? `${countdown}s` : tr("Send Code")}
-                </button>
+                </SharedUi.Button>
               </div>
             </div>
 
             <div>
               <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Password")}</label>
               <div className="relative">
-                <input
+                <SharedUi.Input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -243,21 +244,21 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
                   className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2.5 pr-12 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
                   disabled={submitting || auth.isLoading}
                 />
-                <button
+                <SharedUi.Button
                   type="button"
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
                   onClick={() => setShowPassword((value) => !value)}
                   tabIndex={-1}
                 >
                   {showPassword ? tr("Hide") : tr("Show")}
-                </button>
+                </SharedUi.Button>
               </div>
             </div>
 
             <div>
               <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Confirm Password")}</label>
               <div className="relative">
-                <input
+                <SharedUi.Input
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
@@ -265,14 +266,14 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
                   className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2.5 pr-12 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ai-primary)]"
                   disabled={submitting || auth.isLoading}
                 />
-                <button
+                <SharedUi.Button
                   type="button"
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
                   onClick={() => setShowConfirmPassword((value) => !value)}
                   tabIndex={-1}
                 >
                   {showConfirmPassword ? tr("Hide") : tr("Show")}
-                </button>
+                </SharedUi.Button>
               </div>
             </div>
 
@@ -288,24 +289,24 @@ export function RegisterPage({ auth, onSwitchToLogin }: RegisterPageProps) {
               </div>
             ) : null}
 
-            <button
+            <SharedUi.Button
               type="submit"
               disabled={!canSubmit}
               className="w-full rounded-xl bg-[var(--ai-primary)] py-3 font-medium text-white transition-colors hover:bg-[var(--ai-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--bg-tertiary)]"
             >
               {submitting || auth.isLoading ? tr("Registering...") : tr("Register")}
-            </button>
+            </SharedUi.Button>
           </form>
 
           <div className="mt-6 border-t border-[var(--border-color)] pt-6 text-center">
             <p className="text-sm text-[var(--text-secondary)]">
               {tr("Already have an account?")}
-              <button
+              <SharedUi.Button
                 onClick={onSwitchToLogin}
                 className="ml-1 text-[var(--ai-primary)] hover:underline focus:outline-none"
               >
                 {tr("Login now")}
-              </button>
+              </SharedUi.Button>
             </p>
           </div>
         </div>

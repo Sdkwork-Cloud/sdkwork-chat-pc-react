@@ -9,6 +9,7 @@ import {
   type DeviceMessage,
 } from "../entities/device.entity";
 import { DeviceResultService } from "../services";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 export function DeviceDetailPage() {
   const navigate = useNavigate();
@@ -144,13 +145,13 @@ export function DeviceDetailPage() {
   if (!device) {
     return (
       <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary p-6">
-        <button
+        <SharedUi.Button
           type="button"
           onClick={() => navigate("/devices")}
           className="w-fit rounded-md border border-border bg-bg-secondary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
         >
           {tr("Back to Device List")}
-        </button>
+        </SharedUi.Button>
         <div className="mt-4 rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
           {tr("Device not found or inaccessible.")}
         </div>
@@ -161,13 +162,13 @@ export function DeviceDetailPage() {
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <button
+        <SharedUi.Button
           type="button"
           onClick={() => navigate("/devices")}
           className="mb-2 rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
         >
           {tr("Back to Device List")}
-        </button>
+        </SharedUi.Button>
         <h1 className="text-xl font-semibold text-text-primary">{device.name}</h1>
         <p className="mt-1 text-sm text-text-secondary">{device.deviceId}</p>
       </header>
@@ -214,19 +215,19 @@ export function DeviceDetailPage() {
             </div>
 
             <div className="mt-4">
-              <button
+              <SharedUi.Button
                 type="button"
                 onClick={() => void handleToggleStatus()}
                 className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
               >
                 {device.status === DeviceStatus.ONLINE ? tr("Set Offline") : tr("Set Online")}
-              </button>
+              </SharedUi.Button>
             </div>
 
             <div className="mt-6 rounded-xl border border-border bg-bg-primary p-4">
               <h3 className="text-sm font-semibold text-text-primary">{tr("Command Console")}</h3>
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[180px_1fr]">
-                <select
+                <SharedUi.Select
                   value={commandTopic}
                   onChange={(event) => setCommandTopic(event.target.value)}
                   className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary focus:border-primary focus:outline-none"
@@ -234,17 +235,17 @@ export function DeviceDetailPage() {
                   <option value="status">{tr("Status")}</option>
                   <option value="control">{tr("Control")}</option>
                   <option value="reboot">{tr("Reboot")}</option>
-                </select>
-                <button
+                </SharedUi.Select>
+                <SharedUi.Button
                   type="button"
                   onClick={() => void handleSendCommand()}
                   disabled={isSending}
                   className="rounded-lg bg-primary px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSending ? tr("Sending...") : tr("Send Command")}
-                </button>
+                </SharedUi.Button>
               </div>
-              <textarea
+              <SharedUi.Textarea
                 value={payloadText}
                 onChange={(event) => setPayloadText(event.target.value)}
                 rows={8}

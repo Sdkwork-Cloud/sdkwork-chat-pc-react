@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { UseAuthReturn } from "../hooks/useAuth";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface ForgotPasswordPageProps {
   auth: UseAuthReturn;
@@ -151,7 +152,7 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
 
           <div className="mb-4 flex space-x-4">
             <label className="flex cursor-pointer items-center">
-              <input
+              <SharedUi.Input
                 type="radio"
                 name="recoveryMethod"
                 value="email"
@@ -166,7 +167,7 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
               <span className="ml-2 text-sm text-[var(--text-secondary)]">{tr("Email")}</span>
             </label>
             <label className="flex cursor-pointer items-center">
-              <input
+              <SharedUi.Input
                 type="radio"
                 name="recoveryMethod"
                 value="phone"
@@ -186,7 +187,7 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
             {method === "email" ? (
               <div>
                 <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Email")}</label>
-                <input
+                <SharedUi.Input
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -198,7 +199,7 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
             ) : (
               <div>
                 <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Phone")}</label>
-                <input
+                <SharedUi.Input
                   type="tel"
                   value={phone}
                   onChange={(event) => setPhone(event.target.value)}
@@ -213,7 +214,7 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
               <div>
                 <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Verification Code")}</label>
                 <div className="flex gap-2">
-                  <input
+                  <SharedUi.Input
                     type="text"
                     value={code}
                     onChange={(event) => setCode(event.target.value)}
@@ -222,14 +223,14 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
                     disabled={auth.isLoading || stage === "reset"}
                   />
                   {stage === "verify" ? (
-                    <button
+                    <SharedUi.Button
                       type="button"
                       onClick={() => void handleSendCode()}
                       disabled={auth.isLoading}
                       className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2.5 text-[var(--text-secondary)] transition-colors hover:border-[var(--ai-primary)]"
                     >
                       {tr("Resend")}
-                    </button>
+                    </SharedUi.Button>
                   ) : null}
                 </div>
               </div>
@@ -239,7 +240,7 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
               <>
                 <div>
                   <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("New Password")}</label>
-                  <input
+                  <SharedUi.Input
                     type="password"
                     value={newPassword}
                     onChange={(event) => setNewPassword(event.target.value)}
@@ -250,7 +251,7 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{tr("Confirm Password")}</label>
-                  <input
+                  <SharedUi.Input
                     type="password"
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
@@ -277,57 +278,57 @@ export function ForgotPasswordPage({ auth, onSwitchToLogin }: ForgotPasswordPage
 
           <div className="mt-6 space-y-2">
             {stage === "request" ? (
-              <button
+              <SharedUi.Button
                 type="button"
                 onClick={() => void handleSendCode()}
                 disabled={auth.isLoading}
                 className="w-full rounded-xl bg-[var(--ai-primary)] py-3 font-medium text-white transition-colors hover:bg-[var(--ai-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--bg-tertiary)]"
               >
                 {auth.isLoading ? tr("Sending...") : tr("Send Verification Code")}
-              </button>
+              </SharedUi.Button>
             ) : null}
 
             {stage === "verify" ? (
-              <button
+              <SharedUi.Button
                 type="button"
                 onClick={() => void handleVerifyCode()}
                 disabled={auth.isLoading}
                 className="w-full rounded-xl bg-[var(--ai-primary)] py-3 font-medium text-white transition-colors hover:bg-[var(--ai-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--bg-tertiary)]"
               >
                 {auth.isLoading ? tr("Verifying...") : tr("Verify Code")}
-              </button>
+              </SharedUi.Button>
             ) : null}
 
             {stage === "reset" ? (
-              <button
+              <SharedUi.Button
                 type="button"
                 onClick={() => void handleResetPassword()}
                 disabled={auth.isLoading}
                 className="w-full rounded-xl bg-[var(--ai-primary)] py-3 font-medium text-white transition-colors hover:bg-[var(--ai-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--bg-tertiary)]"
               >
                 {auth.isLoading ? tr("Resetting...") : tr("Reset Password")}
-              </button>
+              </SharedUi.Button>
             ) : null}
 
             {stage === "done" ? (
-              <button
+              <SharedUi.Button
                 type="button"
                 onClick={onSwitchToLogin}
                 className="w-full rounded-xl bg-[var(--ai-primary)] py-3 font-medium text-white transition-colors hover:bg-[var(--ai-primary-hover)]"
               >
                 {tr("Back to Login")}
-              </button>
+              </SharedUi.Button>
             ) : null}
           </div>
 
           <div className="mt-6 border-t border-[var(--border-color)] pt-6 text-center">
-            <button
+            <SharedUi.Button
               type="button"
               onClick={onSwitchToLogin}
               className="text-sm text-[var(--ai-primary)] hover:underline focus:outline-none"
             >
               {tr("Back to Login")}
-            </button>
+            </SharedUi.Button>
           </div>
         </div>
       </div>

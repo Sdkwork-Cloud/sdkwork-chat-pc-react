@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { buildLookWorkspaceSummary, LOOK_CARDS } from "./look.workspace.model";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
@@ -152,7 +153,7 @@ export function LookPage() {
         <div className="grid h-full min-h-[520px] gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="flex min-h-0 flex-col rounded-xl border border-border bg-bg-secondary">
             <div className="border-b border-border p-4">
-              <input
+              <SharedUi.Input
                 ref={searchInputRef}
                 value={keyword}
                 onChange={(event) => setKeyword(event.target.value)}
@@ -166,7 +167,7 @@ export function LookPage() {
             <div className="min-h-0 flex-1 overflow-auto p-3">
               <div className="space-y-2">
                 {filtered.map((item) => (
-                  <button
+                  <SharedUi.Button
                     key={item.id}
                     onClick={() => setSelectedId(item.id)}
                     className={`w-full rounded-lg border px-3 py-2 text-left ${
@@ -177,7 +178,7 @@ export function LookPage() {
                   >
                     <p className="text-sm font-semibold text-text-primary">{item.title}</p>
                     <p className="mt-1 text-xs text-text-secondary">{item.theme}</p>
-                  </button>
+                  </SharedUi.Button>
                 ))}
                 {filtered.length === 0 ? (
                   <p className="text-xs text-text-muted">{tr("No presets matched.")}</p>
@@ -220,10 +221,10 @@ export function LookPage() {
                   </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <button onClick={applyPreset} className="rounded-md bg-primary px-3 py-1.5 text-xs text-white">
+                  <SharedUi.Button onClick={applyPreset} className="rounded-md bg-primary px-3 py-1.5 text-xs text-white">
                     {tr("Apply to Workspace (Enter)")}
-                  </button>
-                    <button
+                  </SharedUi.Button>
+                    <SharedUi.Button
                       onClick={() =>
                         notifyAction(
                           tr("Duplicated preset \"{{title}}\".", {
@@ -234,19 +235,19 @@ export function LookPage() {
                       className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                     >
                       {tr("Duplicate Preset")}
-                    </button>
-                    <button
+                    </SharedUi.Button>
+                    <SharedUi.Button
                       onClick={() => adjustScale(-5)}
                       className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                     >
                       {tr("Scale -")}
-                    </button>
-                    <button
+                    </SharedUi.Button>
+                    <SharedUi.Button
                       onClick={() => adjustScale(5)}
                       className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                     >
                       {tr("Scale +")}
-                    </button>
+                    </SharedUi.Button>
                 </div>
                 <p className="mt-4 rounded-md border border-border bg-bg-primary px-3 py-2 text-xs text-text-secondary">
                   {actionMessage}

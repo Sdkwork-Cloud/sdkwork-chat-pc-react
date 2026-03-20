@@ -18,6 +18,7 @@ import {
   resolveCapabilityPathByType,
   type AppStoreCatalogType,
 } from "./appstore.workspace.model";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 const baseCategory: AppCategory = {
   id: "all",
@@ -350,18 +351,18 @@ export function AppStorePage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
+            <SharedUi.Button
               onClick={() => navigate("/agents")}
               className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
             >
               {tr("Agent Market")}
-            </button>
-            <button
+            </SharedUi.Button>
+            <SharedUi.Button
               onClick={() => navigate("/skills")}
               className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
             >
               {tr("Skill Market")}
-            </button>
+            </SharedUi.Button>
           </div>
         </div>
 
@@ -369,7 +370,7 @@ export function AppStorePage() {
           {tabOptions.map((tab) => {
             const active = activeTab === tab.key;
             return (
-              <button
+              <SharedUi.Button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`rounded-full border px-4 py-2 text-xs font-medium transition-colors ${
@@ -380,7 +381,7 @@ export function AppStorePage() {
               >
                 {tab.label}
                 <span className={`ml-2 ${active ? "text-white/80" : "text-text-muted"}`}>{tab.hint}</span>
-              </button>
+              </SharedUi.Button>
             );
           })}
         </div>
@@ -394,7 +395,7 @@ export function AppStorePage() {
               const active = option.key === typeFilter;
               const count = typeStats[option.key as keyof typeof typeStats];
               return (
-                <button
+                <SharedUi.Button
                   key={option.key}
                   onClick={() => setTypeFilter(option.key)}
                   className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition-colors ${
@@ -405,7 +406,7 @@ export function AppStorePage() {
                 >
                   <span>{option.label}</span>
                   <span className="rounded bg-bg-tertiary px-1.5 py-0.5 text-[10px] text-text-muted">{count}</span>
-                </button>
+                </SharedUi.Button>
               );
             })}
           </div>
@@ -434,12 +435,12 @@ export function AppStorePage() {
         {!isLoading && visibleApps.length === 0 ? (
           <div className="mt-4 rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
             <p>{tr("No apps found for current filters.")}</p>
-            <button
+            <SharedUi.Button
               onClick={resetFilters}
               className="mt-3 rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
             >
               {tr("Reset filters")}
-            </button>
+            </SharedUi.Button>
           </div>
         ) : null}
 
@@ -458,9 +459,9 @@ export function AppStorePage() {
               <section>
                 <div className="mb-3 flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-text-primary">{tr("Editors Choice")}</h2>
-                  <button onClick={() => setActiveTab("browse")} className="text-xs font-medium text-primary hover:underline">
+                  <SharedUi.Button onClick={() => setActiveTab("browse")} className="text-xs font-medium text-primary hover:underline">
                     {tr("View all")}
-                  </button>
+                  </SharedUi.Button>
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {editorChoiceApps.map((app) => (
@@ -525,7 +526,7 @@ export function AppStorePage() {
                           {app.category.name} / {formatDownloads(app.downloads, language)}
                         </p>
                       </div>
-                      <button
+                      <SharedUi.Button
                         onClick={() => {
                           void handleAppAction(app);
                         }}
@@ -533,7 +534,7 @@ export function AppStorePage() {
                         className="rounded-full bg-bg-tertiary px-3 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {getAppActionLabel(app)}
-                      </button>
+                      </SharedUi.Button>
                     </article>
                   ))}
                 </div>
@@ -550,12 +551,12 @@ export function AppStorePage() {
                 <p className="mt-1 text-xs text-text-muted">
                   {tr("Install tool, plugin, or theme packages to build your desktop workspace.")}
                 </p>
-                <button
+                <SharedUi.Button
                   onClick={() => setActiveTab("browse")}
                   className="mt-3 rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                 >
                   {tr("Browse App Catalog")}
-                </button>
+                </SharedUi.Button>
               </div>
             ) : (
               <>
@@ -587,7 +588,7 @@ export function AppStorePage() {
                             </div>
                             <div className="mt-3 flex items-center justify-between text-[11px] text-text-muted">
                               <span>{tr("{{count}} opens", { count: lifecycle?.openCount ?? 0 })}</span>
-                              <button
+                              <SharedUi.Button
                                 onClick={() => {
                                   void handleAppAction(app);
                                 }}
@@ -595,7 +596,7 @@ export function AppStorePage() {
                                 className="rounded-full bg-bg-tertiary px-2.5 py-1 font-semibold text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 {tr("OPEN")}
-                              </button>
+                              </SharedUi.Button>
                             </div>
                           </article>
                         );
@@ -622,18 +623,18 @@ export function AppStorePage() {
                                 {app.icon}
                               </div>
                               <div className="min-w-0">
-                                <button
+                                <SharedUi.Button
                                   onClick={() => navigate(`/appstore/${app.id}`)}
                                   className="truncate text-left text-base font-semibold text-text-primary hover:text-primary"
                                 >
                                   {app.name}
-                                </button>
+                                </SharedUi.Button>
                                 <p className="truncate text-xs text-text-muted">{app.shortDescription}</p>
                               </div>
                             </div>
 
                             <div className="flex items-center gap-2">
-                              <button
+                              <SharedUi.Button
                                 onClick={() => {
                                   void handleAppAction(app);
                                 }}
@@ -641,8 +642,8 @@ export function AppStorePage() {
                                 className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 {tr("OPEN")}
-                              </button>
-                              <button
+                              </SharedUi.Button>
+                              <SharedUi.Button
                                 onClick={() => {
                                   void handleRemoveApp(app);
                                 }}
@@ -650,7 +651,7 @@ export function AppStorePage() {
                                 className="rounded-full border border-warning/50 bg-warning/10 px-3 py-1.5 text-xs font-semibold text-warning transition-colors hover:bg-warning/20 disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 {tr("REMOVE")}
-                              </button>
+                              </SharedUi.Button>
                             </div>
                           </div>
 
@@ -687,7 +688,7 @@ export function AppStorePage() {
           <div className="mt-4 space-y-8">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">{tr("Browse Order")}</h2>
-              <select
+              <SharedUi.Select
                 value={browseSort}
                 onChange={(event) => setBrowseSort(event.target.value as BrowseSort)}
                 className="h-9 rounded-lg border border-border bg-bg-tertiary px-3 text-xs text-text-primary focus:border-primary focus:outline-none"
@@ -697,7 +698,7 @@ export function AppStorePage() {
                     {item.label}
                   </option>
                 ))}
-              </select>
+              </SharedUi.Select>
             </div>
 
             {latestApps.length > 0 ? (

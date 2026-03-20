@@ -5,6 +5,7 @@ import type { SkillCategoryInfo, SkillMarketItem } from "../entities/skill.entit
 import { SkillResultService, SkillService } from "../services";
 import { buildSkillWorkspaceSummary, filterSkillsByStage, type SkillPipelineStage } from "./skill.workspace.model";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 type SkillSortType = "popular" | "rating" | "newest";
 
@@ -225,24 +226,24 @@ export function SkillMarketPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
+            <SharedUi.Button
               onClick={() => navigate("/agents")}
               className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
             >
               {tr("Agent Market")}
-            </button>
-            <button
+            </SharedUi.Button>
+            <SharedUi.Button
               onClick={() => navigate("/appstore")}
               className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
             >
               {tr("App Store")}
-            </button>
-            <button
+            </SharedUi.Button>
+            <SharedUi.Button
               onClick={() => navigate("/skills/my")}
               className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
             >
               {tr("My Skills")}
-            </button>
+            </SharedUi.Button>
           </div>
         </div>
       </header>
@@ -272,7 +273,7 @@ export function SkillMarketPage() {
             {stageOptions.map((option) => {
               const active = stage === option.key;
               return (
-                <button
+                <SharedUi.Button
                   key={option.key}
                   onClick={() => setStage(option.key)}
                   className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
@@ -283,7 +284,7 @@ export function SkillMarketPage() {
                 >
                   <p className="text-sm font-medium">{tr(option.label)}</p>
                   <p className="mt-1 text-xs opacity-80">{tr(option.description)}</p>
-                </button>
+                </SharedUi.Button>
               );
             })}
           </div>
@@ -295,7 +296,7 @@ export function SkillMarketPage() {
             {categories.map((item) => {
               const active = category === item.id;
               return (
-                <button
+                <SharedUi.Button
                   key={item.id}
                   onClick={() => setCategory(item.id)}
                   className={`w-full rounded-md px-3 py-1.5 text-left text-sm transition-colors ${
@@ -303,7 +304,7 @@ export function SkillMarketPage() {
                   }`}
                 >
                   {item.icon} {item.name}
-                </button>
+                </SharedUi.Button>
               );
             })}
           </div>
@@ -326,13 +327,13 @@ export function SkillMarketPage() {
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {recentVisibleSkills.map((skill) => (
-                  <button
+                  <SharedUi.Button
                     key={`recent-${skill.id}`}
                     onClick={() => handleOpenSkillDetail(skill.id)}
                     className="rounded-full border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-bg-hover"
                   >
                     {skill.icon} {skill.name}
-                  </button>
+                  </SharedUi.Button>
                 ))}
               </div>
             </div>
@@ -345,7 +346,7 @@ export function SkillMarketPage() {
               </p>
               <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
                 {featuredSkills.map((skill) => (
-                  <button
+                  <SharedUi.Button
                     key={`featured-${skill.id}`}
                     onClick={() => setSelectedSkillId(skill.id)}
                     className="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary px-3 py-2 text-left transition-colors hover:border-primary/40"
@@ -362,20 +363,20 @@ export function SkillMarketPage() {
                         })} / {formatNumber(skill.usageCount)} {tr("uses")}
                       </p>
                     </div>
-                  </button>
+                  </SharedUi.Button>
                 ))}
               </div>
             </div>
           ) : null}
 
           <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px]">
-            <input
+            <SharedUi.Input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
               placeholder={tr("Search by name, description, or tags")}
               className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
             />
-            <select
+            <SharedUi.Select
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value as SkillSortType)}
               className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary focus:border-primary focus:outline-none"
@@ -383,7 +384,7 @@ export function SkillMarketPage() {
               <option value="popular">{tr("By popularity")}</option>
               <option value="rating">{tr("By rating")}</option>
               <option value="newest">{tr("By newest")}</option>
-            </select>
+            </SharedUi.Select>
           </div>
 
           {statusText ? (
@@ -405,12 +406,12 @@ export function SkillMarketPage() {
           ) : visibleSkills.length === 0 ? (
             <div className="rounded-xl border border-border bg-bg-primary p-5 text-sm text-text-secondary">
               <p>{tr("No skill matches current filters.")}</p>
-              <button
+              <SharedUi.Button
                 onClick={resetFilters}
                 className="mt-3 rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
               >
                 {tr("Reset filters")}
-              </button>
+              </SharedUi.Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -479,7 +480,7 @@ export function SkillMarketPage() {
                 </h4>
                 <div className="mt-3 grid grid-cols-1 gap-2">
                   {selectedSkill.isEnabled ? (
-                    <button
+                    <SharedUi.Button
                       onClick={() => {
                         void handleDisable(selectedSkill.id);
                       }}
@@ -487,9 +488,9 @@ export function SkillMarketPage() {
                       className="rounded-md border border-warning/50 bg-warning/10 px-3 py-2 text-sm text-warning transition-colors hover:bg-warning/20 disabled:opacity-60"
                     >
                       {tr("Disable skill")}
-                    </button>
+                    </SharedUi.Button>
                   ) : (
-                    <button
+                    <SharedUi.Button
                       onClick={() => {
                         void handleEnable(selectedSkill.id);
                       }}
@@ -497,16 +498,16 @@ export function SkillMarketPage() {
                       className="rounded-md bg-primary px-3 py-2 text-sm text-white transition-colors hover:brightness-110 disabled:opacity-60"
                     >
                       {tr("Enable skill")}
-                    </button>
+                    </SharedUi.Button>
                   )}
 
-                  <button
+                  <SharedUi.Button
                     onClick={() => handleOpenSkillDetail(selectedSkill.id)}
                     className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-bg-hover"
                   >
                     {tr("Open detail workspace")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     onClick={() => handleToggleFavorite(selectedSkill.id)}
                     className={`rounded-md border px-3 py-2 text-sm transition-colors ${
                       isSelectedSkillFavorite
@@ -515,7 +516,7 @@ export function SkillMarketPage() {
                     }`}
 >
                     {isSelectedSkillFavorite ? tr("Favorited") : tr("Add favorite")}
-                  </button>
+                  </SharedUi.Button>
                 </div>
               </div>
 

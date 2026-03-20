@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { App } from "../entities/app.entity";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 type AppCardVariant = "large" | "small" | "compact" | "banner";
 type AppCardActionTone = "primary" | "neutral" | "danger";
@@ -49,7 +50,7 @@ export const AppCard = memo(
     const actionClass = getActionClass(actionTone);
 
     const actionNode = onActionClick ? (
-      <button
+      <SharedUi.Button
         type="button"
         onClick={(event) => {
           event.stopPropagation();
@@ -59,7 +60,7 @@ export const AppCard = memo(
         className={`rounded-full px-3 py-1 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${actionClass}`}
       >
         {resolvedActionLabel}
-      </button>
+      </SharedUi.Button>
     ) : (
       <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${actionClass}`}>
         {resolvedActionLabel}
@@ -68,7 +69,7 @@ export const AppCard = memo(
 
     if (variant === "banner") {
       return (
-        <button
+        <SharedUi.Button
           onClick={onClick}
           className="group w-full rounded-2xl border border-border bg-gradient-to-br from-bg-secondary via-bg-secondary to-bg-primary p-4 text-left transition-all hover:border-primary/40 hover:shadow-lg"
         >
@@ -94,13 +95,13 @@ export const AppCard = memo(
             </div>
             {actionNode}
           </div>
-        </button>
+        </SharedUi.Button>
       );
     }
 
     if (variant === "small") {
       return (
-        <button
+        <SharedUi.Button
           onClick={onClick}
           className="group flex w-full items-center gap-3 rounded-xl border border-border bg-bg-secondary p-3 text-left transition-all hover:border-primary/40 hover:bg-bg-hover"
         >
@@ -113,13 +114,13 @@ export const AppCard = memo(
             <p className="mt-1 text-xs text-text-muted">{tr("{{value}} rating", { value: ratingLabel })}</p>
           </div>
           {actionNode}
-        </button>
+        </SharedUi.Button>
       );
     }
 
     if (variant === "compact") {
       return (
-        <button
+        <SharedUi.Button
           onClick={onClick}
           className="group w-full rounded-xl border border-border bg-bg-secondary p-3 text-left transition-all hover:border-primary/40 hover:bg-bg-hover"
         >
@@ -128,12 +129,12 @@ export const AppCard = memo(
           </div>
           <h3 className="truncate text-sm font-semibold text-text-primary">{app.name}</h3>
           <p className="mt-1 line-clamp-2 text-xs text-text-muted">{app.shortDescription}</p>
-        </button>
+        </SharedUi.Button>
       );
     }
 
     return (
-      <button
+      <SharedUi.Button
         onClick={onClick}
         className="group w-full rounded-2xl border border-border bg-bg-secondary p-4 text-left transition-all hover:border-primary/40 hover:bg-bg-hover hover:shadow-lg"
       >
@@ -166,7 +167,7 @@ export const AppCard = memo(
           </span>
           {actionNode}
         </div>
-      </button>
+      </SharedUi.Button>
     );
   },
 );

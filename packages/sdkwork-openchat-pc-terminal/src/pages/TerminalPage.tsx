@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { TerminalSession } from "../entities/terminalSession.entity";
 import { TerminalResultService, terminalService } from "../services";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 type SessionLogs = Record<string, string[]>;
 type SessionHistories = Record<string, string[]>;
@@ -271,13 +272,13 @@ export function TerminalPage() {
                 {isDesktop ? tr("Desktop PTY") : tr("Web fallback shell")}
               </p>
             </div>
-            <button
+            <SharedUi.Button
               onClick={() => void createSession()}
               disabled={isCreatingSession}
               className="rounded-md bg-primary px-3 py-1.5 text-xs text-white disabled:opacity-60"
             >
               {isCreatingSession ? tr("Creating...") : tr("New Session")}
-            </button>
+            </SharedUi.Button>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
             <div className="rounded-md border border-border bg-bg-primary px-2 py-1.5">
@@ -302,18 +303,18 @@ export function TerminalPage() {
                     selected ? "border-primary bg-primary-soft/20" : "border-border bg-bg-primary"
                   }`}
                 >
-                  <button onClick={() => setActiveSessionId(session.id)} className="w-full text-left">
+                  <SharedUi.Button onClick={() => setActiveSessionId(session.id)} className="w-full text-left">
                     <p className="line-clamp-1 text-sm font-semibold text-text-primary">{session.name}</p>
                     <p className={`mt-1 text-xs ${statusTone(session.status)}`}>{tr(session.status)}</p>
                     <p className="mt-1 line-clamp-1 text-[11px] text-text-muted">{session.cwd}</p>
-                  </button>
+                  </SharedUi.Button>
                   <div className="mt-2 flex justify-end">
-                    <button
+                    <SharedUi.Button
                       onClick={() => void closeSession(session.id)}
                       className="rounded-md border border-border bg-bg-tertiary px-2 py-1 text-[11px] text-text-secondary hover:bg-bg-hover"
                     >
                       {tr("Close")}
-                    </button>
+                    </SharedUi.Button>
                   </div>
                 </div>
               );
@@ -326,7 +327,7 @@ export function TerminalPage() {
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Quick Commands")}</p>
           <div className="flex flex-wrap gap-2">
             {QUICK_COMMANDS.map((item) => (
-              <button
+              <SharedUi.Button
                 key={item}
                 onClick={() => {
                   setCommand(item);
@@ -336,7 +337,7 @@ export function TerminalPage() {
                 className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover disabled:opacity-50"
               >
                 {item}
-              </button>
+              </SharedUi.Button>
             ))}
           </div>
         </div>
@@ -359,7 +360,7 @@ export function TerminalPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <SharedUi.Button
                 onClick={() => {
                   if (!activeSessionId) {
                     return;
@@ -370,8 +371,8 @@ export function TerminalPage() {
                 className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover disabled:opacity-60"
               >
                 {tr("Clear View")}
-              </button>
-              <button
+              </SharedUi.Button>
+              <SharedUi.Button
                 onClick={() => {
                   if (activeSessionId) {
                     void closeSession(activeSessionId);
@@ -381,7 +382,7 @@ export function TerminalPage() {
                 className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover disabled:opacity-60"
               >
                 {tr("Close Session")}
-              </button>
+              </SharedUi.Button>
             </div>
           </div>
           {statusText ? <p className="mt-2 text-xs text-text-secondary">{statusText}</p> : null}
@@ -406,7 +407,7 @@ export function TerminalPage() {
 
         <footer className="border-t border-border bg-bg-secondary/70 p-4">
           <div className="flex items-center gap-2">
-            <input
+            <SharedUi.Input
               value={command}
               onChange={(event) => setCommand(event.target.value)}
               onKeyDown={(event) => {
@@ -446,13 +447,13 @@ export function TerminalPage() {
               disabled={!activeSession}
               className="h-10 flex-1 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none disabled:opacity-60"
             />
-            <button
+            <SharedUi.Button
               onClick={() => void sendCommand()}
               disabled={!activeSession}
               className="rounded-lg bg-primary px-4 py-2 text-sm text-white disabled:opacity-60"
             >
               {tr("Run")}
-            </button>
+            </SharedUi.Button>
           </div>
           <p className="mt-2 text-xs text-text-muted">{tr("History navigation: ArrowUp / ArrowDown")}</p>
         </footer>

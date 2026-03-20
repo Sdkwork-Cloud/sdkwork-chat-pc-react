@@ -7,6 +7,7 @@ import {
   buildToolsWorkspaceSummary,
   filterToolsWorkspaceFeed,
 } from "./tools.workspace.model";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 type CaseMode = "upper" | "lower" | "title" | "camel";
 type HashMode = "md5" | "sha1" | "sha256";
@@ -255,7 +256,7 @@ export function ToolsPage() {
         <div className="mt-4 grid min-h-[680px] grid-cols-1 gap-4 xl:grid-cols-[340px_1fr]">
           <aside className="flex h-full flex-col rounded-xl border border-border bg-bg-secondary p-4">
             <div className="grid grid-cols-1 gap-2">
-              <select
+              <SharedUi.Select
                 value={category}
                 onChange={(event) => setCategory(event.target.value as "all" | ToolCategory)}
                 className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -265,14 +266,14 @@ export function ToolsPage() {
                     {item.label}
                   </option>
                 ))}
-              </select>
-              <input
+              </SharedUi.Select>
+              <SharedUi.Input
                 value={keyword}
                 onChange={(event) => setKeyword(event.target.value)}
                 placeholder={tr("Search tools")}
                 className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
               />
-              <select
+              <SharedUi.Select
                 value={sortBy}
                 onChange={(event) => setSortBy(event.target.value as "recommended" | "name")}
                 className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -282,7 +283,7 @@ export function ToolsPage() {
                     {item.label}
                   </option>
                 ))}
-              </select>
+              </SharedUi.Select>
             </div>
 
             <div className="mt-3 flex-1 space-y-2 overflow-auto">
@@ -292,7 +293,7 @@ export function ToolsPage() {
                 <p className="text-sm text-text-secondary">{tr("No tools available.")}</p>
               ) : (
                 workspaceTools.map((tool) => (
-                  <button
+                  <SharedUi.Button
                     key={tool.id}
                     onClick={() => setActiveToolId(tool.id)}
                     className={`w-full rounded-lg border p-3 text-left ${
@@ -313,7 +314,7 @@ export function ToolsPage() {
                       </div>
                     </div>
                     <p className="mt-1 line-clamp-2 text-xs text-text-muted">{tr(tool.description)}</p>
-                  </button>
+                  </SharedUi.Button>
                 ))
               )}
             </div>
@@ -325,7 +326,7 @@ export function ToolsPage() {
                   <p className="text-xs text-text-muted">{tr("No records yet.")}</p>
                 ) : (
                   history.slice(0, 6).map((item) => (
-                    <button
+                    <SharedUi.Button
                       key={item.id}
                       onClick={() => {
                         setActiveToolId(item.toolId);
@@ -336,7 +337,7 @@ export function ToolsPage() {
                     >
                       <p className="truncate text-[11px] text-text-primary">{tr(item.toolName)}</p>
                       <p className="truncate text-[10px] text-text-muted">{formatHistoryTime(item.createTime)}</p>
-                    </button>
+                    </SharedUi.Button>
                   ))
                 )}
               </div>
@@ -348,13 +349,13 @@ export function ToolsPage() {
                 <div>
                   <p className="font-semibold uppercase tracking-wide text-text-muted">{tr("Favorites")}</p>
                   {workspaceLibrary.favorites.slice(0, 2).map((item) => (
-                    <button
+                    <SharedUi.Button
                       key={`favorite-${item.id}`}
                       onClick={() => setActiveToolId(item.id)}
                       className="block w-full truncate rounded px-2 py-1 text-left text-text-secondary hover:bg-bg-hover"
                     >
                       {tr(item.name)}
-                    </button>
+                    </SharedUi.Button>
                   ))}
                   {workspaceLibrary.favorites.length === 0 ? (
                     <p className="text-text-muted">{tr("No favorites yet.")}</p>
@@ -363,13 +364,13 @@ export function ToolsPage() {
                 <div>
                   <p className="font-semibold uppercase tracking-wide text-text-muted">{tr("Recent")}</p>
                   {workspaceLibrary.recent.slice(0, 2).map((item) => (
-                    <button
+                    <SharedUi.Button
                       key={`recent-${item.id}`}
                       onClick={() => setActiveToolId(item.id)}
                       className="block w-full truncate rounded px-2 py-1 text-left text-text-secondary hover:bg-bg-hover"
                     >
                       {tr(item.name)}
-                    </button>
+                    </SharedUi.Button>
                   ))}
                   {workspaceLibrary.recent.length === 0 ? (
                     <p className="text-text-muted">{tr("No recent history.")}</p>
@@ -378,13 +379,13 @@ export function ToolsPage() {
                 <div>
                   <p className="font-semibold uppercase tracking-wide text-text-muted">{tr("Recommended")}</p>
                   {workspaceLibrary.recommended.slice(0, 2).map((item) => (
-                    <button
+                    <SharedUi.Button
                       key={`recommended-${item.id}`}
                       onClick={() => setActiveToolId(item.id)}
                       className="block w-full truncate rounded px-2 py-1 text-left text-text-secondary hover:bg-bg-hover"
                     >
                       {tr(item.name)}
-                    </button>
+                    </SharedUi.Button>
                   ))}
                   {workspaceLibrary.recommended.length === 0 ? (
                     <p className="text-text-muted">{tr("No recommendations.")}</p>
@@ -406,7 +407,7 @@ export function ToolsPage() {
                     <h2 className="text-lg font-semibold text-text-primary">{tr(activeTool.name)}</h2>
                     <p className="mt-1 text-sm text-text-secondary">{tr(activeTool.description)}</p>
                   </div>
-                  <button
+                  <SharedUi.Button
                     onClick={() => handleToggleFavorite(activeTool.id)}
                     className={`rounded-md border px-3 py-1.5 text-xs ${
                       favoriteSet.has(activeTool.id)
@@ -415,41 +416,41 @@ export function ToolsPage() {
                     }`}
                   >
                     {favoriteSet.has(activeTool.id) ? tr("Favorited") : tr("Favorite")}
-                  </button>
+                  </SharedUi.Button>
                 </div>
 
                 {(activeTool.id === "base64" || activeTool.id === "url-encode") && (
                   <div className="mt-3 w-56">
                     <label className="text-xs text-text-muted">{tr("Mode")}</label>
-                    <select
+                    <SharedUi.Select
                       value={mode === "decode" ? "decode" : "encode"}
                       onChange={(event) => setMode(event.target.value as ModeOption)}
                       className="mt-1 h-9 w-full rounded-md border border-border bg-bg-tertiary px-2 text-sm text-text-primary"
                     >
                       <option value="encode">{tr("Encode")}</option>
                       <option value="decode">{tr("Decode")}</option>
-                    </select>
+                    </SharedUi.Select>
                   </div>
                 )}
 
                 {activeTool.id === "html-escape" && (
                   <div className="mt-3 w-56">
                     <label className="text-xs text-text-muted">{tr("Mode")}</label>
-                    <select
+                    <SharedUi.Select
                       value={mode === "unescape" ? "unescape" : "escape"}
                       onChange={(event) => setMode(event.target.value as ModeOption)}
                       className="mt-1 h-9 w-full rounded-md border border-border bg-bg-tertiary px-2 text-sm text-text-primary"
                     >
                       <option value="escape">{tr("Escape")}</option>
                       <option value="unescape">{tr("Unescape")}</option>
-                    </select>
+                    </SharedUi.Select>
                   </div>
                 )}
 
                 {activeTool.id === "timestamp" && (
                   <div className="mt-3 w-56">
                     <label className="text-xs text-text-muted">{tr("Mode")}</label>
-                    <select
+                    <SharedUi.Select
                       value={mode}
                       onChange={(event) => setMode(event.target.value as ModeOption)}
                       className="mt-1 h-9 w-full rounded-md border border-border bg-bg-tertiary px-2 text-sm text-text-primary"
@@ -457,14 +458,14 @@ export function ToolsPage() {
                       <option value="auto">{tr("Auto Detect")}</option>
                       <option value="toDate">{tr("Timestamp to Date")}</option>
                       <option value="toTimestamp">{tr("Date to Timestamp")}</option>
-                    </select>
+                    </SharedUi.Select>
                   </div>
                 )}
 
                 {activeTool.id === "case-converter" && (
                   <div className="mt-3 w-56">
                     <label className="text-xs text-text-muted">{tr("Case mode")}</label>
-                    <select
+                    <SharedUi.Select
                       value={caseMode}
                       onChange={(event) => setCaseMode(event.target.value as CaseMode)}
                       className="mt-1 h-9 w-full rounded-md border border-border bg-bg-tertiary px-2 text-sm text-text-primary"
@@ -473,14 +474,14 @@ export function ToolsPage() {
                       <option value="title">{tr("Title Case")}</option>
                       <option value="upper">UPPERCASE</option>
                       <option value="lower">lowercase</option>
-                    </select>
+                    </SharedUi.Select>
                   </div>
                 )}
 
                 {activeTool.id === "hash" && (
                   <div className="mt-3 w-56">
                     <label className="text-xs text-text-muted">{tr("Hash algorithm")}</label>
-                    <select
+                    <SharedUi.Select
                       value={hashAlgorithm}
                       onChange={(event) => setHashAlgorithm(event.target.value as HashMode)}
                       className="mt-1 h-9 w-full rounded-md border border-border bg-bg-tertiary px-2 text-sm text-text-primary"
@@ -488,14 +489,14 @@ export function ToolsPage() {
                       <option value="sha256">SHA-256</option>
                       <option value="sha1">SHA-1</option>
                       <option value="md5">MD5</option>
-                    </select>
+                    </SharedUi.Select>
                   </div>
                 )}
 
                 {activeTool.id === "text-generator" && (
                   <div className="mt-3 w-56">
                     <label className="text-xs text-text-muted">{tr("Paragraph count")}</label>
-                    <input
+                    <SharedUi.Input
                       type="number"
                       min={1}
                       max={8}
@@ -509,7 +510,7 @@ export function ToolsPage() {
                 {activeTool.id === "password" && (
                   <div className="mt-3 grid grid-cols-2 gap-2 md:w-[420px]">
                     <label className="col-span-2 text-xs text-text-muted">{tr("Password options")}</label>
-                    <input
+                    <SharedUi.Input
                       type="number"
                       min={8}
                       max={64}
@@ -525,7 +526,7 @@ export function ToolsPage() {
                     <div className="col-span-2 grid grid-cols-2 gap-2 text-xs text-text-secondary">
                       {passwordToggleOptions.map((item) => (
                         <label key={item.key} className="flex items-center gap-2">
-                          <input
+                          <SharedUi.Input
                             type="checkbox"
                             checked={Boolean(passwordOptions[item.key as keyof PasswordOptions])}
                             onChange={(event) =>
@@ -545,7 +546,7 @@ export function ToolsPage() {
                 <div className="mt-4 grid flex-1 grid-cols-1 gap-4 lg:grid-cols-2">
                   <div className="flex flex-col">
                     <p className="text-xs text-text-muted">{tr("Input")}</p>
-                    <textarea
+                    <SharedUi.Textarea
                       value={inputText}
                       onChange={(event) => setInputText(event.target.value)}
                       className="mt-2 h-full min-h-[240px] rounded-lg border border-border bg-bg-primary p-3 text-sm text-text-primary"
@@ -554,7 +555,7 @@ export function ToolsPage() {
                   </div>
                   <div className="flex flex-col">
                     <p className="text-xs text-text-muted">{tr("Output")}</p>
-                    <textarea
+                    <SharedUi.Textarea
                       value={outputText}
                       readOnly
                       className="mt-2 h-full min-h-[240px] rounded-lg border border-border bg-bg-primary p-3 text-sm text-text-primary"
@@ -564,7 +565,7 @@ export function ToolsPage() {
                 </div>
 
                 <div className="mt-4 flex items-center gap-2">
-                  <button
+                  <SharedUi.Button
                     onClick={() => {
                       void runTool();
                     }}
@@ -572,8 +573,8 @@ export function ToolsPage() {
                     className="rounded-md bg-primary px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isRunning ? tr("Running...") : tr("Run Tool")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     onClick={() => {
                       setInputText("");
                       setOutputText("");
@@ -583,7 +584,7 @@ export function ToolsPage() {
                     className="rounded-md border border-border bg-bg-tertiary px-4 py-2 text-sm text-text-secondary hover:bg-bg-hover"
                   >
                     {tr("Clear")}
-                  </button>
+                  </SharedUi.Button>
                 </div>
 
                 {statusText ? <p className="mt-2 text-sm text-text-secondary">{tr(statusText)}</p> : null}

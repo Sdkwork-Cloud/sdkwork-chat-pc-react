@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { SearchResultService, SearchService } from "../services";
 import type { SearchResultItem, SearchResultType, SearchSuggestion } from "../types";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 export interface SearchPaletteProps {
   isOpen: boolean;
@@ -203,23 +204,6 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
       return;
     }
 
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [isOpen, onClose]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     setErrorText("");
@@ -338,16 +322,20 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-start justify-center bg-black/50 p-4 sm:p-8" onClick={onClose}>
-      <div
-        className="mt-8 flex h-[80vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-bg-primary shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
-      >
+    <SharedUi.Popup
+      isOpen={isOpen}
+      onClose={onClose}
+      placement="top"
+      overlayClassName="bg-black/50 p-4 sm:p-8"
+      contentClassName="mt-8 h-[80vh] max-w-4xl overflow-hidden rounded-2xl border border-border bg-bg-primary shadow-2xl"
+      bodyClassName="h-full overflow-hidden p-0"
+    >
+      <div className="flex h-full flex-col">
         <header className="border-b border-border bg-bg-secondary px-4 py-3 sm:px-5">
           <div className="flex items-center gap-3">
             <div className="flex flex-1 items-center rounded-xl border border-border bg-bg-tertiary px-3">
               <SearchIcon className="h-4 w-4 text-text-muted" />
-              <input
+              <SharedUi.Input
                 autoFocus
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -355,20 +343,20 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
                 className="h-11 w-full bg-transparent px-3 text-sm text-text-primary outline-none placeholder:text-text-muted"
               />
             </div>
-            <button
+            <SharedUi.Button
               onClick={onClose}
               aria-label={tr("Close")}
               className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-bg-tertiary text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
             >
               <X className="h-4 w-4" />
-            </button>
+            </SharedUi.Button>
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
             {filters.map((filter) => {
               const active = filter.id === activeFilter;
               return (
-                <button
+                <SharedUi.Button
                   key={filter.id}
                   onClick={() => setActiveFilter(filter.id)}
                   className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
@@ -378,7 +366,7 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
                   }`}
                 >
                   {filter.label}
-                </button>
+                </SharedUi.Button>
               );
             })}
           </div>
@@ -404,14 +392,14 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
                 <div className="mb-3 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-text-primary">{tr("Recent searches")}</h3>
                   {history.length > 0 ? (
-                    <button
+                    <SharedUi.Button
                       onClick={() => {
                         void handleClearHistory();
                       }}
                       className="text-xs text-text-muted transition-colors hover:text-text-primary"
                     >
                       {tr("Clear")}
-                    </button>
+                    </SharedUi.Button>
                   ) : null}
                 </div>
                 {history.length === 0 ? (
@@ -420,21 +408,21 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
                   <ul className="space-y-1">
                     {history.map((item) => (
                       <li key={item.id} className="group flex items-center justify-between">
-                        <button
+                        <SharedUi.Button
                           onClick={() => handleSelectSuggestion(item.text)}
                           className="flex flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
                         >
                           {getSuggestionIcon(item.type)}
                           <span className="truncate">{item.text}</span>
-                        </button>
-                        <button
+                        </SharedUi.Button>
+                        <SharedUi.Button
                           onClick={() => {
                             void handleRemoveHistory(item.id);
                           }}
                           className="ml-2 hidden rounded p-1 text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary group-hover:inline-flex"
                         >
                           <X className="h-3 w-3" />
-                        </button>
+                        </SharedUi.Button>
                       </li>
                     ))}
                   </ul>
@@ -449,13 +437,13 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
                   <ul className="space-y-1">
                     {trending.map((item) => (
                       <li key={item.id}>
-                        <button
+                        <SharedUi.Button
                           onClick={() => handleSelectSuggestion(item.text)}
                           className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
                         >
                           {getSuggestionIcon(item.type)}
                           <span className="truncate">{item.text}</span>
-                        </button>
+                        </SharedUi.Button>
                       </li>
                     ))}
                   </ul>
@@ -489,7 +477,7 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
                       <ul className="space-y-1">
                         {group.items.map((item) => (
                           <li key={item.id}>
-                            <button
+                            <SharedUi.Button
                               onClick={() => handleSelectResult(item)}
                               className="flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-bg-hover"
                             >
@@ -503,7 +491,7 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
                                   <div className="truncate text-xs text-text-muted">{item.description}</div>
                                 ) : null}
                               </div>
-                            </button>
+                            </SharedUi.Button>
                           </li>
                         ))}
                       </ul>
@@ -519,13 +507,13 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {suggestions.map((item) => (
-                      <button
+                      <SharedUi.Button
                         key={item.id}
                         onClick={() => handleSelectSuggestion(item.text)}
                         className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
                       >
                         {item.text}
-                      </button>
+                      </SharedUi.Button>
                     ))}
                   </div>
                 </section>
@@ -534,7 +522,7 @@ export function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
           ) : null}
         </div>
       </div>
-    </div>
+    </SharedUi.Popup>
   );
 }
 

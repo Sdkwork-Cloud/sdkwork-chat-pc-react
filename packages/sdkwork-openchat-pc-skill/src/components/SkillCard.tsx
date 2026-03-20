@@ -1,5 +1,6 @@
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { SkillMarketItem } from "../entities/skill.entity";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface SkillCardProps {
   skill: SkillMarketItem;
@@ -58,7 +59,7 @@ export function SkillCard({ skill, onEnable, onDisable, onClick, disabled = fals
         </div>
 
         {skill.isEnabled ? (
-          <button
+          <SharedUi.Button
             onClick={(event) => {
               event.stopPropagation();
               if (!disabled) {
@@ -69,9 +70,9 @@ export function SkillCard({ skill, onEnable, onDisable, onClick, disabled = fals
             className="rounded-md border border-success/40 bg-success/10 px-3 py-1 text-xs text-success transition-colors hover:bg-success/20 disabled:cursor-not-allowed"
           >
             {tr("Enabled")}
-          </button>
+          </SharedUi.Button>
         ) : (
-          <button
+          <SharedUi.Button
             onClick={(event) => {
               event.stopPropagation();
               if (!disabled) {
@@ -82,7 +83,7 @@ export function SkillCard({ skill, onEnable, onDisable, onClick, disabled = fals
             className="rounded-md bg-primary px-3 py-1 text-xs text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed"
           >
             {tr("Enable")}
-          </button>
+          </SharedUi.Button>
         )}
       </div>
     </div>

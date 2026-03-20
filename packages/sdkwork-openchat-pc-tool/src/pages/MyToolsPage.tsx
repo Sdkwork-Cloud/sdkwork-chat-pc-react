@@ -4,6 +4,7 @@ import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { ToolMarketItem, ToolTestResult, UserTool } from "../entities/tool.entity";
 import { ToolResultService, ToolService } from "../services";
 import { buildToolWorkspaceLibrary } from "./tool.workspace.model";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface MyToolItem {
   profile: UserTool;
@@ -159,18 +160,18 @@ export function MyToolsPage() {
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
-          <input
+          <SharedUi.Input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
             placeholder={tr("Search tool name, endpoint, or description")}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
           />
-          <button
+          <SharedUi.Button
             onClick={() => navigate("/tools/api")}
             className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
           >
             {tr("Browse Tool Market")}
-          </button>
+          </SharedUi.Button>
         </div>
 
         {library.recent.length > 0 ? (
@@ -178,13 +179,13 @@ export function MyToolsPage() {
             <h2 className="text-sm font-semibold text-text-primary">{tr("Recently Used")}</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               {library.recent.map((tool) => (
-                <button
+                <SharedUi.Button
                   key={`recent-${tool.id}`}
                   onClick={() => handleOpenConfig(tool.id)}
                   className="rounded-full border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-bg-hover"
                 >
                   {tool.icon} {tool.name}
-                </button>
+                </SharedUi.Button>
               ))}
             </div>
           </div>
@@ -195,13 +196,13 @@ export function MyToolsPage() {
             <h2 className="text-sm font-semibold text-text-primary">{tr("Favorites")}</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               {library.favorites.map((tool) => (
-                <button
+                <SharedUi.Button
                   key={`favorite-${tool.id}`}
                   onClick={() => handleOpenConfig(tool.id)}
                   className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs text-primary transition-colors hover:brightness-110"
                 >
                   * {tool.name}
-                </button>
+                </SharedUi.Button>
               ))}
             </div>
           </div>
@@ -251,20 +252,20 @@ export function MyToolsPage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <button
+                        <SharedUi.Button
                           onClick={() => handleOpenConfig(tool.id)}
                           className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                         >
                           {tr("Configure")}
-                        </button>
-                        <button
+                        </SharedUi.Button>
+                        <SharedUi.Button
                           onClick={() => void handleTest(tool.id)}
                           className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover disabled:opacity-60"
                           disabled={testingToolId === tool.id}
                         >
                           {testingToolId === tool.id ? tr("Testing...") : tr("Test")}
-                        </button>
-                        <button
+                        </SharedUi.Button>
+                        <SharedUi.Button
                           onClick={() => handleToggleFavorite(tool.id)}
                           className={`rounded-md border px-3 py-1.5 text-xs transition-colors ${
                             favorited
@@ -273,13 +274,13 @@ export function MyToolsPage() {
                           }`}
                         >
                           {favorited ? tr("Favorited") : tr("Add favorite")}
-                        </button>
-                        <button
+                        </SharedUi.Button>
+                        <SharedUi.Button
                           onClick={() => void handleRemove(tool.id)}
                           className="rounded-md bg-error px-3 py-1.5 text-xs text-white"
                         >
                           {tr("Remove")}
-                        </button>
+                        </SharedUi.Button>
                       </div>
                     </div>
 

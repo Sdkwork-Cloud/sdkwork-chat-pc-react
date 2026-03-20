@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 import { DeviceStatus, DeviceType, type Device } from "../entities/device.entity";
 import { DeviceResultService } from "../services";
@@ -144,13 +145,13 @@ export function DeviceListPage() {
         </div>
 
         <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_170px_170px_auto]">
-          <input
+          <SharedUi.Input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
             placeholder={tr("Search by device name or Device ID")}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
           />
-          <select
+          <SharedUi.Select
             value={typeFilter}
             onChange={(event) => setTypeFilter(event.target.value as "all" | DeviceType)}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary focus:border-primary focus:outline-none"
@@ -158,8 +159,8 @@ export function DeviceListPage() {
             <option value="all">{tr("All device types")}</option>
             <option value={DeviceType.XIAOZHI}>{tr("Xiaozhi Device")}</option>
             <option value={DeviceType.OTHER}>{tr("Other IoT")}</option>
-          </select>
-          <select
+          </SharedUi.Select>
+          <SharedUi.Select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value as "all" | DeviceStatus)}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary focus:border-primary focus:outline-none"
@@ -168,15 +169,15 @@ export function DeviceListPage() {
             <option value={DeviceStatus.ONLINE}>{tr("Online")}</option>
             <option value={DeviceStatus.OFFLINE}>{tr("Offline")}</option>
             <option value={DeviceStatus.UNKNOWN}>{tr("Unknown")}</option>
-          </select>
-          <button
+          </SharedUi.Select>
+          <SharedUi.Button
             onClick={() => {
               void loadDevices();
             }}
             className="h-10 rounded-lg border border-border bg-bg-secondary px-4 text-sm text-text-secondary hover:bg-bg-hover"
           >
             {tr("Refresh")}
-          </button>
+          </SharedUi.Button>
         </div>
 
         {statusText ? <p className="mb-2 text-sm text-text-secondary">{statusText}</p> : null}
@@ -198,7 +199,7 @@ export function DeviceListPage() {
                   const selected = device.deviceId === selectedDeviceId;
 
                   return (
-                    <button
+                    <SharedUi.Button
                       key={device.id}
                       onClick={() => setSelectedDeviceId(device.deviceId)}
                       className={`w-full border-b border-border px-4 py-3 text-left transition-colors ${
@@ -215,7 +216,7 @@ export function DeviceListPage() {
                       <p className="mt-1 line-clamp-1 text-xs text-text-secondary">
                         {device.description || tr("No description")}
                       </p>
-                    </button>
+                    </SharedUi.Button>
                   );
                 })
               )}
@@ -259,20 +260,20 @@ export function DeviceListPage() {
                 </div>
 
                 <footer className="flex items-center gap-2 border-t border-border px-5 py-3">
-                  <button
+                  <SharedUi.Button
                     onClick={() => {
                       void handleStatusToggle(selectedDevice);
                     }}
                     className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                   >
                     {selectedDevice.status === DeviceStatus.ONLINE ? tr("Set offline") : tr("Set online")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     onClick={() => navigate(`/devices/${selectedDevice.deviceId}`)}
                     className="rounded-md bg-primary px-3 py-1.5 text-xs text-white hover:brightness-110"
                   >
                     {tr("Open device workspace")}
-                  </button>
+                  </SharedUi.Button>
                 </footer>
               </>
             ) : (

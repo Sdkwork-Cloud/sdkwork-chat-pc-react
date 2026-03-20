@@ -7,6 +7,7 @@ import {
   buildCreationWorkspaceSummary,
   filterCreationWorkspaceFeed,
 } from "./creation.workspace.model";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 const typeOptions: Array<{ value: CreationType; label: string }> = [
   { value: "image", label: "Image" },
@@ -285,7 +286,7 @@ export function CreationPage() {
         <div className="mt-5 rounded-xl border border-border bg-bg-secondary p-4">
           <h2 className="text-sm font-semibold text-text-primary">{tr("Create Content")}</h2>
           <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-6">
-            <select
+            <SharedUi.Select
               value={formType}
               onChange={(event) => setFormType(event.target.value as CreationType)}
               className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -295,9 +296,9 @@ export function CreationPage() {
                   {tr(item.label)}
                 </option>
               ))}
-            </select>
+            </SharedUi.Select>
 
-            <select
+            <SharedUi.Select
               value={ratio}
               onChange={(event) => setRatio(event.target.value)}
               className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -307,9 +308,9 @@ export function CreationPage() {
                   {tr(item.label)}
                 </option>
               ))}
-            </select>
+            </SharedUi.Select>
 
-            <select
+            <SharedUi.Select
               value={style}
               onChange={(event) => setStyle(event.target.value)}
               className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -319,9 +320,9 @@ export function CreationPage() {
                   {tr(item)}
                 </option>
               ))}
-            </select>
+            </SharedUi.Select>
 
-            <select
+            <SharedUi.Select
               value={provider}
               onChange={(event) => setProvider(event.target.value)}
               className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -331,9 +332,9 @@ export function CreationPage() {
                   {item.name}
                 </option>
               ))}
-            </select>
+            </SharedUi.Select>
 
-            <select
+            <SharedUi.Select
               value={model}
               onChange={(event) => setModel(event.target.value)}
               className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -343,18 +344,18 @@ export function CreationPage() {
                   {item}
                 </option>
               ))}
-            </select>
+            </SharedUi.Select>
 
-            <button
+            <SharedUi.Button
               onClick={() => void handleCreate()}
               disabled={isCreating}
               className="rounded-lg bg-primary px-4 py-2 text-sm text-white disabled:opacity-60"
             >
               {isCreating ? tr("Generating...") : tr("Create")}
-            </button>
+            </SharedUi.Button>
           </div>
 
-          <textarea
+          <SharedUi.Textarea
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
             placeholder={tr("Enter prompt")}
@@ -362,7 +363,7 @@ export function CreationPage() {
             className="mt-3 w-full rounded-lg border border-border bg-bg-tertiary p-3 text-sm text-text-primary"
           />
 
-          <textarea
+          <SharedUi.Textarea
             value={negativePrompt}
             onChange={(event) => setNegativePrompt(event.target.value)}
             placeholder={tr("Negative prompt (optional)")}
@@ -384,12 +385,12 @@ export function CreationPage() {
                   <img src={template.preview} alt={template.name} className="h-28 w-full rounded-lg object-cover" />
                   <p className="mt-2 text-sm font-semibold text-text-primary">{template.name}</p>
                   <p className="mt-1 text-xs text-text-secondary">{template.description}</p>
-                  <button
+                  <SharedUi.Button
                     onClick={() => handleApplyTemplate(template)}
                     className="mt-3 rounded-md border border-border bg-bg-tertiary px-3 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                   >
                     {tr("Apply Template")}
-                  </button>
+                  </SharedUi.Button>
                 </article>
               ))}
             </div>
@@ -397,13 +398,13 @@ export function CreationPage() {
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-[1fr_200px]">
-          <input
+          <SharedUi.Input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
             placeholder={tr("Search by title, prompt, style, or author")}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
           />
-          <select
+          <SharedUi.Select
             value={typeFilter}
             onChange={(event) => setTypeFilter(event.target.value as "all" | CreationType)}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -414,7 +415,7 @@ export function CreationPage() {
                 {tr(item.label)}
               </option>
             ))}
-          </select>
+          </SharedUi.Select>
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
@@ -425,13 +426,13 @@ export function CreationPage() {
             </div>
             <div className="space-y-1">
               {workspaceLibrary.favorites.slice(0, 3).map((item) => (
-                <button
+                <SharedUi.Button
                   key={`favorite-${item.id}`}
                   onClick={() => handleOpenCreation(item.id)}
                   className="w-full rounded border border-border bg-bg-primary px-2 py-1 text-left text-[11px] text-text-secondary hover:bg-bg-hover"
                 >
                   {item.title}
-                </button>
+                </SharedUi.Button>
               ))}
               {workspaceLibrary.favorites.length === 0 ? (
                 <p className="text-[11px] text-text-muted">{tr("No favorites yet.")}</p>
@@ -446,13 +447,13 @@ export function CreationPage() {
             </div>
             <div className="space-y-1">
               {workspaceLibrary.recent.slice(0, 3).map((item) => (
-                <button
+                <SharedUi.Button
                   key={`recent-${item.id}`}
                   onClick={() => handleOpenCreation(item.id)}
                   className="w-full rounded border border-border bg-bg-primary px-2 py-1 text-left text-[11px] text-text-secondary hover:bg-bg-hover"
                 >
                   {item.title}
-                </button>
+                </SharedUi.Button>
               ))}
               {workspaceLibrary.recent.length === 0 ? (
                 <p className="text-[11px] text-text-muted">{tr("No recent history.")}</p>
@@ -467,13 +468,13 @@ export function CreationPage() {
             </div>
             <div className="space-y-1">
               {workspaceLibrary.trending.slice(0, 3).map((item) => (
-                <button
+                <SharedUi.Button
                   key={`trending-${item.id}`}
                   onClick={() => handleOpenCreation(item.id)}
                   className="w-full rounded border border-border bg-bg-primary px-2 py-1 text-left text-[11px] text-text-secondary hover:bg-bg-hover"
                 >
                   {item.title}
-                </button>
+                </SharedUi.Button>
               ))}
               {workspaceLibrary.trending.length === 0 ? (
                 <p className="text-[11px] text-text-muted">{tr("No trending items.")}</p>
@@ -538,7 +539,7 @@ export function CreationPage() {
                         {tr("Likes {{likes}} | Views {{views}}", { likes: item.likes, views: item.views })}
                       </span>
                       <div className="flex items-center gap-2">
-                        <button
+                        <SharedUi.Button
                           onClick={(event) => {
                             event.stopPropagation();
                             void handleLike(item.id);
@@ -546,8 +547,8 @@ export function CreationPage() {
                           className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                         >
                           {tr("Like")}
-                        </button>
-                        <button
+                        </SharedUi.Button>
+                        <SharedUi.Button
                           onClick={(event) => {
                             event.stopPropagation();
                             handleToggleFavorite(item.id);
@@ -559,9 +560,9 @@ export function CreationPage() {
                           }`}
                         >
                           {favoriteSet.has(item.id) ? tr("Favorited") : tr("Favorite")}
-                        </button>
+                        </SharedUi.Button>
                         {item.author === "Me" && (
-                          <button
+                          <SharedUi.Button
                             onClick={(event) => {
                               event.stopPropagation();
                               void handleDelete(item.id);
@@ -569,7 +570,7 @@ export function CreationPage() {
                             className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                           >
                             {tr("Delete")}
-                          </button>
+                          </SharedUi.Button>
                         )}
                       </div>
                     </div>

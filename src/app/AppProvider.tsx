@@ -3,7 +3,7 @@ import { ReactNode } from 'react';
 import { QueryProvider } from './QueryProvider';
 import { OpenChatProvider } from '@sdkwork/openchat-pc-im';
 import { useAuth } from '@sdkwork/openchat-pc-auth';
-import { ThemeProvider } from '@sdkwork/openchat-pc-ui';
+import { ThemeProvider, Toaster } from '@sdkwork/openchat-pc-ui';
 
 interface AppProviderProps {
   children: ReactNode;
@@ -32,6 +32,7 @@ export function AppProvider({ children }: AppProviderProps) {
         <AuthContext.Provider value={auth}>
           <OpenChatProvider>
             {children}
+            <Toaster />
           </OpenChatProvider>
         </AuthContext.Provider>
       </ThemeProvider>

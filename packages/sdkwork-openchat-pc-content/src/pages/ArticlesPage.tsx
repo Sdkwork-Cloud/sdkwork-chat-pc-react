@@ -6,6 +6,7 @@ import {
   FALLBACK_ARTICLES,
   type ArticleItem,
 } from "./content.workspace.model";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 function toArticle(
   item: any,
@@ -207,7 +208,7 @@ export function ArticlesPage() {
         <div className="grid h-full min-h-[520px] gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="flex min-h-0 flex-col rounded-xl border border-border bg-bg-secondary">
             <div className="border-b border-border p-4">
-              <input
+              <SharedUi.Input
                 ref={searchInputRef}
                 value={keyword}
                 onChange={(event) => setKeyword(event.target.value)}
@@ -240,7 +241,7 @@ export function ArticlesPage() {
               {isLoading ? <p className="text-xs text-text-secondary">{tr("Loading article feed...")}</p> : null}
               <div className="space-y-2">
                 {filtered.map((item) => (
-                  <button
+                  <SharedUi.Button
                     key={item.id}
                     onClick={() => setSelectedId(item.id)}
                     className={`w-full rounded-lg border px-3 py-2 text-left ${
@@ -253,7 +254,7 @@ export function ArticlesPage() {
                     <p className="mt-1 text-[11px] text-text-muted">
                       {tr(item.source)} | {tr("{{count}} reads", { count: item.readCount })}
                     </p>
-                  </button>
+                  </SharedUi.Button>
                 ))}
                 {filtered.length === 0 ? <p className="text-xs text-text-muted">{tr("No articles matched.")}</p> : null}
               </div>
@@ -270,21 +271,21 @@ export function ArticlesPage() {
                 <p className="mt-4 text-sm leading-7 text-text-secondary">{tr(selected.summary)}</p>
 
                 <div className="mt-5 flex flex-wrap gap-2">
-                  <button onClick={openSelectedArticle} className="rounded-md bg-primary px-3 py-1.5 text-xs text-white">
+                  <SharedUi.Button onClick={openSelectedArticle} className="rounded-md bg-primary px-3 py-1.5 text-xs text-white">
                     {tr("Open Full Article (Enter)")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     onClick={toggleReadingList}
                     className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                   >
                     {isSaved ? tr("Remove From Reading List (L)") : tr("Add to Reading List (L)")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     onClick={() => void copySelectedTitle()}
                     className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                   >
                     {tr("Copy Title")}
-                  </button>
+                  </SharedUi.Button>
                 </div>
                 <p className="mt-4 rounded-md border border-border bg-bg-primary px-3 py-2 text-xs text-text-secondary">
                   {actionMessage}

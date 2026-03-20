@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface SearchBarProps {
   value: string;
@@ -13,7 +14,7 @@ export const SearchBar = memo(
 
     return (
       <div className="relative">
-        <input
+        <SharedUi.Input
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={tr(placeholder)}
@@ -33,14 +34,14 @@ export const SearchBar = memo(
           />
         </svg>
         {value ? (
-          <button
+          <SharedUi.Button
             type="button"
             onClick={() => onChange("")}
             aria-label={tr("Clear search")}
             className="absolute right-3 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-bg-secondary text-text-muted hover:bg-bg-hover hover:text-text-primary"
           >
             x
-          </button>
+          </SharedUi.Button>
         ) : null}
       </div>
     );

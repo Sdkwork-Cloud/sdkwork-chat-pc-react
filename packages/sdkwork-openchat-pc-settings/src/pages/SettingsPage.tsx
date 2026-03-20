@@ -23,6 +23,7 @@ import {
   formatDateTime as formatDateTimeRuntime,
   useAppTranslation,
 } from "@sdkwork/openchat-pc-i18n";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 type SettingTab =
   | "account"
@@ -243,7 +244,7 @@ function Toggle({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <button
+    <SharedUi.Button
       type="button"
       onClick={() => onChange(!checked)}
       className={`relative h-6 w-11 rounded-full transition-colors ${
@@ -255,7 +256,7 @@ function Toggle({
           checked ? "left-6" : "left-1"
         }`}
       />
-    </button>
+    </SharedUi.Button>
   );
 }
 
@@ -1235,7 +1236,7 @@ export function SettingsPage() {
         <p className="px-2 pt-1 text-xs text-text-secondary">{tr("settings.description")}</p>
         <nav className="mt-4 space-y-1">
           {tabs.map((tab) => (
-            <button
+            <SharedUi.Button
               key={tab.id}
               onClick={() => handleSelectTab(tab.id)}
               className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
@@ -1245,7 +1246,7 @@ export function SettingsPage() {
               }`}
             >
               {tab.label}
-            </button>
+            </SharedUi.Button>
           ))}
         </nav>
       </aside>
@@ -1300,7 +1301,7 @@ export function SettingsPage() {
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm text-text-secondary">
                   {tr("settings.account.editProfile.nickname")}
-                  <input
+                  <SharedUi.Input
                     value={accountDraft.nickname}
                     onChange={(event) =>
                       setAccountDraft((prev) => ({ ...prev, nickname: event.target.value }))
@@ -1311,7 +1312,7 @@ export function SettingsPage() {
                 </label>
                 <label className="text-sm text-text-secondary">
                   {tr("settings.account.editProfile.region")}
-                  <input
+                  <SharedUi.Input
                     value={accountDraft.region}
                     onChange={(event) =>
                       setAccountDraft((prev) => ({ ...prev, region: event.target.value }))
@@ -1322,7 +1323,7 @@ export function SettingsPage() {
                 </label>
                 <label className="text-sm text-text-secondary md:col-span-2">
                   {tr("settings.account.editProfile.bio")}
-                  <textarea
+                  <SharedUi.Textarea
                     value={accountDraft.bio}
                     onChange={(event) =>
                       setAccountDraft((prev) => ({ ...prev, bio: event.target.value }))
@@ -1334,7 +1335,7 @@ export function SettingsPage() {
                 </label>
               </div>
               <div className="mt-4">
-                <button
+                <SharedUi.Button
                   type="button"
                   onClick={() => {
                     void handleSaveAccountProfile();
@@ -1345,7 +1346,7 @@ export function SettingsPage() {
                   {accountSaving
                     ? tr("settings.account.editProfile.saving")
                     : tr("settings.account.editProfile.save")}
-                </button>
+                </SharedUi.Button>
               </div>
             </div>
 
@@ -1356,7 +1357,7 @@ export function SettingsPage() {
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
                 <label className="text-sm text-text-secondary">
                   {tr("settings.account.changePassword.current")}
-                  <input
+                  <SharedUi.Input
                     type="password"
                     value={passwordDraft.oldPassword}
                     onChange={(event) =>
@@ -1367,7 +1368,7 @@ export function SettingsPage() {
                 </label>
                 <label className="text-sm text-text-secondary">
                   {tr("settings.account.changePassword.new")}
-                  <input
+                  <SharedUi.Input
                     type="password"
                     value={passwordDraft.newPassword}
                     onChange={(event) =>
@@ -1378,7 +1379,7 @@ export function SettingsPage() {
                 </label>
                 <label className="text-sm text-text-secondary">
                   {tr("settings.account.changePassword.confirm")}
-                  <input
+                  <SharedUi.Input
                     type="password"
                     value={passwordDraft.confirmPassword}
                     onChange={(event) =>
@@ -1389,7 +1390,7 @@ export function SettingsPage() {
                 </label>
               </div>
               <div className="mt-4">
-                <button
+                <SharedUi.Button
                   type="button"
                   onClick={() => {
                     void handleChangeAccountPassword();
@@ -1400,7 +1401,7 @@ export function SettingsPage() {
                   {accountSaving
                     ? tr("settings.account.changePassword.submitting")
                     : tr("settings.account.changePassword.update")}
-                </button>
+                </SharedUi.Button>
               </div>
             </div>
 
@@ -1420,7 +1421,7 @@ export function SettingsPage() {
                   </div>
                   <label className="mt-2 block text-sm text-text-secondary">
                     {tr("settings.account.binding.email")}
-                    <input
+                    <SharedUi.Input
                       value={accountBindingDraft.email}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, email: event.target.value }))
@@ -1431,7 +1432,7 @@ export function SettingsPage() {
                   </label>
                   <label className="mt-2 block text-sm text-text-secondary">
                     {tr("settings.account.binding.verifyCodeOptional")}
-                    <input
+                    <SharedUi.Input
                       value={accountBindingDraft.emailCode}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, emailCode: event.target.value }))
@@ -1441,7 +1442,7 @@ export function SettingsPage() {
                     />
                   </label>
                   <div className="mt-3 flex items-center gap-2">
-                    <button
+                    <SharedUi.Button
                       type="button"
                       onClick={() => {
                         void handleBindAccountEmail();
@@ -1454,8 +1455,8 @@ export function SettingsPage() {
                         : tr("settings.account.binding.bind", {
                             channel: tr("settings.account.binding.email"),
                           })}
-                    </button>
-                    <button
+                    </SharedUi.Button>
+                    <SharedUi.Button
                       type="button"
                       onClick={() => {
                         void handleUnbindAccountEmail();
@@ -1464,7 +1465,7 @@ export function SettingsPage() {
                       className="rounded-lg border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition hover:bg-bg-hover disabled:opacity-60"
                     >
                       {tr("settings.account.binding.unbind")}
-                    </button>
+                    </SharedUi.Button>
                   </div>
                 </div>
 
@@ -1476,7 +1477,7 @@ export function SettingsPage() {
                   </div>
                   <label className="mt-2 block text-sm text-text-secondary">
                     {tr("settings.account.binding.phone")}
-                    <input
+                    <SharedUi.Input
                       value={accountBindingDraft.phone}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, phone: event.target.value }))
@@ -1487,7 +1488,7 @@ export function SettingsPage() {
                   </label>
                   <label className="mt-2 block text-sm text-text-secondary">
                     {tr("settings.account.binding.verifyCodeOptional")}
-                    <input
+                    <SharedUi.Input
                       value={accountBindingDraft.phoneCode}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, phoneCode: event.target.value }))
@@ -1497,7 +1498,7 @@ export function SettingsPage() {
                     />
                   </label>
                   <div className="mt-3 flex items-center gap-2">
-                    <button
+                    <SharedUi.Button
                       type="button"
                       onClick={() => {
                         void handleBindAccountPhone();
@@ -1510,8 +1511,8 @@ export function SettingsPage() {
                         : tr("settings.account.binding.bind", {
                             channel: tr("settings.account.binding.phone"),
                           })}
-                    </button>
-                    <button
+                    </SharedUi.Button>
+                    <SharedUi.Button
                       type="button"
                       onClick={() => {
                         void handleUnbindAccountPhone();
@@ -1520,7 +1521,7 @@ export function SettingsPage() {
                       className="rounded-lg border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition hover:bg-bg-hover disabled:opacity-60"
                     >
                       {tr("settings.account.binding.unbind")}
-                    </button>
+                    </SharedUi.Button>
                   </div>
                 </div>
 
@@ -1528,7 +1529,7 @@ export function SettingsPage() {
                   <div className="text-xs text-text-secondary">{tr("settings.account.binding.wechat")}</div>
                   <label className="mt-2 block text-sm text-text-secondary">
                     {tr("settings.account.binding.authCode")}
-                    <input
+                    <SharedUi.Input
                       value={accountBindingDraft.wechatCode}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, wechatCode: event.target.value }))
@@ -1539,7 +1540,7 @@ export function SettingsPage() {
                   </label>
                   <label className="mt-2 block text-sm text-text-secondary">
                     {tr("settings.account.binding.thirdPartyUserIdOptional")}
-                    <input
+                    <SharedUi.Input
                       value={accountBindingDraft.wechatUserId}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, wechatUserId: event.target.value }))
@@ -1549,7 +1550,7 @@ export function SettingsPage() {
                     />
                   </label>
                   <div className="mt-3 flex items-center gap-2">
-                    <button
+                    <SharedUi.Button
                       type="button"
                       onClick={() => {
                         void handleBindAccountSocial("wechat");
@@ -1562,8 +1563,8 @@ export function SettingsPage() {
                         : tr("settings.account.binding.bind", {
                             channel: tr("settings.account.binding.wechat"),
                           })}
-                    </button>
-                    <button
+                    </SharedUi.Button>
+                    <SharedUi.Button
                       type="button"
                       onClick={() => {
                         void handleUnbindAccountSocial("wechat");
@@ -1572,7 +1573,7 @@ export function SettingsPage() {
                       className="rounded-lg border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition hover:bg-bg-hover disabled:opacity-60"
                     >
                       {tr("settings.account.binding.unbind")}
-                    </button>
+                    </SharedUi.Button>
                   </div>
                 </div>
 
@@ -1580,7 +1581,7 @@ export function SettingsPage() {
                   <div className="text-xs text-text-secondary">{tr("settings.account.binding.qq")}</div>
                   <label className="mt-2 block text-sm text-text-secondary">
                     {tr("settings.account.binding.authCode")}
-                    <input
+                    <SharedUi.Input
                       value={accountBindingDraft.qqCode}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, qqCode: event.target.value }))
@@ -1591,7 +1592,7 @@ export function SettingsPage() {
                   </label>
                   <label className="mt-2 block text-sm text-text-secondary">
                     {tr("settings.account.binding.thirdPartyUserIdOptional")}
-                    <input
+                    <SharedUi.Input
                       value={accountBindingDraft.qqUserId}
                       onChange={(event) =>
                         setAccountBindingDraft((prev) => ({ ...prev, qqUserId: event.target.value }))
@@ -1601,7 +1602,7 @@ export function SettingsPage() {
                     />
                   </label>
                   <div className="mt-3 flex items-center gap-2">
-                    <button
+                    <SharedUi.Button
                       type="button"
                       onClick={() => {
                         void handleBindAccountSocial("qq");
@@ -1614,8 +1615,8 @@ export function SettingsPage() {
                         : tr("settings.account.binding.bind", {
                             channel: tr("settings.account.binding.qq"),
                           })}
-                    </button>
-                    <button
+                    </SharedUi.Button>
+                    <SharedUi.Button
                       type="button"
                       onClick={() => {
                         void handleUnbindAccountSocial("qq");
@@ -1624,7 +1625,7 @@ export function SettingsPage() {
                       className="rounded-lg border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition hover:bg-bg-hover disabled:opacity-60"
                     >
                       {tr("settings.account.binding.unbind")}
-                    </button>
+                    </SharedUi.Button>
                   </div>
                 </div>
               </div>
@@ -1635,7 +1636,7 @@ export function SettingsPage() {
                 <h2 className="text-sm font-semibold text-text-primary">
                   {tr("settings.account.addresses.title")}
                 </h2>
-                <button
+                <SharedUi.Button
                   type="button"
                   onClick={() => {
                     void reloadAccountExtendedData();
@@ -1643,12 +1644,12 @@ export function SettingsPage() {
                   className="text-xs text-primary hover:underline"
                 >
                   {tr("settings.account.addresses.refresh")}
-                </button>
+                </SharedUi.Button>
               </div>
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm text-text-secondary">
                   {tr("settings.account.addresses.contactName")}
-                  <input
+                  <SharedUi.Input
                     value={accountAddressDraft.name}
                     onChange={(event) =>
                       setAccountAddressDraft((prev) => ({ ...prev, name: event.target.value }))
@@ -1659,7 +1660,7 @@ export function SettingsPage() {
                 </label>
                 <label className="text-sm text-text-secondary">
                   {tr("settings.account.addresses.phone")}
-                  <input
+                  <SharedUi.Input
                     value={accountAddressDraft.phone}
                     onChange={(event) =>
                       setAccountAddressDraft((prev) => ({ ...prev, phone: event.target.value }))
@@ -1670,7 +1671,7 @@ export function SettingsPage() {
                 </label>
                 <label className="text-sm text-text-secondary">
                   {tr("settings.account.addresses.province")}
-                  <input
+                  <SharedUi.Input
                     value={accountAddressDraft.provinceCode}
                     onChange={(event) =>
                       setAccountAddressDraft((prev) => ({ ...prev, provinceCode: event.target.value }))
@@ -1681,7 +1682,7 @@ export function SettingsPage() {
                 </label>
                 <label className="text-sm text-text-secondary">
                   {tr("settings.account.addresses.city")}
-                  <input
+                  <SharedUi.Input
                     value={accountAddressDraft.cityCode}
                     onChange={(event) =>
                       setAccountAddressDraft((prev) => ({ ...prev, cityCode: event.target.value }))
@@ -1692,7 +1693,7 @@ export function SettingsPage() {
                 </label>
                 <label className="text-sm text-text-secondary">
                   {tr("settings.account.addresses.district")}
-                  <input
+                  <SharedUi.Input
                     value={accountAddressDraft.districtCode}
                     onChange={(event) =>
                       setAccountAddressDraft((prev) => ({ ...prev, districtCode: event.target.value }))
@@ -1703,7 +1704,7 @@ export function SettingsPage() {
                 </label>
                 <label className="text-sm text-text-secondary md:col-span-2">
                   {tr("settings.account.addresses.detail")}
-                  <textarea
+                  <SharedUi.Textarea
                     value={accountAddressDraft.addressDetail}
                     onChange={(event) =>
                       setAccountAddressDraft((prev) => ({ ...prev, addressDetail: event.target.value }))
@@ -1714,7 +1715,7 @@ export function SettingsPage() {
                   />
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary md:col-span-2">
-                  <input
+                  <SharedUi.Input
                     type="checkbox"
                     checked={accountAddressDraft.isDefault}
                     onChange={(event) =>
@@ -1725,7 +1726,7 @@ export function SettingsPage() {
                 </label>
               </div>
               <div className="mt-3 flex items-center gap-2">
-                <button
+                <SharedUi.Button
                   type="button"
                   onClick={() => {
                     void handleSaveAccountAddress();
@@ -1738,15 +1739,15 @@ export function SettingsPage() {
                     : editingAccountAddressId
                       ? tr("settings.account.addresses.update")
                       : tr("settings.account.addresses.add")}
-                </button>
+                </SharedUi.Button>
                 {editingAccountAddressId ? (
-                  <button
+                  <SharedUi.Button
                     type="button"
                     onClick={resetAccountAddressDraft}
                     className="rounded-lg border border-border bg-bg-tertiary px-4 py-2 text-sm text-text-secondary transition hover:bg-bg-hover"
                   >
                     {tr("settings.account.addresses.cancelEdit")}
-                  </button>
+                  </SharedUi.Button>
                 ) : null}
               </div>
               {accountAddressLoading ? (
@@ -1774,15 +1775,15 @@ export function SettingsPage() {
                             {tr("settings.account.addresses.defaultBadge")}
                           </span>
                         ) : null}
-                        <button
+                        <SharedUi.Button
                           type="button"
                           onClick={() => handleEditAccountAddress(address)}
                           className="text-xs text-primary hover:underline"
                         >
                           {tr("settings.account.addresses.edit")}
-                        </button>
+                        </SharedUi.Button>
                         {!address.isDefault ? (
-                          <button
+                          <SharedUi.Button
                             type="button"
                             onClick={() => {
                               void handleSetDefaultAccountAddress(address.id);
@@ -1790,9 +1791,9 @@ export function SettingsPage() {
                             className="text-xs text-primary hover:underline"
                           >
                             {tr("settings.account.addresses.setDefault")}
-                          </button>
+                          </SharedUi.Button>
                         ) : null}
-                        <button
+                        <SharedUi.Button
                           type="button"
                           onClick={() => {
                             void handleDeleteAccountAddress(address.id);
@@ -1800,7 +1801,7 @@ export function SettingsPage() {
                           className="text-xs text-red-400 hover:underline"
                         >
                           {tr("settings.account.addresses.delete")}
-                        </button>
+                        </SharedUi.Button>
                       </div>
                     </div>
                   </div>
@@ -1813,7 +1814,7 @@ export function SettingsPage() {
                 <h2 className="text-sm font-semibold text-text-primary">
                   {tr("settings.account.userSettings.title")}
                 </h2>
-                <button
+                <SharedUi.Button
                   type="button"
                   onClick={() => {
                     void reloadAccountExtendedData();
@@ -1821,7 +1822,7 @@ export function SettingsPage() {
                   className="text-xs text-primary hover:underline"
                 >
                   {tr("settings.account.userSettings.refresh")}
-                </button>
+                </SharedUi.Button>
               </div>
               {accountSettingsLoading ? (
                 <div className="mt-2 text-xs text-text-muted">
@@ -1831,7 +1832,7 @@ export function SettingsPage() {
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm text-text-secondary">
                   {tr("settings.account.userSettings.theme")}
-                  <select
+                  <SharedUi.Select
                     value={accountSettingsDraft.theme}
                     onChange={(event) =>
                       setAccountSettingsDraft((prev) => ({ ...prev, theme: event.target.value }))
@@ -1841,11 +1842,11 @@ export function SettingsPage() {
                     <option value="system">{tr(THEME_OPTION_KEYS.system)}</option>
                     <option value="light">{tr(THEME_OPTION_KEYS.light)}</option>
                     <option value="dark">{tr(THEME_OPTION_KEYS.dark)}</option>
-                  </select>
+                  </SharedUi.Select>
                 </label>
                 <label className="text-sm text-text-secondary">
                   {tr("settings.account.userSettings.language")}
-                  <select
+                  <SharedUi.Select
                     value={accountSettingsDraft.language}
                     onChange={(event) => handleAccountLanguageChange(event.target.value)}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -1855,13 +1856,13 @@ export function SettingsPage() {
                         {option.label}
                       </option>
                     ))}
-                  </select>
+                  </SharedUi.Select>
                 </label>
               </div>
 
               <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
-                  <input
+                  <SharedUi.Input
                     type="checkbox"
                     checked={accountSettingsDraft.notificationSettings.system}
                     onChange={(event) =>
@@ -1877,7 +1878,7 @@ export function SettingsPage() {
                   {tr("settings.account.userSettings.notifications.system")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
-                  <input
+                  <SharedUi.Input
                     type="checkbox"
                     checked={accountSettingsDraft.notificationSettings.message}
                     onChange={(event) =>
@@ -1893,7 +1894,7 @@ export function SettingsPage() {
                   {tr("settings.account.userSettings.notifications.message")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
-                  <input
+                  <SharedUi.Input
                     type="checkbox"
                     checked={accountSettingsDraft.notificationSettings.activity}
                     onChange={(event) =>
@@ -1909,7 +1910,7 @@ export function SettingsPage() {
                   {tr("settings.account.userSettings.notifications.activity")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
-                  <input
+                  <SharedUi.Input
                     type="checkbox"
                     checked={accountSettingsDraft.notificationSettings.promotion}
                     onChange={(event) =>
@@ -1925,7 +1926,7 @@ export function SettingsPage() {
                   {tr("settings.account.userSettings.notifications.promotion")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
-                  <input
+                  <SharedUi.Input
                     type="checkbox"
                     checked={accountSettingsDraft.notificationSettings.sound}
                     onChange={(event) =>
@@ -1941,7 +1942,7 @@ export function SettingsPage() {
                   {tr("settings.account.userSettings.notifications.sound")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
-                  <input
+                  <SharedUi.Input
                     type="checkbox"
                     checked={accountSettingsDraft.notificationSettings.vibration}
                     onChange={(event) =>
@@ -1957,7 +1958,7 @@ export function SettingsPage() {
                   {tr("settings.account.userSettings.notifications.vibration")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
-                  <input
+                  <SharedUi.Input
                     type="checkbox"
                     checked={accountSettingsDraft.privacySettings.publicProfile}
                     onChange={(event) =>
@@ -1973,7 +1974,7 @@ export function SettingsPage() {
                   {tr("settings.account.userSettings.privacy.publicProfile")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
-                  <input
+                  <SharedUi.Input
                     type="checkbox"
                     checked={accountSettingsDraft.privacySettings.allowSearch}
                     onChange={(event) =>
@@ -1989,7 +1990,7 @@ export function SettingsPage() {
                   {tr("settings.account.userSettings.privacy.allowSearch")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
-                  <input
+                  <SharedUi.Input
                     type="checkbox"
                     checked={accountSettingsDraft.privacySettings.allowFriendRequest}
                     onChange={(event) =>
@@ -2005,7 +2006,7 @@ export function SettingsPage() {
                   {tr("settings.account.userSettings.privacy.allowFriendRequest")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
-                  <input
+                  <SharedUi.Input
                     type="checkbox"
                     checked={accountSettingsDraft.autoPlay}
                     onChange={(event) =>
@@ -2015,7 +2016,7 @@ export function SettingsPage() {
                   {tr("settings.account.userSettings.performance.autoPlay")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
-                  <input
+                  <SharedUi.Input
                     type="checkbox"
                     checked={accountSettingsDraft.highQuality}
                     onChange={(event) =>
@@ -2025,7 +2026,7 @@ export function SettingsPage() {
                   {tr("settings.account.userSettings.performance.highQuality")}
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-secondary">
-                  <input
+                  <SharedUi.Input
                     type="checkbox"
                     checked={accountSettingsDraft.dataSaver}
                     onChange={(event) =>
@@ -2037,7 +2038,7 @@ export function SettingsPage() {
               </div>
 
               <div className="mt-3">
-                <button
+                <SharedUi.Button
                   type="button"
                   onClick={() => {
                     void handleSaveAccountUserSettings();
@@ -2048,7 +2049,7 @@ export function SettingsPage() {
                   {accountSettingsSaving
                     ? tr("settings.account.userSettings.saving")
                     : tr("settings.account.userSettings.save")}
-                </button>
+                </SharedUi.Button>
               </div>
             </div>
 
@@ -2115,7 +2116,7 @@ export function SettingsPage() {
             ) : null}
 
             <div className="flex items-center gap-3">
-              <button
+              <SharedUi.Button
                 type="button"
                 onClick={() => {
                   void logout();
@@ -2123,7 +2124,7 @@ export function SettingsPage() {
                 className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-300 transition hover:bg-red-500/20"
               >
                 {tr("settings.account.actions.logout")}
-              </button>
+              </SharedUi.Button>
             </div>
           </div>
         ) : null}
@@ -2137,7 +2138,7 @@ export function SettingsPage() {
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm text-text-secondary">
                   {tr("settings.imconfig.websocket")}
-                  <input
+                  <SharedUi.Input
                     value={imDraft.wsUrl}
                     onChange={(event) =>
                       setImDraft((prev) => ({ ...prev, wsUrl: event.target.value }))
@@ -2148,7 +2149,7 @@ export function SettingsPage() {
                 </label>
                 <label className="text-sm text-text-secondary">
                   {tr("settings.imconfig.httpApi")}
-                  <input
+                  <SharedUi.Input
                     value={imDraft.serverUrl}
                     onChange={(event) =>
                       setImDraft((prev) => ({ ...prev, serverUrl: event.target.value }))
@@ -2159,7 +2160,7 @@ export function SettingsPage() {
                 </label>
                 <label className="text-sm text-text-secondary">
                   {tr("settings.imconfig.deviceId")}
-                  <input
+                  <SharedUi.Input
                     value={imDraft.deviceId}
                     onChange={(event) =>
                       setImDraft((prev) => ({ ...prev, deviceId: event.target.value }))
@@ -2170,7 +2171,7 @@ export function SettingsPage() {
                 </label>
                 <label className="text-sm text-text-secondary">
                   {tr("settings.imconfig.deviceType")}
-                  <select
+                  <SharedUi.Select
                     value={imDraft.deviceFlag}
                     onChange={(event) =>
                       setImDraft((prev) => ({
@@ -2183,11 +2184,11 @@ export function SettingsPage() {
                     <option value="PC">{tr("settings.imconfig.deviceTypeOptions.PC")}</option>
                     <option value="WEB">{tr("settings.imconfig.deviceTypeOptions.WEB")}</option>
                     <option value="DESKTOP">{tr("settings.imconfig.deviceTypeOptions.DESKTOP")}</option>
-                  </select>
+                  </SharedUi.Select>
                 </label>
                 <label className="text-sm text-text-secondary">
                   {tr("settings.imconfig.uid")}
-                  <input
+                  <SharedUi.Input
                     value={imDraft.uid}
                     onChange={(event) =>
                       setImDraft((prev) => ({ ...prev, uid: event.target.value }))
@@ -2198,7 +2199,7 @@ export function SettingsPage() {
                 </label>
                 <label className="text-sm text-text-secondary">
                   {tr("settings.imconfig.token")}
-                  <input
+                  <SharedUi.Input
                     value={imDraft.token}
                     onChange={(event) =>
                       setImDraft((prev) => ({ ...prev, token: event.target.value }))
@@ -2229,13 +2230,13 @@ export function SettingsPage() {
             </div>
 
               <div className="flex items-center gap-3">
-                <button
+                <SharedUi.Button
                   type="button"
                   onClick={handleSaveIMConfig}
                   className="rounded-lg bg-primary px-4 py-2 text-sm text-white transition hover:brightness-110"
                 >
                 {tr("settings.imconfig.save")}
-                </button>
+                </SharedUi.Button>
               </div>
           </div>
         ) : null}
@@ -2261,7 +2262,7 @@ export function SettingsPage() {
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm text-text-secondary">
                   {tr("settings.general.appearance.theme")}
-                  <select
+                  <SharedUi.Select
                     value={settings.theme}
                     onChange={(event) => {
                       const next = event.target.value as SettingsState["theme"];
@@ -2277,11 +2278,11 @@ export function SettingsPage() {
                     <option value="blue">{tr(THEME_OPTION_KEYS.blue)}</option>
                     <option value="purple">{tr(THEME_OPTION_KEYS.purple)}</option>
                     <option value="system">{tr(THEME_OPTION_KEYS.system)}</option>
-                  </select>
+                  </SharedUi.Select>
                 </label>
                 <label className="text-sm text-text-secondary">
                   {tr("settings.general.appearance.fontSize")}
-                  <select
+                  <SharedUi.Select
                     value={settings.preferences.fontSize}
                     onChange={(event) =>
                       setSettings((prev) => ({
@@ -2297,7 +2298,7 @@ export function SettingsPage() {
                     <option value="small">{tr(FONT_SIZE_OPTION_KEYS.small)}</option>
                     <option value="medium">{tr(FONT_SIZE_OPTION_KEYS.medium)}</option>
                     <option value="large">{tr(FONT_SIZE_OPTION_KEYS.large)}</option>
-                  </select>
+                  </SharedUi.Select>
                 </label>
               </div>
             </div>
@@ -2414,7 +2415,7 @@ export function SettingsPage() {
                 <div className="mt-4 grid grid-cols-2 gap-3">
                 <label className="text-sm text-text-secondary">
                     {tr("settings.notifications.dndStart")}
-                    <input
+                    <SharedUi.Input
                       type="time"
                       value={settings.notifications.doNotDisturbStart}
                       onChange={(event) =>
@@ -2431,7 +2432,7 @@ export function SettingsPage() {
                   </label>
                 <label className="text-sm text-text-secondary">
                     {tr("settings.notifications.dndEnd")}
-                    <input
+                    <SharedUi.Input
                       type="time"
                       value={settings.notifications.doNotDisturbEnd}
                       onChange={(event) =>
@@ -2461,7 +2462,7 @@ export function SettingsPage() {
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm text-text-secondary">
                   {tr("settings.privacy.onlineStatus")}
-                  <select
+                  <SharedUi.Select
                     value={settings.privacy.onlineStatus}
                     onChange={(event) =>
                       setSettings((prev) => ({
@@ -2483,11 +2484,11 @@ export function SettingsPage() {
                     <option value="nobody">
                       {tr("settings.privacy.visibility.nobody")}
                     </option>
-                  </select>
+                  </SharedUi.Select>
                 </label>
                 <label className="text-sm text-text-secondary">
                   {tr("settings.privacy.phoneVisibility")}
-                  <select
+                  <SharedUi.Select
                     value={settings.privacy.phoneNumber}
                     onChange={(event) =>
                       setSettings((prev) => ({
@@ -2503,7 +2504,7 @@ export function SettingsPage() {
                     <option value="everyone">{tr("settings.privacy.visibility.everyone")}</option>
                     <option value="contacts">{tr("settings.privacy.visibility.contactsOnly")}</option>
                     <option value="nobody">{tr("settings.privacy.visibility.nobody")}</option>
-                  </select>
+                  </SharedUi.Select>
                 </label>
               </div>
               <div className="mt-4 space-y-3">
@@ -2579,7 +2580,7 @@ export function SettingsPage() {
                 </p>
               </div>
               <div className="mt-4">
-                <button
+                <SharedUi.Button
                   type="button"
                   onClick={() => {
                     void handleCheckUpdate();
@@ -2590,7 +2591,7 @@ export function SettingsPage() {
                   {isCheckingUpdate
                     ? tr("settings.about.application.checking")
                     : tr("settings.about.application.checkUpdates")}
-                </button>
+                </SharedUi.Button>
               </div>
             </div>
 
@@ -2605,7 +2606,7 @@ export function SettingsPage() {
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm text-text-secondary">
                   {tr("settings.about.feedback.type")}
-                  <select
+                  <SharedUi.Select
                     value={feedbackType}
                     onChange={(event) => setFeedbackType(event.target.value)}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -2616,12 +2617,12 @@ export function SettingsPage() {
                       {tr("settings.about.feedback.types.experience")}
                     </option>
                     <option value="other">{tr("settings.about.feedback.types.other")}</option>
-                  </select>
+                  </SharedUi.Select>
                 </label>
 
                 <label className="text-sm text-text-secondary">
                   {tr("settings.about.feedback.contact")}
-                  <input
+                  <SharedUi.Input
                     value={feedbackContact}
                     onChange={(event) => setFeedbackContact(event.target.value)}
                     placeholder={tr("settings.about.feedback.contactPlaceholder")}
@@ -2632,7 +2633,7 @@ export function SettingsPage() {
 
               <label className="mt-3 block text-sm text-text-secondary">
                 {tr("settings.about.feedback.content")}
-                <textarea
+                <SharedUi.Textarea
                   value={feedbackContent}
                   onChange={(event) => setFeedbackContent(event.target.value)}
                   placeholder={tr("settings.about.feedback.contentPlaceholder")}
@@ -2641,7 +2642,7 @@ export function SettingsPage() {
               </label>
 
               <div className="mt-3 flex items-center gap-3">
-                <button
+                <SharedUi.Button
                   type="button"
                   onClick={() => {
                     void handleSubmitFeedback();
@@ -2652,7 +2653,7 @@ export function SettingsPage() {
                   {feedbackSubmitting
                     ? tr("settings.about.feedback.submitting")
                     : tr("settings.about.feedback.submit")}
-                </button>
+                </SharedUi.Button>
                 {feedbackMessage ? (
                   <p className="text-sm text-text-secondary">{feedbackMessage}</p>
                 ) : null}
@@ -2681,7 +2682,7 @@ export function SettingsPage() {
 
         <div className="mt-6 flex items-center gap-3">
           {showSettingsSave ? (
-            <button
+            <SharedUi.Button
               type="button"
               onClick={() => {
                 void handleSaveSettings();
@@ -2690,7 +2691,7 @@ export function SettingsPage() {
               className="rounded-lg bg-primary px-4 py-2 text-sm text-white transition hover:brightness-110 disabled:opacity-60"
             >
               {isSaving ? tr("settings.actions.saving") : tr("settings.actions.saveSettings")}
-            </button>
+            </SharedUi.Button>
           ) : null}
           {saveMessage ? <p className="text-sm text-text-secondary">{saveMessage}</p> : null}
         </div>

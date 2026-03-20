@@ -4,6 +4,7 @@ import type { SkillMarketItem } from "../entities/skill.entity";
 import { SkillResultService, SkillService } from "../services";
 import { getSkillConfigValidation, type SkillScope } from "./skill.workspace.model";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 function prettyJson(input: Record<string, unknown>): string {
   try {
@@ -298,12 +299,12 @@ export function SkillDetailPage() {
   if (!skill) {
     return (
       <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary p-6">
-          <button
+          <SharedUi.Button
             onClick={() => navigate("/skills")}
             className="w-fit rounded-full border border-border bg-bg-secondary px-4 py-2 text-xs text-text-secondary hover:bg-bg-hover"
           >
             {tr("Back to Skill Market")}
-          </button>
+          </SharedUi.Button>
         <div className="mt-4 rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
           {errorText || "Skill not found."}
         </div>
@@ -314,12 +315,12 @@ export function SkillDetailPage() {
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <button
+        <SharedUi.Button
           onClick={() => navigate("/skills")}
           className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs text-text-secondary transition-colors hover:bg-bg-hover"
         >
           {tr("Back to Skill Market")}
-        </button>
+        </SharedUi.Button>
         <h1 className="mt-3 text-xl font-semibold text-text-primary">
           {skill.icon} {skill.name}
         </h1>
@@ -362,7 +363,7 @@ export function SkillDetailPage() {
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-2">
-            <button
+            <SharedUi.Button
               onClick={() => {
                 void handleToggle();
               }}
@@ -376,16 +377,16 @@ export function SkillDetailPage() {
                 : skill.isEnabled
                 ? tr("Disable Skill")
                 : tr("Enable Skill")}
-            </button>
-            <button
+            </SharedUi.Button>
+            <SharedUi.Button
               onClick={() => {
                 setActiveTab("config");
               }}
               className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-bg-hover"
             >
               {tr("Edit Configuration")}
-            </button>
-            <button
+            </SharedUi.Button>
+            <SharedUi.Button
               onClick={handleToggleFavorite}
               className={`rounded-md border px-3 py-2 text-sm transition-colors ${
                 isFavorite
@@ -394,20 +395,20 @@ export function SkillDetailPage() {
               }`}
             >
               {isFavorite ? tr("Favorited") : tr("Add to favorites")}
-            </button>
+            </SharedUi.Button>
           </div>
 
           <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Presets")}</h3>
           <div className="mt-2 space-y-2">
             {presetOptions.map((preset) => (
-                <button
+                <SharedUi.Button
                   key={preset.id}
                   onClick={() => handleApplyPreset(preset.id)}
                   className="w-full rounded-lg border border-border bg-bg-primary px-3 py-2 text-left transition-colors hover:border-primary/40"
                 >
                   <p className="text-sm font-medium text-text-primary">{tr(preset.name)}</p>
                   <p className="mt-1 text-xs text-text-muted">{tr(preset.description)}</p>
-                </button>
+                </SharedUi.Button>
             ))}
           </div>
         </aside>
@@ -417,7 +418,7 @@ export function SkillDetailPage() {
             {tabs.map((tab) => {
               const active = activeTab === tab.key;
               return (
-                <button
+                <SharedUi.Button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
                   className={`rounded-full border px-4 py-2 text-xs font-medium transition-colors ${
@@ -430,7 +431,7 @@ export function SkillDetailPage() {
                   <span className={`ml-2 ${active ? "text-white/80" : "text-text-muted"}`}>
                     {tr(tab.hint)}
                   </span>
-                </button>
+                </SharedUi.Button>
               );
             })}
           </div>
@@ -499,14 +500,14 @@ export function SkillDetailPage() {
             <div className="min-h-0 flex-1 overflow-auto">
               <div className="rounded-xl border border-border bg-bg-primary p-4">
                 <h3 className="text-sm font-semibold text-text-primary">{tr("Configuration JSON")}</h3>
-                <textarea
+                <SharedUi.Textarea
                   value={configText}
                   onChange={(event) => setConfigText(event.target.value)}
                   rows={16}
                   className="mt-3 w-full rounded-lg border border-border bg-bg-tertiary p-3 font-mono text-xs text-text-primary focus:border-primary focus:outline-none"
                 />
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <button
+                    <SharedUi.Button
                       onClick={() => {
                         void handleSaveConfig();
                       }}
@@ -514,7 +515,7 @@ export function SkillDetailPage() {
                       className="rounded-md bg-primary px-3 py-1.5 text-xs text-white transition-colors hover:brightness-110 disabled:opacity-60"
                     >
                       {isSaving ? tr("Saving...") : tr("Save Configuration")}
-                    </button>
+                    </SharedUi.Button>
                   <span className="text-xs text-text-muted">
                     {tr("Required fields and scope are validated before save.")}
                   </span>
@@ -531,7 +532,7 @@ export function SkillDetailPage() {
                   {scopeOptions.map((option) => {
                     const active = scope === option.value;
                     return (
-                      <button
+                      <SharedUi.Button
                         key={option.value}
                         onClick={() => setScope(option.value)}
                         className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
@@ -542,7 +543,7 @@ export function SkillDetailPage() {
                       >
                           <p className="text-sm font-medium">{tr(option.label)}</p>
                           <p className="mt-1 text-xs opacity-80">{tr(option.description)}</p>
-                        </button>
+                        </SharedUi.Button>
                       );
                     })}
                   </div>

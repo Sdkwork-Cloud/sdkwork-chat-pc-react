@@ -1,6 +1,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { CallSession } from "../entities/rtc.entity";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface CallModalProps {
   session: CallSession | null;
@@ -135,8 +136,17 @@ export const CallModal = memo(function CallModal({
     ) : null;
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="relative h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl bg-[#1E293B] shadow-2xl">
+    <SharedUi.Dialog
+      isOpen
+      onClose={() => undefined}
+      size="xl"
+      closeOnOverlayClick={false}
+      closeOnEscape={false}
+      overlayClassName="z-[10000] bg-black/80 backdrop-blur-sm"
+      contentClassName="h-[80vh] max-w-4xl overflow-hidden rounded-2xl border-0 bg-[#1E293B] p-0 shadow-2xl"
+      bodyClassName="h-full overflow-hidden p-0"
+    >
+      <div className="relative h-full w-full">
         {isVideo ? (
           <div className="absolute inset-0">
             {remoteStream ? (
@@ -225,7 +235,7 @@ export const CallModal = memo(function CallModal({
           <div className="flex items-center justify-center space-x-6">
             {isRinging && isIncoming ? (
               <>
-                <button
+                <SharedUi.Button
                   onClick={async () => await onReject()}
                   className="flex h-16 w-16 items-center justify-center rounded-full bg-[#EF4444] transition-transform hover:scale-110 hover:bg-[#DC2626]"
                   aria-label={tr("Reject call")}
@@ -243,8 +253,8 @@ export const CallModal = memo(function CallModal({
                       strokeWidth={2}
                     />
                   </svg>
-                </button>
-                <button
+                </SharedUi.Button>
+                <SharedUi.Button
                   onClick={async () => await onAccept()}
                   className="flex h-16 w-16 items-center justify-center rounded-full bg-[#10B981] transition-transform hover:scale-110 hover:bg-[#059669]"
                   aria-label={tr("Accept call")}
@@ -262,12 +272,12 @@ export const CallModal = memo(function CallModal({
                       strokeWidth={2}
                     />
                   </svg>
-                </button>
+                </SharedUi.Button>
               </>
             ) : null}
 
             {(isCalling || (isRinging && !isIncoming)) ? (
-              <button
+              <SharedUi.Button
                 onClick={async () => await onHangup()}
                 className="flex h-16 w-16 items-center justify-center rounded-full bg-[#EF4444] transition-transform hover:scale-110 hover:bg-[#DC2626]"
                 aria-label={tr("Hang up")}
@@ -285,12 +295,12 @@ export const CallModal = memo(function CallModal({
                     strokeWidth={2}
                   />
                 </svg>
-              </button>
+              </SharedUi.Button>
             ) : null}
 
             {isConnected || isConnecting ? (
               <>
-                <button
+                <SharedUi.Button
                   onClick={async () => await onToggleMute()}
                   className={`flex h-14 w-14 items-center justify-center rounded-full transition-all ${
                     session.isMuted
@@ -334,10 +344,10 @@ export const CallModal = memo(function CallModal({
                       />
                     </svg>
                   )}
-                </button>
+                </SharedUi.Button>
 
                 {isVideo ? (
-                  <button
+                  <SharedUi.Button
                     onClick={async () => await onToggleCamera()}
                     className={`flex h-14 w-14 items-center justify-center rounded-full transition-all ${
                       session.isCameraOff
@@ -383,10 +393,10 @@ export const CallModal = memo(function CallModal({
                         />
                       </svg>
                     )}
-                  </button>
+                  </SharedUi.Button>
                 ) : null}
 
-                <button
+                <SharedUi.Button
                   onClick={async () => await onToggleSpeaker()}
                   className={`flex h-14 w-14 items-center justify-center rounded-full transition-all ${
                     session.isSpeakerOff
@@ -434,9 +444,9 @@ export const CallModal = memo(function CallModal({
                       />
                     </svg>
                   )}
-                </button>
+                </SharedUi.Button>
 
-                <button
+                <SharedUi.Button
                   onClick={async () => await onHangup()}
                   className="flex h-16 w-16 items-center justify-center rounded-full bg-[#EF4444] transition-transform hover:scale-110 hover:bg-[#DC2626]"
                   aria-label={tr("Hang up")}
@@ -454,13 +464,13 @@ export const CallModal = memo(function CallModal({
                       strokeWidth={2}
                     />
                   </svg>
-                </button>
+                </SharedUi.Button>
               </>
             ) : null}
           </div>
         </div>
       </div>
-    </div>
+    </SharedUi.Dialog>
   );
 });
 

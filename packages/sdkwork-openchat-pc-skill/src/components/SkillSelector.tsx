@@ -3,6 +3,7 @@ import { Input } from "@sdkwork/openchat-pc-ui";
 import type { SkillCategoryInfo, SkillMarketItem } from "../entities/skill.entity";
 import { SkillResultService } from "../services";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface SkillSelectorProps {
   selectedSkills: string[];
@@ -101,7 +102,7 @@ export function SkillSelector({ selectedSkills, onSkillsChange }: SkillSelectorP
       <Input
         placeholder={tr("Search skills...")}
         value={searchKeyword}
-        onChange={setSearchKeyword}
+        onValueChange={setSearchKeyword}
         allowClear
         className="w-full"
         prefix={
@@ -118,7 +119,7 @@ export function SkillSelector({ selectedSkills, onSkillsChange }: SkillSelectorP
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {categories.map((category) => (
-          <button
+          <SharedUi.Button
             key={category.id}
             onClick={() => setActiveCategory(category.id)}
             className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors ${
@@ -128,7 +129,7 @@ export function SkillSelector({ selectedSkills, onSkillsChange }: SkillSelectorP
             }`}
           >
             {category.icon} {tr(category.name)}
-          </button>
+          </SharedUi.Button>
         ))}
       </div>
 
@@ -149,7 +150,7 @@ export function SkillSelector({ selectedSkills, onSkillsChange }: SkillSelectorP
           {skills.map((skill) => {
             const selected = selectedSkills.includes(skill.id);
             return (
-              <button
+              <SharedUi.Button
                 key={skill.id}
                 onClick={() => toggleSkill(skill.id)}
                 className={`rounded-lg border p-3 text-left transition-all ${
@@ -165,7 +166,7 @@ export function SkillSelector({ selectedSkills, onSkillsChange }: SkillSelectorP
                   <span className="truncate text-sm font-medium text-text-primary">{skill.name}</span>
                 </div>
                 <p className="line-clamp-2 text-xs text-text-muted">{skill.description}</p>
-              </button>
+              </SharedUi.Button>
             );
           })}
         </div>

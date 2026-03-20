@@ -6,6 +6,7 @@ import { AddFriendModal } from "./AddFriendModal";
 import { ConversationItem } from "./ConversationItem";
 import { CreateGroupModal } from "./CreateGroupModal";
 import { NewNoteModal } from "./NewNoteModal";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 export interface NewConversationPayload {
   id: string;
@@ -158,7 +159,7 @@ export const ConversationList = memo(
         <div className="flex-shrink-0 border-b border-border p-4">
           <div className="flex items-center space-x-2">
             <div className="group relative flex-1">
-              <input
+              <SharedUi.Input
                 type="text"
                 placeholder={tr("Search conversations...")}
                 value={searchKeyword}
@@ -181,7 +182,7 @@ export const ConversationList = memo(
             </div>
 
             <div className="relative">
-              <button
+              <SharedUi.Button
                 ref={buttonRef}
                 onClick={() => setIsMenuOpen((previous) => !previous)}
                 className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border transition-all duration-300 ${
@@ -199,7 +200,7 @@ export const ConversationList = memo(
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-              </button>
+              </SharedUi.Button>
 
               {isMenuOpen ? (
                 <div
@@ -208,7 +209,7 @@ export const ConversationList = memo(
                 >
                   <div className="absolute -top-1.5 right-3 h-3 w-3 rotate-45 rounded-sm border-l border-t border-border bg-bg-elevated" />
                   {menuItems.map((item) => (
-                    <button
+                    <SharedUi.Button
                       key={item.id}
                       onClick={() => handleMenuClick(item.id)}
                       className="group relative flex w-full items-center px-4 py-3 text-sm text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
@@ -217,7 +218,7 @@ export const ConversationList = memo(
                         {item.icon}
                       </span>
                       <span>{item.label}</span>
-                    </button>
+                    </SharedUi.Button>
                   ))}
                 </div>
               ) : null}

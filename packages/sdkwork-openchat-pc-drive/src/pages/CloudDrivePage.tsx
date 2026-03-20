@@ -7,6 +7,7 @@ import {
   filterDriveWorkspaceFiles,
 } from "./drive.workspace.model";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 function inferFileType(fileName: string): FileType {
   const lower = fileName.toLowerCase();
@@ -322,13 +323,13 @@ export function CloudDrivePage() {
           </div>
 
         <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-[1fr_140px_160px_auto_auto_auto]">
-          <input
+          <SharedUi.Input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
             placeholder={tr("Search files and folders")}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
           />
-          <select
+          <SharedUi.Select
             value={typeFilter}
             onChange={(event) => setTypeFilter(event.target.value as "all" | FileType)}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -338,8 +339,8 @@ export function CloudDrivePage() {
                 {tr(option.label)}
               </option>
             ))}
-          </select>
-          <select
+          </SharedUi.Select>
+          <SharedUi.Select
             value={sortBy}
             onChange={(event) => setSortBy(event.target.value as "updated" | "size")}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -349,8 +350,8 @@ export function CloudDrivePage() {
                 {tr(option.label)}
               </option>
             ))}
-          </select>
-          <button
+          </SharedUi.Select>
+          <SharedUi.Button
             onClick={() => setOnlyStarred((prev) => !prev)}
             className={`rounded-lg border px-3 py-2 text-xs ${
               onlyStarred
@@ -359,24 +360,24 @@ export function CloudDrivePage() {
             }`}
           >
             {tr("Starred only")}
-          </button>
-          <button
+          </SharedUi.Button>
+          <SharedUi.Button
             onClick={() => void handleCreateFolder()}
             className="rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-xs text-text-secondary"
           >
             {tr("New Folder")}
-          </button>
-          <button
+          </SharedUi.Button>
+          <SharedUi.Button
             onClick={() => void handleUploadMockFile()}
             className="rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-xs text-text-secondary"
           >
             {tr("Upload Demo")}
-          </button>
+          </SharedUi.Button>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-text-muted">
           {breadcrumbPath.map((item) => (
-            <button
+            <SharedUi.Button
               key={item.id || "root"}
               onClick={() => setCurrentParentId(item.id)}
               className={`rounded-md px-2 py-1 ${
@@ -384,7 +385,7 @@ export function CloudDrivePage() {
               }`}
             >
               {item.id === null ? tr("Root") : item.name}
-            </button>
+            </SharedUi.Button>
           ))}
         </div>
 
@@ -396,13 +397,13 @@ export function CloudDrivePage() {
             </div>
             <div className="space-y-1">
               {workspaceLibrary.favorites.slice(0, 3).map((item) => (
-                <button
+                <SharedUi.Button
                   key={`favorite-${item.id}`}
                   onClick={() => handleOpenFile(item)}
                   className="w-full rounded border border-border bg-bg-primary px-2 py-1 text-left text-[11px] text-text-secondary hover:bg-bg-hover"
                 >
                   {item.name}
-                </button>
+                </SharedUi.Button>
               ))}
               {workspaceLibrary.favorites.length === 0 ? (
                 <p className="text-[11px] text-text-muted">{tr("No favorites yet.")}</p>
@@ -417,13 +418,13 @@ export function CloudDrivePage() {
             </div>
             <div className="space-y-1">
               {workspaceLibrary.recent.slice(0, 3).map((item) => (
-                <button
+                <SharedUi.Button
                   key={`recent-${item.id}`}
                   onClick={() => handleOpenFile(item)}
                   className="w-full rounded border border-border bg-bg-primary px-2 py-1 text-left text-[11px] text-text-secondary hover:bg-bg-hover"
                 >
                   {item.name}
-                </button>
+                </SharedUi.Button>
               ))}
               {workspaceLibrary.recent.length === 0 ? (
                 <p className="text-[11px] text-text-muted">{tr("No recent history.")}</p>
@@ -438,13 +439,13 @@ export function CloudDrivePage() {
             </div>
             <div className="space-y-1">
               {workspaceLibrary.largest.slice(0, 3).map((item) => (
-                <button
+                <SharedUi.Button
                   key={`largest-${item.id}`}
                   onClick={() => handleOpenFile(item)}
                   className="w-full rounded border border-border bg-bg-primary px-2 py-1 text-left text-[11px] text-text-secondary hover:bg-bg-hover"
                 >
                   {item.name} ({FileService.formatBytes(item.size || 0)})
-                </button>
+                </SharedUi.Button>
               ))}
               {workspaceLibrary.largest.length === 0 ? (
                 <p className="text-[11px] text-text-muted">{tr("No files in this view.")}</p>
@@ -454,18 +455,18 @@ export function CloudDrivePage() {
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button
+          <SharedUi.Button
             onClick={() => void handleDeleteSelected()}
             className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary"
           >
             {tr("Delete Selected")}
-          </button>
-          <button
+          </SharedUi.Button>
+          <SharedUi.Button
             onClick={() => void handleMoveSelectedToRoot()}
             className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary"
           >
             {tr("Move to Root")}
-          </button>
+          </SharedUi.Button>
         </div>
 
         {statusText && <p className="mt-3 text-xs text-text-secondary">{statusText}</p>}
@@ -492,7 +493,7 @@ export function CloudDrivePage() {
                 return (
                   <article key={file.id} className="rounded-xl border border-border bg-bg-secondary p-4">
                     <div className="flex flex-wrap items-center gap-3">
-                      <input
+                      <SharedUi.Input
                         type="checkbox"
                         checked={selectedIds.includes(file.id)}
                         onChange={(event) => {
@@ -506,7 +507,7 @@ export function CloudDrivePage() {
                         className="h-4 w-4 accent-primary"
                       />
 
-                      <button
+                      <SharedUi.Button
                         onClick={() => handleOpenFile(file)}
                         className="flex min-w-0 flex-1 items-center gap-3 text-left"
                       >
@@ -529,9 +530,9 @@ export function CloudDrivePage() {
                             {tr(fileTypeLabels[file.type])} | {file.size ? FileService.formatBytes(file.size) : "-"}
                           </p>
                         </div>
-                      </button>
+                      </SharedUi.Button>
 
-                      <button
+                      <SharedUi.Button
                         onClick={() => handleToggleFavorite(file.id)}
                         className={`rounded-md border px-2 py-1 text-xs ${
                           favoriteSet.has(file.id)
@@ -540,9 +541,9 @@ export function CloudDrivePage() {
                         }`}
                       >
                         {favoriteSet.has(file.id) ? tr("Favorited") : tr("Favorite")}
-                      </button>
+                      </SharedUi.Button>
 
-                      <button
+                      <SharedUi.Button
                         onClick={() => void handleToggleStar(file.id)}
                         className={`rounded-md px-2 py-1 text-xs ${
                           file.isStarred
@@ -551,14 +552,14 @@ export function CloudDrivePage() {
                         }`}
                       >
                         {file.isStarred ? tr("Starred") : tr("Star")}
-                      </button>
+                      </SharedUi.Button>
 
-                      <button
+                      <SharedUi.Button
                         onClick={() => void handleRename(file)}
                         className="rounded-md border border-border bg-bg-tertiary px-2 py-1 text-xs text-text-secondary"
                       >
                         {tr("Rename")}
-                      </button>
+                      </SharedUi.Button>
                     </div>
                   </article>
                 );

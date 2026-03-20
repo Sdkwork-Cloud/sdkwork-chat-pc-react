@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 import type {
   ContactTab,
@@ -47,7 +48,7 @@ const QuickActionItem = memo(function QuickActionItem({
   isActive?: boolean;
 }) {
   return (
-    <button
+    <SharedUi.Button
       onClick={onClick}
       className={`w-full flex items-center px-4 py-3 transition-all duration-150 group ${
         isActive ? "bg-[var(--ai-primary-soft)]" : "hover:bg-[var(--bg-hover)]"
@@ -80,7 +81,7 @@ const QuickActionItem = memo(function QuickActionItem({
       >
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
       </svg>
-    </button>
+    </SharedUi.Button>
   );
 });
 
@@ -132,7 +133,7 @@ export const ContactSidebar = memo(function ContactSidebar({
 
       <div className="p-3 border-b border-[var(--border-color)]">
         <div className="relative">
-          <input
+          <SharedUi.Input
             type="text"
             placeholder={tr("Search")}
             value={searchKeyword}
@@ -193,7 +194,7 @@ export const ContactSidebar = memo(function ContactSidebar({
 
       {!(activeTab === "friends" && filter === "new") ? (
         <div className="flex border-b border-[var(--border-color)] bg-[var(--bg-secondary)]">
-          <button
+          <SharedUi.Button
             onClick={handleFriendsTabClick}
             className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
               activeTab === "friends"
@@ -205,8 +206,8 @@ export const ContactSidebar = memo(function ContactSidebar({
             {activeTab === "friends" ? (
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-[var(--ai-primary)] rounded-full" />
             ) : null}
-          </button>
-          <button
+          </SharedUi.Button>
+          <SharedUi.Button
             onClick={handleGroupsClick}
             className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
               activeTab === "groups"
@@ -218,7 +219,7 @@ export const ContactSidebar = memo(function ContactSidebar({
             {activeTab === "groups" ? (
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-[var(--ai-primary)] rounded-full" />
             ) : null}
-          </button>
+          </SharedUi.Button>
         </div>
       ) : null}
 
@@ -286,20 +287,20 @@ export const ContactSidebar = memo(function ContactSidebar({
 
                     {request.status === "pending" ? (
                       <div className="mt-3 flex items-center justify-end gap-2">
-                        <button
+                        <SharedUi.Button
                           onClick={() => onRejectRequest(request.id)}
                           disabled={isBusy}
                           className="rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
                         >
                           {tr("Reject")}
-                        </button>
-                        <button
+                        </SharedUi.Button>
+                        <SharedUi.Button
                           onClick={() => onAcceptRequest(request.id)}
                           disabled={isBusy}
                           className="rounded-md bg-[var(--ai-primary)] px-3 py-1.5 text-xs text-white transition-colors hover:brightness-110 disabled:opacity-50"
                         >
                           {tr("Accept")}
-                        </button>
+                        </SharedUi.Button>
                       </div>
                     ) : (
                       <div className="mt-3 flex justify-end">
@@ -321,7 +322,7 @@ export const ContactSidebar = memo(function ContactSidebar({
           </div>
         ) : (
           <>
-            <button
+            <SharedUi.Button
               onClick={onCreateGroup}
               className="w-full flex items-center px-4 py-3 hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-color)]"
             >
@@ -331,7 +332,7 @@ export const ContactSidebar = memo(function ContactSidebar({
                 </svg>
               </div>
               <span className="ml-3 text-sm text-[var(--text-primary)]">{tr("New Group Chat")}</span>
-            </button>
+            </SharedUi.Button>
 
             {groups.map((group) => (
               <GroupItem

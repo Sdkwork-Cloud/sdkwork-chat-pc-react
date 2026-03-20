@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { OpenClawInstallResultService } from "../services";
 import type { OpenClawDesktopGuide, OpenClawInstallCommand } from "../types";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 async function copyText(value: string): Promise<boolean> {
   try {
@@ -131,7 +132,7 @@ export function SdkworkOpenclawPcDesktop() {
               <pre className="overflow-x-auto whitespace-pre-wrap rounded bg-bg-secondary p-2 text-[11px] text-text-primary">
                 {command.command}
               </pre>
-              <button
+              <SharedUi.Button
                 type="button"
                 onClick={() => {
                   void handleCopy(command.command);
@@ -139,7 +140,7 @@ export function SdkworkOpenclawPcDesktop() {
                 className="mt-2 rounded border border-border bg-bg-tertiary px-2 py-1 text-[11px] text-text-secondary hover:bg-bg-hover"
               >
                 {tr("Copy command")}
-              </button>
+              </SharedUi.Button>
             </div>
           ))}
         </div>

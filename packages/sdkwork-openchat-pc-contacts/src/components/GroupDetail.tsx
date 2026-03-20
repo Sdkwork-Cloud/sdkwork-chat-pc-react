@@ -13,6 +13,7 @@ import {
   type ContactGroupRole,
   type ContactGroupRuntimeState,
 } from "../services";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface GroupDetailProps {
   group: Group;
@@ -255,14 +256,14 @@ export const GroupDetail = memo(
             <section className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6">
               <h4 className="text-sm font-medium text-[var(--text-tertiary)]">{tr("Group Notices")}</h4>
               <div className="mt-3 flex items-start gap-2">
-                <textarea
+                <SharedUi.Textarea
                   value={newNotice}
                   onChange={(event) => setNewNotice(event.target.value)}
                   rows={2}
                   placeholder={tr("Publish a notice to all members...")}
                   className="flex-1 resize-none rounded-lg border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--ai-primary)]"
                 />
-                <button
+                <SharedUi.Button
                   type="button"
                   onClick={() => {
                     void handlePublishNotice();
@@ -271,7 +272,7 @@ export const GroupDetail = memo(
                   className="h-10 rounded-lg bg-[var(--ai-primary)] px-4 text-sm text-white transition hover:brightness-110 disabled:opacity-60"
                 >
                   {isPublishingNotice ? tr("Publishing...") : tr("Publish")}
-                </button>
+                </SharedUi.Button>
               </div>
               <div className="mt-4 space-y-2">
                 {notices.length === 0 ? (
@@ -284,7 +285,7 @@ export const GroupDetail = memo(
                     >
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm text-[var(--text-primary)]">{notice.content}</p>
-                        <button
+                        <SharedUi.Button
                           type="button"
                           onClick={() => {
                             void handleDeleteNotice(notice.id);
@@ -292,7 +293,7 @@ export const GroupDetail = memo(
                           className="rounded px-2 py-1 text-xs text-[var(--ai-error)] hover:bg-[rgba(239,68,68,0.1)]"
                         >
                           {tr("Delete")}
-                        </button>
+                        </SharedUi.Button>
                       </div>
                       <p className="mt-1 text-xs text-[var(--text-muted)]">
                         {tr("Published by {{name}} at {{time}}", {
@@ -335,7 +336,7 @@ export const GroupDetail = memo(
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {!isOwner ? (
-                            <button
+                            <SharedUi.Button
                               type="button"
                               disabled={isBusy}
                               onClick={() => {
@@ -348,9 +349,9 @@ export const GroupDetail = memo(
                               className="rounded-md border border-[var(--border-color)] px-2.5 py-1 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-60"
                             >
                               {isAdmin ? tr("Set Member") : tr("Set Admin")}
-                            </button>
+                            </SharedUi.Button>
                           ) : null}
-                          <button
+                          <SharedUi.Button
                             type="button"
                             disabled={isBusy}
                             onClick={() => {
@@ -363,9 +364,9 @@ export const GroupDetail = memo(
                             className="rounded-md border border-[var(--border-color)] px-2.5 py-1 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-60"
                           >
                             {isMuted ? tr("Unmute") : tr("Mute 30m")}
-                          </button>
+                          </SharedUi.Button>
                           {!isOwner ? (
-                            <button
+                            <SharedUi.Button
                               type="button"
                               disabled={isBusy}
                               onClick={() => {
@@ -378,7 +379,7 @@ export const GroupDetail = memo(
                               className="rounded-md border border-[var(--border-color)] px-2.5 py-1 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-60"
                             >
                               {tr("Make Owner")}
-                            </button>
+                            </SharedUi.Button>
                           ) : null}
                         </div>
                       </div>
@@ -388,7 +389,7 @@ export const GroupDetail = memo(
               </div>
             </section>
 
-            <button
+            <SharedUi.Button
               type="button"
               onClick={() => {
                 void handleLeaveGroup();
@@ -397,7 +398,7 @@ export const GroupDetail = memo(
               className="w-full rounded-xl bg-[rgba(239,68,68,0.1)] py-3 text-sm font-medium text-[var(--ai-error)] transition-colors hover:bg-[rgba(239,68,68,0.15)] disabled:opacity-60"
             >
               {isLeaving ? tr("Leaving...") : tr("Leave Group")}
-            </button>
+            </SharedUi.Button>
 
             {feedback ? <p className="text-sm text-[var(--text-secondary)]">{feedback}</p> : null}
           </div>

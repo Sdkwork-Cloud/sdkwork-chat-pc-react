@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { useNavigate } from "react-router-dom";
 import { buildCallQueueSummary, CALL_QUEUE, type CallTicket } from "./communication.workspace.model";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
@@ -170,7 +171,7 @@ export function CallsPage() {
               <h2 className="text-sm font-semibold text-text-primary">{tr("Live Queue")}</h2>
               <p className="mt-1 text-xs text-text-secondary">{tr("Track active, ringing and missed call tickets.")}</p>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <select
+                <SharedUi.Select
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
                   className="h-9 rounded-md border border-border bg-bg-tertiary px-2 text-xs text-text-primary"
@@ -179,8 +180,8 @@ export function CallsPage() {
                   <option value="ringing">{tr("Ringing")}</option>
                   <option value="connected">{tr("Connected")}</option>
                   <option value="missed">{tr("Missed")}</option>
-                </select>
-                <input
+                </SharedUi.Select>
+                <SharedUi.Input
                   ref={searchInputRef}
                   value={keyword}
                   onChange={(event) => setKeyword(event.target.value)}
@@ -214,7 +215,7 @@ export function CallsPage() {
                   const active = selected?.id === item.id;
                   const targetLabel = formatTarget(item.target);
                   return (
-                    <button
+                    <SharedUi.Button
                       key={item.id}
                       onClick={() => setSelectedId(item.id)}
                       className={`w-full rounded-lg border px-3 py-2 text-left ${
@@ -228,7 +229,7 @@ export function CallsPage() {
                         {formatDirection(item.direction)} | {formatStatus(item.status)}
                       </p>
                       <p className="mt-1 text-[11px] text-text-muted">{formatTime(item.startedAt)}</p>
-                    </button>
+                    </SharedUi.Button>
                   );
                 })}
                 {filtered.length === 0 ? <p className="text-xs text-text-muted">{tr("No call tickets matched.")}</p> : null}
@@ -258,33 +259,33 @@ export function CallsPage() {
                 </div>
 
                 <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-                  <button onClick={answerCall} className="rounded-md bg-primary px-3 py-2 text-sm text-white">
+                  <SharedUi.Button onClick={answerCall} className="rounded-md bg-primary px-3 py-2 text-sm text-white">
                     {tr("Answer / Join (Enter)")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     onClick={toggleMute}
                     className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover"
                   >
                     {isMuted ? tr("Unmute (M)") : tr("Mute (M)")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     onClick={() => notifyAction(tr("Switched to the preferred desktop audio device."))}
                     className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover"
                   >
                     {tr("Switch Device")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     onClick={() => notifyAction(tr("Ended current call session."))}
                     className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover"
                   >
                     {tr("Hang Up")}
-                  </button>
+                  </SharedUi.Button>
                 </div>
 
                 <div className="mt-5 rounded-lg border border-border bg-bg-primary p-4">
                   <h3 className="text-sm font-semibold text-text-primary">{tr("Desktop Collaboration")}</h3>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <button
+                    <SharedUi.Button
                       onClick={() => {
                         notifyAction(tr("Opened Device Center."));
                         navigate("/devices");
@@ -292,8 +293,8 @@ export function CallsPage() {
                       className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                     >
                       {tr("Open Device Center")}
-                    </button>
-                    <button
+                    </SharedUi.Button>
+                    <SharedUi.Button
                       onClick={() => {
                         notifyAction(tr("Opened Terminal Session."));
                         navigate("/terminal");
@@ -301,8 +302,8 @@ export function CallsPage() {
                       className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                     >
                       {tr("Open Terminal Session")}
-                    </button>
-                    <button
+                    </SharedUi.Button>
+                    <SharedUi.Button
                       onClick={() => {
                         notifyAction(tr("Opened Notifications Center."));
                         navigate("/notifications");
@@ -310,7 +311,7 @@ export function CallsPage() {
                       className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                     >
                       {tr("Open Notifications")}
-                    </button>
+                    </SharedUi.Button>
                   </div>
                 </div>
                 <p className="mt-4 rounded-md border border-border bg-bg-primary px-3 py-2 text-xs text-text-secondary">

@@ -9,6 +9,7 @@ import {
   type RefObject,
 } from "react";
 import { formatNumber, useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 export interface RichTextEditorRef {
   getHTML: () => string;
@@ -226,13 +227,13 @@ export const ChatInput = memo(function ChatInput({
                   <span className="text-text-muted">📄</span>
                 )}
               </div>
-              <button
+              <SharedUi.Button
                 type="button"
                 onClick={() => removeAttachment(attachment.id)}
                 className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-error text-white opacity-0 transition-opacity group-hover:opacity-100"
               >
                 ×
-              </button>
+              </SharedUi.Button>
               {attachment.size ? (
                 <span className="absolute -bottom-4 left-0 right-0 text-center text-[9px] text-text-muted">
                   {formatFileSize(attachment.size)}
@@ -267,7 +268,7 @@ export const ChatInput = memo(function ChatInput({
       </div>
 
       <div className={`relative px-4 pb-2 ${isFocused ? "chat-input-focused" : ""}`}>
-        <textarea
+        <SharedUi.Textarea
           ref={textAreaRef}
           value={draft}
           onFocus={() => setIsFocused(true)}
@@ -285,7 +286,7 @@ export const ChatInput = memo(function ChatInput({
         />
 
         <div className="mt-2 flex justify-end">
-          <button
+          <SharedUi.Button
             type="button"
             onClick={handleSend}
             disabled={!hasContent || disabled}
@@ -296,11 +297,11 @@ export const ChatInput = memo(function ChatInput({
             }`}
           >
             {tr("Send")}
-          </button>
+          </SharedUi.Button>
         </div>
       </div>
 
-      <input
+      <SharedUi.Input
         ref={fileInputRef}
         type="file"
         multiple
@@ -324,14 +325,14 @@ const ToolbarButton = memo(function ToolbarButton({
   title,
 }: ToolbarButtonProps) {
   return (
-    <button
+    <SharedUi.Button
       type="button"
       onClick={onClick}
       title={title}
       className="rounded-lg p-2 text-text-tertiary transition-all duration-200 hover:bg-bg-hover hover:text-primary"
     >
       {children}
-    </button>
+    </SharedUi.Button>
   );
 });
 

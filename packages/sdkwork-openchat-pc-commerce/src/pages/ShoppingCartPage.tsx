@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { useNavigate } from "react-router-dom";
 import { CartResultService, type CartSummary } from "../services";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 function createFallbackCart(): CartSummary {
   return {
@@ -194,12 +195,12 @@ export function ShoppingCartPage() {
               {tr("Manage selected products and quantities in a checkout-ready workspace.")}
             </p>
           </div>
-          <button
+          <SharedUi.Button
             onClick={() => navigate("/commerce/mall")}
             className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
           >
             {tr("Back to Marketplace")}
-          </button>
+          </SharedUi.Button>
         </div>
       </header>
 
@@ -212,24 +213,24 @@ export function ShoppingCartPage() {
                 {tr("Select, update quantity, and remove products.")}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <button
+                <SharedUi.Button
                   onClick={() => void handleSelectAll()}
                   className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                 >
                   {allSelected ? tr("Unselect All") : tr("Select All")}
-                </button>
-                <button
+                </SharedUi.Button>
+                <SharedUi.Button
                   onClick={() => void handleClearSelected()}
                   className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                 >
                   {tr("Remove Selected")}
-                </button>
-                <button
+                </SharedUi.Button>
+                <SharedUi.Button
                   onClick={() => void handleClearCart()}
                   className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                 >
                   {tr("Clear Cart")}
-                </button>
+                </SharedUi.Button>
               </div>
             </div>
 
@@ -265,7 +266,7 @@ export function ShoppingCartPage() {
                         } ${busy ? "opacity-70" : ""}`}
                       >
                         <div className="flex items-start gap-3">
-                          <input
+                          <SharedUi.Input
                             type="checkbox"
                             checked={item.selected}
                             onClick={(event) => event.stopPropagation()}
@@ -281,25 +282,25 @@ export function ShoppingCartPage() {
                             <p className="line-clamp-1 text-sm font-semibold text-text-primary">{item.product.name}</p>
                             <p className="mt-1 text-xs text-text-muted">{formatCurrency(item.product.price, "CNY")}</p>
                             <div className="mt-2 flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
-                              <button
+                              <SharedUi.Button
                                 onClick={() => void handleChangeQuantity(item.id, item.quantity - 1)}
                                 className="h-6 w-6 rounded-md border border-border bg-bg-tertiary text-xs text-text-secondary"
                               >
                                 -
-                              </button>
+                              </SharedUi.Button>
                               <span className="w-6 text-center text-xs text-text-primary">{item.quantity}</span>
-                              <button
+                              <SharedUi.Button
                                 onClick={() => void handleChangeQuantity(item.id, item.quantity + 1)}
                                 className="h-6 w-6 rounded-md border border-border bg-bg-tertiary text-xs text-text-secondary"
                               >
                                 +
-                              </button>
-                              <button
+                              </SharedUi.Button>
+                              <SharedUi.Button
                                 onClick={() => void handleRemove(item.id)}
                                 className="ml-2 rounded-md border border-border bg-bg-tertiary px-2 py-0.5 text-[11px] text-text-secondary"
                               >
                                 {tr("Remove")}
-                              </button>
+                              </SharedUi.Button>
                             </div>
                           </div>
                         </div>
@@ -420,19 +421,19 @@ export function ShoppingCartPage() {
                   </div>
 
                   <div className="mt-4 space-y-2">
-                    <button
+                    <SharedUi.Button
                       onClick={() => void handleClearSelected()}
                       disabled={cart.selectedCount === 0}
                       className="w-full rounded-md bg-primary px-3 py-2 text-sm text-white disabled:opacity-60"
                     >
                       {tr("Remove Selected Items")}
-                    </button>
-                    <button
+                    </SharedUi.Button>
+                    <SharedUi.Button
                       onClick={() => navigate("/commerce/mall")}
                       className="w-full rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover"
                     >
                       {tr("Add More Products")}
-                    </button>
+                    </SharedUi.Button>
                   </div>
 
                   <p className="mt-3 text-xs text-text-muted">

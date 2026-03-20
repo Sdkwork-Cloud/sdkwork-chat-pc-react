@@ -5,6 +5,7 @@ import {
   MEDIA_CHANNELS,
   type MediaChannel,
 } from "./media.workspace.model";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
@@ -163,7 +164,7 @@ export function MediaCenterPage() {
           <aside className="flex min-h-0 flex-col rounded-xl border border-border bg-bg-secondary">
             <div className="border-b border-border p-4">
               <div className="grid grid-cols-2 gap-2">
-                <select
+                <SharedUi.Select
                   value={typeFilter}
                   onChange={(event) => setTypeFilter(event.target.value as typeof typeFilter)}
                   className="h-9 rounded-md border border-border bg-bg-tertiary px-2 text-xs text-text-primary"
@@ -172,8 +173,8 @@ export function MediaCenterPage() {
                   <option value="audio">{tr("Audio")}</option>
                   <option value="video">{tr("Video")}</option>
                   <option value="podcast">{tr("Podcast")}</option>
-                </select>
-                <input
+                </SharedUi.Select>
+                <SharedUi.Input
                   ref={searchInputRef}
                   value={keyword}
                   onChange={(event) => setKeyword(event.target.value)}
@@ -206,7 +207,7 @@ export function MediaCenterPage() {
             <div className="min-h-0 flex-1 overflow-auto p-3">
               <div className="space-y-2">
                 {filtered.map((item) => (
-                  <button
+                  <SharedUi.Button
                     key={item.id}
                     onClick={() => setSelectedId(item.id)}
                     className={`w-full rounded-lg border px-3 py-2 text-left ${
@@ -220,7 +221,7 @@ export function MediaCenterPage() {
                     <p className="mt-1 text-[11px] text-text-muted">
                       {tr("Audience {{count}}", { count: item.audience })}
                     </p>
-                  </button>
+                  </SharedUi.Button>
                 ))}
                 {filtered.length === 0 ? (
                   <p className="text-xs text-text-muted">{tr("No channels matched.")}</p>
@@ -259,33 +260,33 @@ export function MediaCenterPage() {
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <button onClick={togglePlayback} className="rounded-md bg-primary px-3 py-1.5 text-xs text-white">
+                  <SharedUi.Button onClick={togglePlayback} className="rounded-md bg-primary px-3 py-1.5 text-xs text-white">
                     {isPlaying ? tr("Pause (Space)") : tr("Play (Space)")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     onClick={() => notifyAction(tr("Queued next recommended media item."))}
                     className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                   >
                     {tr("Queue Next")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     onClick={() => notifyAction(tr("Opened transcript panel."))}
                     className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                   >
                     {tr("Open Transcript")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     onClick={() => adjustVolume(-5)}
                     className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                   >
                     {tr("Volume -")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     onClick={() => adjustVolume(5)}
                     className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                   >
                     {tr("Volume +")}
-                  </button>
+                  </SharedUi.Button>
                 </div>
                 <p className="mt-4 rounded-md border border-border bg-bg-primary px-3 py-2 text-xs text-text-secondary">
                   {actionMessage}

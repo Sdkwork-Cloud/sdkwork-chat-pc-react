@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { AuthConfig, AuthType, ToolMarketItem, ToolTestResult } from "../entities/tool.entity";
 import { ToolResultService, ToolService } from "../services";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 const defaultCredentials: AuthConfig = {
   type: "none",
@@ -174,12 +175,12 @@ export function ToolConfigPage() {
   if (!tool) {
     return (
       <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary p-6">
-        <button
+        <SharedUi.Button
           onClick={() => navigate("/tools/api")}
           className="w-fit rounded-md border border-border bg-bg-secondary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
         >
           {tr("Back to Tool Market")}
-        </button>
+        </SharedUi.Button>
         <div className="mt-4 rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
           {errorText || tr("Tool not found.")}
         </div>
@@ -190,12 +191,12 @@ export function ToolConfigPage() {
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <button
+        <SharedUi.Button
           onClick={() => navigate("/tools/api")}
           className="mb-2 rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
         >
           {tr("Back to Tool Market")}
-        </button>
+        </SharedUi.Button>
         <h1 className="text-xl font-semibold text-text-primary">
           {tool.icon} {tool.name}
         </h1>
@@ -209,7 +210,7 @@ export function ToolConfigPage() {
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
               <label className="text-sm text-text-secondary md:col-span-2">
                 {tr("Endpoint")}
-                <input
+                <SharedUi.Input
                   value={tool.endpoint}
                   readOnly
                   className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-muted"
@@ -217,7 +218,7 @@ export function ToolConfigPage() {
               </label>
               <label className="text-sm text-text-secondary">
                 {tr("Method")}
-                <input
+                <SharedUi.Input
                   value={tool.method}
                   readOnly
                   className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-muted"
@@ -225,7 +226,7 @@ export function ToolConfigPage() {
               </label>
               <label className="text-sm text-text-secondary">
                 {tr("Auth Type")}
-                <select
+                <SharedUi.Select
                   value={credentials.type}
                   onChange={(event) => handleAuthTypeChange(event.target.value as AuthType)}
                   className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -235,13 +236,13 @@ export function ToolConfigPage() {
                   <option value="bearer">{tr("Bearer")}</option>
                   <option value="basic">{tr("Basic")}</option>
                   <option value="oauth2">{tr("OAuth 2.0")}</option>
-                </select>
+                </SharedUi.Select>
               </label>
 
               {credentials.type === "api_key" && (
                 <label className="text-sm text-text-secondary md:col-span-2">
                   {tr("API Key")}
-                  <input
+                  <SharedUi.Input
                     value={credentials.apiKey || ""}
                     onChange={(event) => setCredentials((prev) => ({ ...prev, apiKey: event.target.value }))}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -252,7 +253,7 @@ export function ToolConfigPage() {
               {credentials.type === "bearer" && (
                 <label className="text-sm text-text-secondary md:col-span-2">
                   {tr("Bearer Token")}
-                  <input
+                  <SharedUi.Input
                     value={credentials.token || ""}
                     onChange={(event) => setCredentials((prev) => ({ ...prev, token: event.target.value }))}
                     className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -264,7 +265,7 @@ export function ToolConfigPage() {
                 <>
                   <label className="text-sm text-text-secondary">
                     {tr("Username")}
-                    <input
+                    <SharedUi.Input
                       value={credentials.username || ""}
                       onChange={(event) => setCredentials((prev) => ({ ...prev, username: event.target.value }))}
                       className="mt-1 h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -272,7 +273,7 @@ export function ToolConfigPage() {
                   </label>
                   <label className="text-sm text-text-secondary">
                     {tr("Password")}
-                    <input
+                    <SharedUi.Input
                       type="password"
                       value={credentials.password || ""}
                       onChange={(event) => setCredentials((prev) => ({ ...prev, password: event.target.value }))}
@@ -284,21 +285,21 @@ export function ToolConfigPage() {
             </div>
 
             <div className="mt-4 flex items-center gap-2">
-              <button
+              <SharedUi.Button
                 onClick={() => void handleSave()}
                 disabled={isSaving}
                 className="rounded-md bg-primary px-3 py-1.5 text-xs text-white disabled:opacity-60"
               >
                 {isSaving ? tr("Saving...") : tr("Save Configuration")}
-              </button>
-              <button
+              </SharedUi.Button>
+              <SharedUi.Button
                 onClick={() => void handleTest()}
                 disabled={isTesting}
                 className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover disabled:opacity-60"
               >
                 {isTesting ? tr("Testing...") : tr("Test Connectivity")}
-              </button>
-              <button
+              </SharedUi.Button>
+              <SharedUi.Button
                 onClick={handleToggleFavorite}
                 className={`rounded-md border px-3 py-1.5 text-xs transition-colors ${
                   isFavorite
@@ -307,7 +308,7 @@ export function ToolConfigPage() {
                 }`}
               >
                 {isFavorite ? tr("Favorited") : tr("Add favorite")}
-              </button>
+              </SharedUi.Button>
             </div>
 
             {statusText && <p className="mt-3 text-xs text-success">{statusText}</p>}

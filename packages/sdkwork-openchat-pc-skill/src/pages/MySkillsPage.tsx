@@ -5,6 +5,7 @@ import { SkillResultService, SkillService } from "../services";
 import { SkillCard } from "../components/SkillCard";
 import { buildSkillWorkspaceLibrary } from "./skill.workspace.model";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 export function MySkillsPage() {
   const navigate = useNavigate();
@@ -140,12 +141,12 @@ export function MySkillsPage() {
               {tr("Manage all skills currently enabled for your account.")}
             </p>
           </div>
-          <button
+          <SharedUi.Button
             onClick={() => navigate("/skills")}
             className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-bg-hover"
           >
             {tr("Back to Marketplace")}
-          </button>
+          </SharedUi.Button>
         </div>
       </header>
 
@@ -168,7 +169,7 @@ export function MySkillsPage() {
         </div>
 
         <div className="mt-5">
-          <input
+          <SharedUi.Input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
             placeholder={tr("Search enabled skills")}
@@ -194,13 +195,13 @@ export function MySkillsPage() {
               <h2 className="text-sm font-semibold text-text-primary">{tr("Recently Used")}</h2>
               <div className="mt-3 flex flex-wrap gap-2">
                 {library.recent.map((item) => (
-                  <button
+                  <SharedUi.Button
                     key={`recent-${item.id}`}
                     onClick={() => handleOpenSkill(item.id)}
                     className="rounded-full border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-bg-hover"
                   >
                     {item.icon} {item.name}
-                  </button>
+                  </SharedUi.Button>
                 ))}
               </div>
             </div>
@@ -211,13 +212,13 @@ export function MySkillsPage() {
               <h2 className="text-sm font-semibold text-text-primary">{tr("Favorites")}</h2>
               <div className="mt-3 flex flex-wrap gap-2">
                 {library.favorites.map((item) => (
-                  <button
+                  <SharedUi.Button
                     key={`favorite-${item.id}`}
                     onClick={() => handleOpenSkill(item.id)}
                     className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs text-primary transition-colors hover:brightness-110"
                   >
                     {tr("Favorite - {{name}}", { name: item.name })}
-                  </button>
+                  </SharedUi.Button>
                 ))}
               </div>
             </div>
@@ -242,13 +243,13 @@ export function MySkillsPage() {
                     disabled={processingSkillId === skill.id}
                   />
                   <div className="flex items-center gap-2">
-                    <button
+                    <SharedUi.Button
                       onClick={() => handleOpenSkill(skill.id)}
                       className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-bg-hover"
                     >
                       {tr("Open detail")}
-                    </button>
-                    <button
+                    </SharedUi.Button>
+                    <SharedUi.Button
                       onClick={() => handleToggleFavorite(skill.id)}
                       className={`rounded-md px-3 py-1.5 text-xs transition-colors ${
                         favoriteSkillIds.includes(skill.id)
@@ -257,7 +258,7 @@ export function MySkillsPage() {
                       }`}
                     >
                       {favoriteSkillIds.includes(skill.id) ? tr("Favorited") : tr("Add favorite")}
-                    </button>
+                    </SharedUi.Button>
                   </div>
                 </div>
               ))}

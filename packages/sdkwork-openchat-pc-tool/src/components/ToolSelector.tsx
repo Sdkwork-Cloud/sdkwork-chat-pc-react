@@ -3,6 +3,7 @@ import { Input } from "@sdkwork/openchat-pc-ui";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { ToolMarketItem } from "../entities/tool.entity";
 import { ToolResultService } from "../services";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface ToolSelectorProps {
   selectedTools: string[];
@@ -125,7 +126,7 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
         <Input
           placeholder={tr("Search tools...")}
           value={searchKeyword}
-          onChange={setSearchKeyword}
+          onValueChange={setSearchKeyword}
           className="flex-1"
           prefix={
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -142,7 +143,7 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
 
       <div className="flex gap-2 overflow-x-auto pb-2">
         {categories.map((category) => (
-          <button
+          <SharedUi.Button
             key={category.id}
             onClick={() => setActiveCategory(category.id)}
             className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-colors ${
@@ -152,7 +153,7 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
             }`}
           >
             {category.icon} {tr(category.name)}
-          </button>
+          </SharedUi.Button>
         ))}
       </div>
 

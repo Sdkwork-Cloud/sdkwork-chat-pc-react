@@ -7,6 +7,7 @@ import {
   buildNotificationWorkspaceLibrary,
   filterNotificationFeed,
 } from "./notification.workspace.model";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 type NotificationFilterType = NotificationType | "all";
 
@@ -239,14 +240,14 @@ export function NotificationsPage() {
         </div>
 
         <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
-          <input
+          <SharedUi.Input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
             placeholder={tr("Search title or content")}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
           />
           <div className="flex flex-wrap items-center gap-2">
-            <button
+            <SharedUi.Button
               onClick={() => setOnlyUnread((prev) => !prev)}
               className={`rounded-md px-3 py-1.5 text-xs ${
                 onlyUnread
@@ -255,31 +256,31 @@ export function NotificationsPage() {
               }`}
             >
               {tr("Unread only")}
-            </button>
-            <button
+            </SharedUi.Button>
+            <SharedUi.Button
               onClick={() => void handleMarkAllRead()}
               className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
             >
               {tr("Mark all read")}
-            </button>
-            <button
+            </SharedUi.Button>
+            <SharedUi.Button
               onClick={() => void handleClearRead()}
               className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
             >
               {tr("Clear read")}
-            </button>
-            <button
+            </SharedUi.Button>
+            <SharedUi.Button
               onClick={() => void handlePushDemo()}
               className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
             >
               {tr("Push demo")}
-            </button>
+            </SharedUi.Button>
           </div>
         </div>
 
         <div className="mb-4 flex flex-wrap gap-2">
           {(Object.keys(notificationFilterLabelKeys) as NotificationFilterType[]).map((type) => (
-            <button
+            <SharedUi.Button
               key={type}
               onClick={() => setFilterType(type)}
               className={`rounded-md px-2.5 py-1 text-xs ${
@@ -289,7 +290,7 @@ export function NotificationsPage() {
               }`}
             >
               {tr(notificationFilterLabelKeys[type])}
-            </button>
+            </SharedUi.Button>
           ))}
         </div>
 
@@ -318,7 +319,7 @@ export function NotificationsPage() {
                 filteredNotifications.map((item) => {
                   const selected = item.id === selectedId;
                   return (
-                    <button
+                    <SharedUi.Button
                       key={item.id}
                       onClick={() => setSelectedId(item.id)}
                       className={`w-full border-b border-border px-4 py-3 text-left transition-colors ${
@@ -337,7 +338,7 @@ export function NotificationsPage() {
                       <p className="mt-1 text-[11px] text-text-muted">
                         {item.createTime ? formatDateTime(item.createTime) : tr("Unknown")} | {tr(notificationFilterLabelKeys[item.type])}
                       </p>
-                    </button>
+                    </SharedUi.Button>
                   );
                 })
               )}
@@ -359,18 +360,18 @@ export function NotificationsPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
+                      <SharedUi.Button
                         onClick={() => void handleToggleRead(selectedNotification)}
                         className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                       >
                       {selectedNotification.isRead ? tr("Mark unread") : tr("Mark read")}
-                      </button>
-                      <button
+                      </SharedUi.Button>
+                      <SharedUi.Button
                         onClick={() => void handleDelete(selectedNotification.id)}
                         className="rounded-md border border-error/50 bg-error/10 px-2.5 py-1 text-xs text-error hover:bg-error/20"
                       >
                       {tr("Delete")}
-                      </button>
+                      </SharedUi.Button>
                     </div>
                   </div>
                 </header>

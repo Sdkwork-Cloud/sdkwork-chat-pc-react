@@ -7,6 +7,7 @@ import {
   buildVideoWorkspaceSummary,
   filterVideoWorkspaceFeed,
 } from "./video.workspace.model";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 const typeOptions: Array<{ value: "all" | VideoType; label: string }> = [
   { value: "all", label: "All" },
@@ -240,13 +241,13 @@ export function ShortVideoPage() {
         <div className="mt-4 grid h-[calc(100%-140px)] grid-cols-1 gap-4 xl:grid-cols-[360px_1fr]">
           <aside className="flex h-full flex-col rounded-xl border border-border bg-bg-secondary p-4">
             <div className="grid grid-cols-1 gap-2">
-              <input
+              <SharedUi.Input
                 value={keyword}
                 onChange={(event) => setKeyword(event.target.value)}
                 placeholder={tr("Search videos")}
                 className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
               />
-              <select
+              <SharedUi.Select
                 value={typeFilter}
                 onChange={(event) => setTypeFilter(event.target.value as "all" | VideoType)}
                 className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -256,8 +257,8 @@ export function ShortVideoPage() {
                     {tr(item.label)}
                   </option>
                 ))}
-              </select>
-              <select
+              </SharedUi.Select>
+              <SharedUi.Select
                 value={sortBy}
                 onChange={(event) => setSortBy(event.target.value as "popular" | "new" | "duration")}
                 className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -267,7 +268,7 @@ export function ShortVideoPage() {
                     {tr(item.label)}
                   </option>
                 ))}
-              </select>
+              </SharedUi.Select>
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
@@ -283,13 +284,13 @@ export function ShortVideoPage() {
               <div className="rounded-lg border border-border bg-bg-primary p-2">
                 <p className="mb-1 font-semibold uppercase tracking-wide text-text-muted">{tr("Favorites")}</p>
                 {workspaceLibrary.favorites.slice(0, 2).map((item) => (
-                  <button
+                  <SharedUi.Button
                     key={`favorite-${item.id}`}
                     onClick={() => handleOpenVideo(item.id)}
                     className="block w-full truncate rounded px-2 py-1 text-left text-text-secondary hover:bg-bg-hover"
                   >
                     {item.title}
-                  </button>
+                  </SharedUi.Button>
                 ))}
                 {workspaceLibrary.favorites.length === 0 ? (
                   <p className="text-text-muted">{tr("No favorites yet.")}</p>
@@ -298,13 +299,13 @@ export function ShortVideoPage() {
               <div className="rounded-lg border border-border bg-bg-primary p-2">
                 <p className="mb-1 font-semibold uppercase tracking-wide text-text-muted">{tr("Recent")}</p>
                 {workspaceLibrary.recent.slice(0, 2).map((item) => (
-                  <button
+                  <SharedUi.Button
                     key={`recent-${item.id}`}
                     onClick={() => handleOpenVideo(item.id)}
                     className="block w-full truncate rounded px-2 py-1 text-left text-text-secondary hover:bg-bg-hover"
                   >
                     {item.title}
-                  </button>
+                  </SharedUi.Button>
                 ))}
                 {workspaceLibrary.recent.length === 0 ? (
                   <p className="text-text-muted">{tr("No recent history.")}</p>
@@ -313,13 +314,13 @@ export function ShortVideoPage() {
               <div className="rounded-lg border border-border bg-bg-primary p-2">
                 <p className="mb-1 font-semibold uppercase tracking-wide text-text-muted">{tr("Trending")}</p>
                 {workspaceLibrary.trending.slice(0, 2).map((item) => (
-                  <button
+                  <SharedUi.Button
                     key={`trending-${item.id}`}
                     onClick={() => handleOpenVideo(item.id)}
                     className="block w-full truncate rounded px-2 py-1 text-left text-text-secondary hover:bg-bg-hover"
                   >
                     {item.title}
-                  </button>
+                  </SharedUi.Button>
                 ))}
                 {workspaceLibrary.trending.length === 0 ? (
                   <p className="text-text-muted">{tr("No trending videos.")}</p>
@@ -334,7 +335,7 @@ export function ShortVideoPage() {
                 <p className="text-sm text-text-secondary">{tr("No videos found.")}</p>
               ) : (
                 workspaceVideos.map((video) => (
-                  <button
+                  <SharedUi.Button
                     key={video.id}
                     onClick={() => handleOpenVideo(video.id)}
                     className={`w-full rounded-lg border p-2 text-left ${
@@ -359,7 +360,7 @@ export function ShortVideoPage() {
                         </p>
                       </div>
                     </div>
-                  </button>
+                  </SharedUi.Button>
                 ))
               )}
             </div>
@@ -410,19 +411,19 @@ export function ShortVideoPage() {
                     </div>
 
                     <div className="mt-4 flex items-center gap-2">
-                        <button
+                        <SharedUi.Button
                           onClick={() => void handleToggleLike()}
                           className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                         >
                           {selectedVideo.hasLiked ? tr("Unlike") : tr("Like")}
-                        </button>
-                        <button
+                        </SharedUi.Button>
+                        <SharedUi.Button
                           onClick={() => void handleToggleCollect()}
                           className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                         >
                           {selectedVideo.hasCollected ? tr("Collected") : tr("Collect")}
-                        </button>
-                        <button
+                        </SharedUi.Button>
+                        <SharedUi.Button
                           onClick={() => handleToggleFavorite(selectedVideo.id)}
                           className={`rounded-md border px-3 py-1.5 text-xs ${
                             favoriteSet.has(selectedVideo.id)
@@ -431,7 +432,7 @@ export function ShortVideoPage() {
                           }`}
                         >
                           {favoriteSet.has(selectedVideo.id) ? tr("Favorited") : tr("Favorite")}
-                        </button>
+                        </SharedUi.Button>
                     </div>
                   </div>
                 </div>

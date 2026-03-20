@@ -13,6 +13,7 @@ import {
   buildWalletWorkspaceSummary,
   filterWalletWorkspaceTransactions,
 } from "./wallet.workspace.model";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 function translateStatus(status: Transaction["status"], tr: (key: string) => string): string {
   switch (status) {
@@ -258,14 +259,14 @@ export function WalletPage() {
                 {tr("Filter and select records for detail review.")}
               </p>
               <div className="mt-3 space-y-2">
-                <input
+                <SharedUi.Input
                   value={keyword}
                   onChange={(event) => setKeyword(event.target.value)}
                   placeholder={tr("Search title, category, description")}
                   className="h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
                 />
                 <div className="grid grid-cols-2 gap-2">
-                  <select
+                  <SharedUi.Select
                     value={typeFilter}
                     onChange={(event) => setTypeFilter(event.target.value as "all" | TransactionType)}
                     className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -273,8 +274,8 @@ export function WalletPage() {
                     <option value="all">{tr("All types")}</option>
                     <option value="income">{tr("Income")}</option>
                     <option value="expense">{tr("Expense")}</option>
-                  </select>
-                  <select
+                  </SharedUi.Select>
+                  <SharedUi.Select
                     value={categoryFilter}
                     onChange={(event) => setCategoryFilter(event.target.value)}
                     className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -285,7 +286,7 @@ export function WalletPage() {
                         {category}
                       </option>
                     ))}
-                  </select>
+                  </SharedUi.Select>
                 </div>
               </div>
             </div>
@@ -314,13 +315,13 @@ export function WalletPage() {
                   </div>
                   <div className="space-y-1">
                     {workspaceLibrary.favorites.slice(0, 2).map((item) => (
-                      <button
+                      <SharedUi.Button
                         key={`wallet-favorite-${item.id}`}
                         onClick={() => handleSelectTransaction(item.id)}
                         className="w-full rounded border border-border bg-bg-primary px-2 py-1 text-left text-[11px] text-text-secondary hover:bg-bg-hover"
                       >
                         {item.title}
-                      </button>
+                      </SharedUi.Button>
                     ))}
                     {workspaceLibrary.favorites.length === 0 ? (
                       <p className="text-[11px] text-text-muted">{tr("No favorites yet.")}</p>
@@ -335,13 +336,13 @@ export function WalletPage() {
                   </div>
                   <div className="space-y-1">
                     {workspaceLibrary.recent.slice(0, 2).map((item) => (
-                      <button
+                      <SharedUi.Button
                         key={`wallet-recent-${item.id}`}
                         onClick={() => handleSelectTransaction(item.id)}
                         className="w-full rounded border border-border bg-bg-primary px-2 py-1 text-left text-[11px] text-text-secondary hover:bg-bg-hover"
                       >
                         {item.title}
-                      </button>
+                      </SharedUi.Button>
                     ))}
                     {workspaceLibrary.recent.length === 0 ? (
                       <p className="text-[11px] text-text-muted">{tr("No recent history.")}</p>
@@ -364,7 +365,7 @@ export function WalletPage() {
                     const selected = item.id === selectedTransactionId;
                     const amountClass = item.type === "income" ? "text-success" : "text-error";
                     return (
-                      <button
+                      <SharedUi.Button
                         key={item.id}
                         onClick={() => handleSelectTransaction(item.id)}
                         className={`w-full px-4 py-3 text-left transition-colors ${
@@ -388,7 +389,7 @@ export function WalletPage() {
                         <p className="mt-1 line-clamp-1 text-xs text-text-muted">
                           {item.category} | {item.createTime ? formatTime(item.createTime) : tr("Unknown")}
                         </p>
-                      </button>
+                      </SharedUi.Button>
                     );
                   })}
                 </div>
@@ -440,62 +441,62 @@ export function WalletPage() {
                     <div className="rounded-lg border border-border bg-bg-primary p-4">
                       <h3 className="text-sm font-semibold text-text-primary">{tr("Transfer")}</h3>
                       <div className="mt-3 space-y-2">
-                        <input
+                        <SharedUi.Input
                           value={transferName}
                           onChange={(event) => setTransferName(event.target.value)}
                           placeholder={tr("Recipient")}
                           className="h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                         />
-                        <input
+                        <SharedUi.Input
                           value={transferAmount}
                           onChange={(event) => setTransferAmount(event.target.value)}
                           placeholder={tr("Amount")}
                           className="h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                         />
-                        <input
+                        <SharedUi.Input
                           value={transferMessage}
                           onChange={(event) => setTransferMessage(event.target.value)}
                           placeholder={tr("Message")}
                           className="h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                         />
-                        <button
+                        <SharedUi.Button
                           onClick={() => void handleTransfer()}
                           disabled={isSubmitting}
                           className="w-full rounded-md bg-primary px-3 py-2 text-xs text-white disabled:opacity-60"
                         >
                           {tr("Send Transfer")}
-                        </button>
+                        </SharedUi.Button>
                       </div>
                     </div>
 
                     <div className="rounded-lg border border-border bg-bg-primary p-4">
                       <h3 className="text-sm font-semibold text-text-primary">{tr("Red Packet")}</h3>
                       <div className="mt-3 space-y-2">
-                        <input
+                        <SharedUi.Input
                           value={redPacketAmount}
                           onChange={(event) => setRedPacketAmount(event.target.value)}
                           placeholder={tr("Total amount")}
                           className="h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                         />
-                        <input
+                        <SharedUi.Input
                           value={redPacketCount}
                           onChange={(event) => setRedPacketCount(event.target.value)}
                           placeholder={tr("Count")}
                           className="h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                         />
-                        <input
+                        <SharedUi.Input
                           value={redPacketMessage}
                           onChange={(event) => setRedPacketMessage(event.target.value)}
                           placeholder={tr("Greeting")}
                           className="h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
                         />
-                        <button
+                        <SharedUi.Button
                           onClick={() => void handleCreateRedPacket()}
                           disabled={isSubmitting}
                           className="w-full rounded-md bg-warning px-3 py-2 text-xs text-white disabled:opacity-60"
                         >
                           {tr("Create Red Packet")}
-                        </button>
+                        </SharedUi.Button>
                       </div>
                     </div>
                   </div>
@@ -523,7 +524,7 @@ export function WalletPage() {
                                   {method.last4 ? ` | **** ${method.last4}` : ""}
                                 </p>
                               </div>
-                              <button
+                              <SharedUi.Button
                                 onClick={() => void handleSetDefaultMethod(method.id)}
                                 className={`rounded px-2.5 py-1 text-[11px] ${
                                   method.isDefault
@@ -532,7 +533,7 @@ export function WalletPage() {
                                 }`}
                               >
                                 {method.isDefault ? tr("Default") : tr("Set Default")}
-                              </button>
+                              </SharedUi.Button>
                             </div>
                           </div>
                         ))
@@ -546,7 +547,7 @@ export function WalletPage() {
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="text-sm font-semibold text-text-primary">{tr("Transaction Detail")}</h3>
                       {selectedTransaction ? (
-                        <button
+                        <SharedUi.Button
                           type="button"
                           onClick={() => handleToggleFavorite(selectedTransaction.id)}
                           className={`rounded border px-2 py-1 text-[11px] ${
@@ -556,7 +557,7 @@ export function WalletPage() {
                           }`}
                         >
                           {favoriteSet.has(selectedTransaction.id) ? tr("Favorited") : tr("Favorite")}
-                        </button>
+                        </SharedUi.Button>
                       ) : null}
                     </div>
                     <p className="mt-1 text-xs text-text-secondary">

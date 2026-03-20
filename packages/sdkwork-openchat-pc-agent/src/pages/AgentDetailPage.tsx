@@ -5,6 +5,7 @@ import { AgentChat } from "../components/AgentChat";
 import { MemoryPanel } from "../components/MemoryPanel";
 import type { Agent, AgentSession, AgentStats } from "../entities/agent.entity";
 import { AgentResultService, AgentService } from "../services";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 type DetailTab = "overview" | "chat" | "memory";
 
@@ -229,12 +230,12 @@ export function AgentDetailPage() {
   if (error || !agent) {
     return (
       <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary p-6">
-        <button
+        <SharedUi.Button
           onClick={() => navigate("/agents")}
           className="w-fit rounded-full border border-border bg-bg-secondary px-4 py-2 text-xs text-text-secondary hover:bg-bg-hover"
         >
           {tr("Back to Agent Market")}
-        </button>
+        </SharedUi.Button>
         <div className="mt-4 rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
           {error || tr("Agent not found.")}
         </div>
@@ -246,13 +247,13 @@ export function AgentDetailPage() {
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
       <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
         <div className="flex flex-wrap items-center gap-3">
-          <button
+          <SharedUi.Button
             onClick={() => navigate("/agents")}
             className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs text-text-secondary transition-colors hover:bg-bg-hover"
           >
             {tr("Back to Agent Market")}
-          </button>
-            <button
+          </SharedUi.Button>
+            <SharedUi.Button
               onClick={() => {
                 AgentService.markAgentOpened(agent.id);
                 const params = new URLSearchParams({
@@ -264,7 +265,7 @@ export function AgentDetailPage() {
               className="rounded-full bg-primary px-4 py-2 text-xs text-white transition-colors hover:brightness-110"
             >
               {tr("Open in Chat")}
-            </button>
+            </SharedUi.Button>
         </div>
         <h1 className="mt-3 text-xl font-semibold text-text-primary">{agent.name}</h1>
         <p className="mt-1 text-sm text-text-secondary">{agent.description || tr("No description available.")}</p>
@@ -307,7 +308,7 @@ export function AgentDetailPage() {
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-2">
-            <button
+            <SharedUi.Button
               onClick={() => {
                 void handleCreateSession();
               }}
@@ -315,8 +316,8 @@ export function AgentDetailPage() {
               className="rounded-md bg-primary px-3 py-2 text-sm text-white transition-colors hover:brightness-110 disabled:opacity-60"
             >
               {tr("New Session")}
-            </button>
-            <button
+            </SharedUi.Button>
+            <SharedUi.Button
               onClick={() => {
                 void handleRefresh();
               }}
@@ -324,8 +325,8 @@ export function AgentDetailPage() {
               className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-bg-hover disabled:opacity-60"
             >
               {tr("Refresh Stats")}
-            </button>
-            <button
+            </SharedUi.Button>
+            <SharedUi.Button
               onClick={() => {
                 void handleResetAgent();
               }}
@@ -333,7 +334,7 @@ export function AgentDetailPage() {
               className="rounded-md border border-warning/50 bg-warning/10 px-3 py-2 text-sm text-warning transition-colors hover:bg-warning/20 disabled:opacity-60"
             >
               {tr("Reset Context")}
-            </button>
+            </SharedUi.Button>
           </div>
 
           {actionText ? (
@@ -358,7 +359,7 @@ export function AgentDetailPage() {
               sessions.map((session) => {
                 const active = selectedSession?.id === session.id;
                 return (
-                  <button
+                  <SharedUi.Button
                     key={session.id}
                     onClick={() => {
                       setChatSession(session);
@@ -374,7 +375,7 @@ export function AgentDetailPage() {
                     <p className="mt-1 truncate text-xs opacity-80">
                       {tr("Updated at {{time}}", { time: formatDateTime(session.updatedAt) })}
                     </p>
-                  </button>
+                  </SharedUi.Button>
                 );
               })
             )}
@@ -386,7 +387,7 @@ export function AgentDetailPage() {
             {tabs.map((tab) => {
               const active = activeTab === tab.key;
               return (
-                <button
+                <SharedUi.Button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
                   className={`rounded-full border px-4 py-2 text-xs font-medium transition-colors ${
@@ -397,7 +398,7 @@ export function AgentDetailPage() {
                 >
                   {tab.label}
                   <span className={`ml-2 ${active ? "text-white/80" : "text-text-muted"}`}>{tab.hint}</span>
-                </button>
+                </SharedUi.Button>
               );
             })}
             <span className="ml-auto text-xs text-text-muted">

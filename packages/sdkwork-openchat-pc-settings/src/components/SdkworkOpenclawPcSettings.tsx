@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { OpenClawInstallResultService } from "../services";
 import type { OpenClawInstallCommand, OpenClawPostInstallProfile } from "../types";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 const OPENCLAW_PROFILE_STORAGE_KEY = "openclaw:post-install-profile:v1";
 
@@ -125,7 +126,7 @@ export function SdkworkOpenclawPcSettings() {
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
           <label className="text-sm text-text-secondary">
             {tr("gateway.mode")}
-            <select
+            <SharedUi.Select
               value={profile.gatewayMode}
               onChange={(event) =>
                 setProfile((prev) => ({
@@ -137,12 +138,12 @@ export function SdkworkOpenclawPcSettings() {
             >
               <option value="local">{tr("local")}</option>
               <option value="remote">{tr("remote")}</option>
-            </select>
+            </SharedUi.Select>
           </label>
 
           <label className="text-sm text-text-secondary">
             {tr("gateway.bind")}
-            <select
+            <SharedUi.Select
               value={profile.gatewayBind}
               onChange={(event) =>
                 setProfile((prev) => ({
@@ -155,12 +156,12 @@ export function SdkworkOpenclawPcSettings() {
               <option value="loopback">{tr("loopback")}</option>
               <option value="lan">{tr("lan")}</option>
               <option value="auto">{tr("auto")}</option>
-            </select>
+            </SharedUi.Select>
           </label>
 
           <label className="text-sm text-text-secondary">
             {tr("gateway port")}
-            <input
+            <SharedUi.Input
               value={profile.gatewayPort}
               onChange={(event) =>
                 setProfile((prev) => ({ ...prev, gatewayPort: event.target.value }))
@@ -172,7 +173,7 @@ export function SdkworkOpenclawPcSettings() {
 
           <label className="text-sm text-text-secondary">
             {tr("gateway token (optional)")}
-            <input
+            <SharedUi.Input
               value={profile.gatewayToken}
               onChange={(event) =>
                 setProfile((prev) => ({ ...prev, gatewayToken: event.target.value }))
@@ -184,7 +185,7 @@ export function SdkworkOpenclawPcSettings() {
 
           <label className="text-sm text-text-secondary">
             OPENCLAW_STATE_DIR
-            <input
+            <SharedUi.Input
               value={profile.stateDir}
               onChange={(event) =>
                 setProfile((prev) => ({ ...prev, stateDir: event.target.value }))
@@ -195,7 +196,7 @@ export function SdkworkOpenclawPcSettings() {
 
           <label className="text-sm text-text-secondary">
             OPENCLAW_CONFIG_PATH
-            <input
+            <SharedUi.Input
               value={profile.configPath}
               onChange={(event) =>
                 setProfile((prev) => ({ ...prev, configPath: event.target.value }))
@@ -206,7 +207,7 @@ export function SdkworkOpenclawPcSettings() {
 
           <label className="text-sm text-text-secondary md:col-span-2">
             OPENCLAW_HOME / workspace
-            <input
+            <SharedUi.Input
               value={profile.workspaceDir}
               onChange={(event) =>
                 setProfile((prev) => ({ ...prev, workspaceDir: event.target.value }))
@@ -221,7 +222,7 @@ export function SdkworkOpenclawPcSettings() {
         <h3 className="text-sm font-medium text-text-primary">{tr("Channels (optional)")}</h3>
         <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-text-secondary md:grid-cols-4">
           <label className="inline-flex items-center gap-2">
-            <input
+            <SharedUi.Input
               type="checkbox"
               checked={profile.channels.telegram}
               onChange={(event) =>
@@ -234,7 +235,7 @@ export function SdkworkOpenclawPcSettings() {
             {tr("Telegram")}
           </label>
           <label className="inline-flex items-center gap-2">
-            <input
+            <SharedUi.Input
               type="checkbox"
               checked={profile.channels.discord}
               onChange={(event) =>
@@ -247,7 +248,7 @@ export function SdkworkOpenclawPcSettings() {
             {tr("Discord")}
           </label>
           <label className="inline-flex items-center gap-2">
-            <input
+            <SharedUi.Input
               type="checkbox"
               checked={profile.channels.whatsapp}
               onChange={(event) =>
@@ -260,7 +261,7 @@ export function SdkworkOpenclawPcSettings() {
             {tr("WhatsApp")}
           </label>
           <label className="inline-flex items-center gap-2">
-            <input
+            <SharedUi.Input
               type="checkbox"
               checked={profile.channels.signal}
               onChange={(event) =>
@@ -278,7 +279,7 @@ export function SdkworkOpenclawPcSettings() {
       <article className="rounded-xl border border-border bg-bg-secondary p-4">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-medium text-text-primary">{tr("Generated commands")}</h3>
-          <button
+          <SharedUi.Button
             type="button"
             onClick={() => {
               void handleCopyAll();
@@ -287,7 +288,7 @@ export function SdkworkOpenclawPcSettings() {
             className="rounded border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover disabled:opacity-60"
           >
             {tr("Copy all")}
-          </button>
+          </SharedUi.Button>
         </div>
 
         {loading ? (
@@ -313,7 +314,7 @@ export function SdkworkOpenclawPcSettings() {
                 <pre className="overflow-x-auto whitespace-pre-wrap rounded bg-bg-secondary p-2 text-[11px] text-text-primary">
                   {command.command}
                 </pre>
-                <button
+                <SharedUi.Button
                   type="button"
                   onClick={() => {
                     void handleCopySingle(command.command);
@@ -321,7 +322,7 @@ export function SdkworkOpenclawPcSettings() {
                   className="mt-2 rounded border border-border bg-bg-tertiary px-2 py-1 text-[11px] text-text-secondary hover:bg-bg-hover"
                 >
                   {tr("Copy command")}
-                </button>
+                </SharedUi.Button>
               </div>
             ))}
           </div>

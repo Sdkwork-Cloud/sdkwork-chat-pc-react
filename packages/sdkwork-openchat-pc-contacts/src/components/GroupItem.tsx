@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 import type { Group } from "../entities/contact.entity";
 
@@ -13,7 +14,7 @@ export const GroupItem = memo(function GroupItem({ group, isSelected, onClick }:
   const { tr } = useAppTranslation();
 
   return (
-    <button
+    <SharedUi.Button
       type="button"
       onClick={onClick}
       className={`flex w-full items-center px-4 py-3 text-left transition-all duration-150 group ${
@@ -43,7 +44,7 @@ export const GroupItem = memo(function GroupItem({ group, isSelected, onClick }:
       </div>
 
       {isSelected ? <div className="ml-2 h-1.5 w-1.5 rounded-full bg-[var(--ai-purple)]" /> : null}
-    </button>
+    </SharedUi.Button>
   );
 });
 

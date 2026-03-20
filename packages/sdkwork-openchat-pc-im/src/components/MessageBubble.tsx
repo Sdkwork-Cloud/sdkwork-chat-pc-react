@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { formatNumber, useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { Message, MessageAttachment } from "../entities/message.entity";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface MessageBubbleProps {
   message: Message;
@@ -45,7 +46,7 @@ const AttachmentItem = memo(function AttachmentItem({
 
   if (attachment.type === "image") {
     return (
-      <button
+      <SharedUi.Button
         type="button"
         onClick={() => openAttachment(attachment.url)}
         className="overflow-hidden rounded-lg border border-white/10"
@@ -56,13 +57,13 @@ const AttachmentItem = memo(function AttachmentItem({
           className="max-h-[220px] w-full object-cover"
           loading="lazy"
         />
-      </button>
+      </SharedUi.Button>
     );
   }
 
   if (attachment.type === "video") {
     return (
-      <button
+      <SharedUi.Button
         type="button"
         onClick={() => openAttachment(attachment.url)}
         className={`flex w-full items-center gap-3 rounded-lg p-3 text-left ${sharedClass}`}
@@ -76,12 +77,12 @@ const AttachmentItem = memo(function AttachmentItem({
             {attachment.duration ? `${Math.floor(attachment.duration)}s` : formatFileSize(attachment.size)}
           </p>
         </div>
-      </button>
+      </SharedUi.Button>
     );
   }
 
   return (
-    <button
+    <SharedUi.Button
       type="button"
       onClick={() => openAttachment(attachment.url)}
       className={`flex w-full items-center gap-3 rounded-lg p-3 text-left ${sharedClass}`}
@@ -91,7 +92,7 @@ const AttachmentItem = memo(function AttachmentItem({
         <p className="truncate text-sm font-medium">{attachment.name || tr("File")}</p>
         <p className="text-xs opacity-80">{formatFileSize(attachment.size)}</p>
       </div>
-    </button>
+    </SharedUi.Button>
   );
 });
 

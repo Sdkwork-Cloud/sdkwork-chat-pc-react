@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { CartResultService, CommerceResultService } from "../services";
 import type { Product, ProductCategory } from "../types";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 type ProductSortType = "default" | "price-asc" | "price-desc" | "sales" | "rating";
 
@@ -253,12 +254,12 @@ export function MallPage() {
             <h1 className="text-xl font-semibold text-text-primary">{tr("Mall.Header.Title")}</h1>
             <p className="mt-1 text-sm text-text-secondary">{tr("Mall.Header.Subtitle")}</p>
           </div>
-          <button
+          <SharedUi.Button
             onClick={() => navigate("/commerce/cart")}
             className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
           >
             {tr("Mall.Action.OpenCart")}
-          </button>
+          </SharedUi.Button>
         </div>
       </header>
 
@@ -272,7 +273,7 @@ export function MallPage() {
 
             <div className="min-h-0 flex-1 overflow-auto p-3">
               <div className="space-y-2">
-                <button
+                <SharedUi.Button
                   onClick={() => setCategoryId("")}
                   className={`w-full rounded-lg border px-3 py-2 text-left ${
                     categoryId === ""
@@ -284,9 +285,9 @@ export function MallPage() {
                   <p className="mt-1 text-xs text-text-muted">
                     {tr("Mall.Categories.Items", { count: products.length })}
                   </p>
-                </button>
+                </SharedUi.Button>
                 {categoryOptions.map((category) => (
-                  <button
+                  <SharedUi.Button
                     key={category.id}
                     onClick={() => setCategoryId(category.id)}
                     className={`w-full rounded-lg border px-3 py-2 text-left ${
@@ -298,7 +299,7 @@ export function MallPage() {
                     <p className="text-sm font-medium text-text-primary">
                       {category.icon || "CAT"} {category.name}
                     </p>
-                  </button>
+                  </SharedUi.Button>
                 ))}
               </div>
             </div>
@@ -307,7 +308,7 @@ export function MallPage() {
               <h3 className="text-sm font-semibold text-text-primary">{tr("Mall.HotProducts.Title")}</h3>
               <div className="mt-2 space-y-2">
                 {hotProducts.slice(0, 3).map((item) => (
-                  <button
+                  <SharedUi.Button
                     key={item.id}
                     onClick={() => setSelectedProductId(item.id)}
                     className="w-full rounded-md border border-border bg-bg-primary px-2.5 py-2 text-left hover:bg-bg-hover"
@@ -316,7 +317,7 @@ export function MallPage() {
                     <p className="mt-1 text-[11px] text-text-muted" >
                       {tr("Mall.HotProducts.Sales", { count: item.sales })}
                     </p>
-                  </button>
+                  </SharedUi.Button>
                 ))}
                 {hotProducts.length === 0 ? (
                   <p className="text-xs text-text-muted">{tr("Mall.HotProducts.Empty")}</p>
@@ -328,13 +329,13 @@ export function MallPage() {
           <section className="flex min-h-0 flex-col rounded-xl border border-border bg-bg-secondary">
             <div className="border-b border-border p-4">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_190px_170px_auto]">
-                <input
+                <SharedUi.Input
                   value={keyword}
                   onChange={(event) => setKeyword(event.target.value)}
                   placeholder={tr("Mall.Search.Placeholder")}
                   className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
                 />
-                <select
+                <SharedUi.Select
                   value={categoryId}
                   onChange={(event) => setCategoryId(event.target.value)}
                   className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -345,8 +346,8 @@ export function MallPage() {
                       {item.name}
                     </option>
                   ))}
-                </select>
-                <select
+                </SharedUi.Select>
+                <SharedUi.Select
                   value={sortBy}
                   onChange={(event) => setSortBy(event.target.value as ProductSortType)}
                   className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -356,8 +357,8 @@ export function MallPage() {
                       {tr(sortLabelKeys[key])}
                     </option>
                   ))}
-                </select>
-                <button
+                </SharedUi.Select>
+                <SharedUi.Button
                   onClick={() => {
                     setKeyword("");
                     setCategoryId("");
@@ -366,7 +367,7 @@ export function MallPage() {
                   className="rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover"
                 >
                   {tr("Mall.Action.ResetFilters")}
-                </button>
+                </SharedUi.Button>
               </div>
 
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -425,7 +426,7 @@ export function MallPage() {
                                   <p className="text-[11px] text-text-muted line-through">{formatPrice(product.originalPrice)}</p>
                                 ) : null}
                               </div>
-                              <button
+                              <SharedUi.Button
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   void handleAddToCart(product.id);
@@ -434,7 +435,7 @@ export function MallPage() {
                                 className="rounded-md bg-primary px-2.5 py-1.5 text-xs text-white disabled:opacity-60"
                               >
                                 {addingProductId === product.id ? tr("Mall.Action.Adding") : tr("Mall.Action.Add")}
-                              </button>
+                              </SharedUi.Button>
                             </div>
                           </article>
                         );
@@ -487,7 +488,7 @@ export function MallPage() {
                       </div>
 
                       <div className="border-t border-border p-3">
-                        <button
+                        <SharedUi.Button
                           onClick={() => void handleAddToCart(selectedProduct.id)}
                           disabled={addingProductId === selectedProduct.id}
                           className="w-full rounded-md bg-primary px-3 py-2 text-sm text-white disabled:opacity-60"
@@ -495,7 +496,7 @@ export function MallPage() {
                           {addingProductId === selectedProduct.id
                             ? tr("Mall.Action.AddingToCart")
                             : tr("Mall.Action.AddToCart")}
-                        </button>
+                        </SharedUi.Button>
                       </div>
                     </>
                   ) : (
@@ -514,13 +515,13 @@ export function MallPage() {
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {newProducts.slice(0, 6).map((item) => (
-                    <button
+                    <SharedUi.Button
                       key={item.id}
                       onClick={() => setSelectedProductId(item.id)}
                       className="rounded-md border border-border bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary hover:bg-bg-hover"
                     >
                       {item.name}
-                    </button>
+                    </SharedUi.Button>
                   ))}
                 </div>
               </div>

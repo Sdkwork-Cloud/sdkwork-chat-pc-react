@@ -6,6 +6,7 @@ import type {
   OpenClawInstallCommand,
   OpenClawInstallMode,
 } from "../types";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 const INSTALLER_PROGRESS_STORAGE_KEY = "openclaw:installer-progress:v1";
 
@@ -191,7 +192,7 @@ export function SdkworkOpenclawPcInstaller() {
 
       <div className="rounded-xl border border-border bg-bg-secondary p-4">
         <div className="mb-3 flex flex-wrap gap-2">
-          <button
+          <SharedUi.Button
             type="button"
             onClick={() => setActiveCategoryId("all")}
             className={`rounded-lg px-3 py-1.5 text-xs transition ${
@@ -201,9 +202,9 @@ export function SdkworkOpenclawPcInstaller() {
             }`}
           >
             {tr("All")}
-          </button>
+          </SharedUi.Button>
           {catalog.categories.map((category) => (
-            <button
+            <SharedUi.Button
               key={category.id}
               type="button"
               onClick={() => setActiveCategoryId(category.id)}
@@ -215,11 +216,11 @@ export function SdkworkOpenclawPcInstaller() {
               title={tr(category.description)}
             >
               {tr(category.label)}
-            </button>
+            </SharedUi.Button>
           ))}
         </div>
 
-        <input
+        <SharedUi.Input
           value={keyword}
           onChange={(event) => setKeyword(event.target.value)}
           placeholder={tr("Search mode/platform/step, for example Docker, Fly, install.ps1, or Nix")}
@@ -312,7 +313,7 @@ export function SdkworkOpenclawPcInstaller() {
                                   {command.command}
                                 </pre>
                                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                                  <button
+                                  <SharedUi.Button
                                     type="button"
                                     onClick={() => {
                                       void handleCopy(command.command);
@@ -320,9 +321,9 @@ export function SdkworkOpenclawPcInstaller() {
                                     className="rounded border border-border bg-bg-tertiary px-2 py-1 text-[11px] text-text-secondary hover:bg-bg-hover"
                                   >
                                     {tr("Copy command")}
-                                  </button>
+                                  </SharedUi.Button>
                                   <label className="inline-flex items-center gap-1 text-[11px] text-text-secondary">
-                                    <input
+                                    <SharedUi.Input
                                       type="checkbox"
                                       checked={checked}
                                       onChange={() => handleToggleDone(mode.id, command.id)}

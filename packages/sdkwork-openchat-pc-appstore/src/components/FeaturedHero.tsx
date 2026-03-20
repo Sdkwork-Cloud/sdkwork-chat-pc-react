@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { App } from "../entities/app.entity";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface FeaturedHeroProps {
   app: App;
@@ -19,7 +20,7 @@ export const FeaturedHero = memo(({ app, onClick }: FeaturedHeroProps) => {
   });
 
   return (
-    <button
+    <SharedUi.Button
       onClick={onClick}
       className="group relative w-full overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/20 via-bg-secondary to-bg-primary p-6 text-left transition-all hover:border-primary/40 hover:shadow-xl"
     >
@@ -60,7 +61,7 @@ export const FeaturedHero = memo(({ app, onClick }: FeaturedHeroProps) => {
           </span>
         </div>
       </div>
-    </button>
+    </SharedUi.Button>
   );
 });
 

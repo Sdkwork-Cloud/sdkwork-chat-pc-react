@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { useNavigate } from "react-router-dom";
 import { buildMeWorkspaceSummary, QUICK_ACTIONS, type QuickActionId } from "./me.workspace.model";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
@@ -168,7 +169,7 @@ export function MePage() {
           <section className="rounded-xl border border-border bg-bg-secondary p-5">
             <h3 className="text-sm font-semibold text-text-primary">{tr("Quick Actions")}</h3>
             <div className="mt-3">
-              <input
+              <SharedUi.Input
                 ref={searchInputRef}
                 value={keyword}
                 onChange={(event) => setKeyword(event.target.value)}
@@ -179,7 +180,7 @@ export function MePage() {
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {filteredActions.map((item) => (
-                <button
+                <SharedUi.Button
                   key={item.id}
                   onClick={() => {
                     setSelectedActionId(item.id);
@@ -193,7 +194,7 @@ export function MePage() {
                 >
                   <p className="text-sm font-semibold text-text-primary">{item.label}</p>
                   <p className="mt-1 text-xs text-text-secondary">{item.desc}</p>
-                </button>
+                </SharedUi.Button>
               ))}
               {filteredActions.length === 0 ? <p className="text-xs text-text-muted">{tr("No action matched.")}</p> : null}
             </div>

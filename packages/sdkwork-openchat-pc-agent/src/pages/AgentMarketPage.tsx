@@ -10,6 +10,7 @@ import {
   pickAgentPreviewTarget,
   type AgentWorkbenchRail,
 } from "./agent.workspace.model";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 function getStatusClass(status: AgentStatus): string {
   switch (status) {
@@ -243,18 +244,18 @@ export function AgentMarketPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
+            <SharedUi.Button
               onClick={() => navigate("/skills")}
               className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
             >
               {tr("Skill Market")}
-            </button>
-            <button
+            </SharedUi.Button>
+            <SharedUi.Button
               onClick={() => navigate("/appstore")}
               className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
             >
               {tr("App Store")}
-            </button>
+            </SharedUi.Button>
           </div>
         </div>
       </header>
@@ -268,7 +269,7 @@ export function AgentMarketPage() {
             {railOptions.map((option) => {
               const active = option.key === rail;
               return (
-                <button
+                <SharedUi.Button
                   key={option.key}
                   onClick={() => setRail(option.key)}
                   className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
@@ -279,7 +280,7 @@ export function AgentMarketPage() {
                 >
                   <p className="text-sm font-medium">{option.label}</p>
                   <p className="mt-1 text-xs opacity-80">{option.description}</p>
-                </button>
+                </SharedUi.Button>
               );
             })}
           </div>
@@ -289,7 +290,7 @@ export function AgentMarketPage() {
             {categoryOptions.map((item) => {
               const active = item.value === category;
               return (
-                <button
+                <SharedUi.Button
                   key={item.value}
                   onClick={() => setCategory(item.value)}
                   className={`w-full rounded-md px-3 py-1.5 text-left text-sm transition-colors ${
@@ -297,7 +298,7 @@ export function AgentMarketPage() {
                   }`}
                 >
                   {item.label}
-                </button>
+                </SharedUi.Button>
               );
             })}
           </div>
@@ -308,13 +309,13 @@ export function AgentMarketPage() {
               .filter((item) => item.value !== AgentCategory.ALL)
               .slice(0, 6)
               .map((item) => (
-                <button
+                <SharedUi.Button
                   key={`quick-${item.value}`}
                   onClick={() => setCategory(item.value)}
                   className="rounded-full border border-border bg-bg-primary px-2.5 py-1 text-xs text-text-secondary transition-colors hover:border-primary/40 hover:bg-bg-hover"
                 >
                   {item.label}
-                </button>
+                </SharedUi.Button>
               ))}
           </div>
 
@@ -344,7 +345,7 @@ export function AgentMarketPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">{tr("Today Focus")}</p>
               <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
                 {featuredAgents.map((item) => (
-                  <button
+                  <SharedUi.Button
                     key={`focus-${item.id}`}
                     onClick={() => setSelectedAgentId(item.id)}
                     className="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary px-3 py-2 text-left transition-colors hover:border-primary/40"
@@ -363,20 +364,20 @@ export function AgentMarketPage() {
                             : "-"} / {formatNumber(item.config.usageCount || 0)}
                       </p>
                     </div>
-                  </button>
+                  </SharedUi.Button>
                 ))}
               </div>
             </div>
           ) : null}
 
           <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px]">
-            <input
+            <SharedUi.Input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
               placeholder={tr("Search by name, description, or tags")}
               className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
             />
-            <select
+            <SharedUi.Select
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value as "popular" | "newest" | "rating")}
               className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary focus:border-primary focus:outline-none"
@@ -386,7 +387,7 @@ export function AgentMarketPage() {
                   {item.label}
                 </option>
               ))}
-            </select>
+            </SharedUi.Select>
           </div>
 
           {errorText ? (
@@ -402,12 +403,12 @@ export function AgentMarketPage() {
           ) : scopedAgents.length === 0 ? (
             <div className="rounded-xl border border-border bg-bg-primary p-5 text-sm text-text-secondary">
               <p>{tr(emptyText)}</p>
-              <button
+              <SharedUi.Button
                 onClick={resetFilters}
                 className="mt-3 rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
               >
                 {tr("Reset filters")}
-              </button>
+              </SharedUi.Button>
             </div>
           ) : (
             <div className="space-y-3">
@@ -432,7 +433,7 @@ export function AgentMarketPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button
+                        <SharedUi.Button
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
@@ -445,7 +446,7 @@ export function AgentMarketPage() {
                           }`}
                         >
                           {favoriteAgentIdSet.has(agent.id) ? tr("Saved") : tr("Save")}
-                        </button>
+                        </SharedUi.Button>
                         <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${getStatusClass(agent.status)}`}>
                           {tr(formatStatus(agent.status))}
                         </span>
@@ -519,24 +520,24 @@ export function AgentMarketPage() {
               <div className="rounded-lg border border-border bg-bg-primary p-4">
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Actions")}</h4>
                 <div className="mt-3 grid grid-cols-1 gap-2">
-                  <button
+                  <SharedUi.Button
                     onClick={() => handleOpenDetail(selectedAgent.id)}
                     className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-bg-hover"
                   >
                     {tr("Open detail workspace")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     onClick={() => handleLaunchChat(selectedAgent)}
                     className="rounded-md bg-primary px-3 py-2 text-sm text-white transition-colors hover:brightness-110"
                   >
                     {tr("Start chat")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     onClick={() => handleToggleFavorite(selectedAgent.id)}
                     className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning transition-colors hover:bg-warning/20"
                   >
                     {favoriteAgentIdSet.has(selectedAgent.id) ? tr("Remove from favorites") : tr("Save to favorites")}
-                  </button>
+                  </SharedUi.Button>
                 </div>
               </div>
 
@@ -548,13 +549,13 @@ export function AgentMarketPage() {
                 {examplePrompts.length > 0 ? (
                   <div className="mt-2 space-y-1">
                     {examplePrompts.map((prompt) => (
-                      <button
+                      <SharedUi.Button
                         key={`${selectedAgent.id}-${prompt}`}
                         onClick={() => handleLaunchChat(selectedAgent, prompt)}
                         className="w-full rounded-md bg-bg-tertiary px-2.5 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-bg-hover"
                       >
                         {prompt}
-                      </button>
+                      </SharedUi.Button>
                     ))}
                   </div>
                 ) : null}
@@ -565,7 +566,7 @@ export function AgentMarketPage() {
                   <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Recently Opened")}</h4>
                   <div className="mt-2 space-y-2">
                     {recentOpenedAgents.map((item) => (
-                      <button
+                      <SharedUi.Button
                         key={`opened-${item.id}`}
                         onClick={() => setSelectedAgentId(item.id)}
                         className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs text-text-secondary hover:bg-bg-hover"
@@ -574,7 +575,7 @@ export function AgentMarketPage() {
                         <span className="text-text-muted">
                           {favoriteAgentIdSet.has(item.id) ? tr("Saved") : tr("Recent")}
                         </span>
-                      </button>
+                      </SharedUi.Button>
                     ))}
                   </div>
                 </div>
@@ -585,14 +586,14 @@ export function AgentMarketPage() {
                   <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Recently Updated")}</h4>
                   <div className="mt-2 space-y-2">
                     {summary.recent.slice(0, 3).map((item) => (
-                      <button
+                      <SharedUi.Button
                         key={`recent-${item.id}`}
                         onClick={() => setSelectedAgentId(item.id)}
                         className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs text-text-secondary hover:bg-bg-hover"
                       >
                         <span className="truncate">{item.name}</span>
                         <span className="text-text-muted">{formatDate(item.updatedAt, { dateStyle: "medium" })}</span>
-                      </button>
+                      </SharedUi.Button>
                     ))}
                   </div>
                 </div>

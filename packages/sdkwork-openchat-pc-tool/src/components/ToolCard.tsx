@@ -1,5 +1,6 @@
 import type { ToolMarketItem } from "../entities/tool.entity";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface ToolCardProps {
   tool: ToolMarketItem;
@@ -58,7 +59,7 @@ export function ToolCard({ tool, onAdd, onClick }: ToolCardProps) {
         {tool.isEnabled ? (
           <span className="rounded-lg bg-success/10 px-3 py-1 text-xs text-success">{tr("Enabled")}</span>
         ) : (
-          <button
+          <SharedUi.Button
             onClick={(event) => {
               event.stopPropagation();
               onAdd?.(tool.id);
@@ -66,7 +67,7 @@ export function ToolCard({ tool, onAdd, onClick }: ToolCardProps) {
             className="rounded-lg bg-primary px-3 py-1 text-xs text-white hover:bg-primary-hover"
           >
             {tr("Enable")}
-          </button>
+          </SharedUi.Button>
         )}
       </div>
     </div>

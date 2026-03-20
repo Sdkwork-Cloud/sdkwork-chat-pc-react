@@ -8,6 +8,7 @@ import type {
   KnowledgeStats,
   MemoryStats,
 } from "../entities/memory.entity";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface MemoryPanelProps {
   agentId: string;
@@ -209,16 +210,18 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
     }
   };
 
-  const getDocumentStatusColor = (status: string) => {
+  const getDocumentStatusVariant = (
+    status: string,
+  ): "success" | "warning" | "error" | "secondary" => {
     switch (status) {
       case "ready":
-        return "bg-green-100 text-green-700";
+        return "success";
       case "processing":
-        return "bg-yellow-100 text-yellow-700";
+        return "warning";
       case "error":
-        return "bg-red-100 text-red-700";
+        return "error";
       default:
-        return "bg-gray-100 text-gray-600";
+        return "secondary";
     }
   };
 
@@ -248,7 +251,7 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
       <div className="flex-shrink-0 border-b border-[var(--border-color)]">
         <div className="flex">
           {tabs.map((tab) => (
-            <button
+            <SharedUi.Button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-2 border-b-2 px-6 py-3 text-sm font-medium transition-colors ${
@@ -259,38 +262,40 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
             >
               <span className="text-xs">{tab.icon}</span>
               {tab.label}
-            </button>
+            </SharedUi.Button>
           ))}
         </div>
       </div>
 
       {error ? (
-        <div className="mx-4 mt-4 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-          <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
+        <SharedUi.StatusNotice tone="error" className="mx-4 mt-4" title={tr("Memory panel error")}>
+          <div className="flex items-center justify-between gap-3">
+            <span>{error}</span>
+            <SharedUi.Button
+              onClick={() => setError(null)}
+              className="rounded p-1 text-[var(--ai-error)] transition-colors hover:bg-[var(--ai-error-soft)]"
+              aria-label={tr("Dismiss")}
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </SharedUi.Button>
+          </div>
+        </SharedUi.StatusNotice>
       ) : null}
 
-      {loading ? (
-        <div className="flex justify-center p-4">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--ai-primary)] border-t-transparent" />
-        </div>
-      ) : null}
+      {loading ? <SharedUi.LoadingBlock className="py-4" label={tr("Loading...")} /> : null}
 
       <div className="flex-1 overflow-auto p-4">
         {activeTab === "memory" ? (
           <div>
             <div className="mb-4 flex gap-2">
-              <input
+              <SharedUi.Input
                 type="text"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
@@ -302,7 +307,7 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
                 placeholder={tr("Search memory...")}
                 className="flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--ai-primary)] focus:outline-none"
               />
-              <button
+              <SharedUi.Button
                 onClick={() => void handleSearch()}
                 className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-2 transition-colors hover:bg-[var(--bg-hover)]"
                 title={tr("Search")}
@@ -315,8 +320,8 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                   />
                 </svg>
-              </button>
-              <button
+              </SharedUi.Button>
+              <SharedUi.Button
                 onClick={() => setAddMemoryOpen(true)}
                 className="rounded-xl bg-[var(--ai-primary)] px-4 py-2 text-white transition-colors hover:bg-[var(--ai-primary-hover)]"
                 title={tr("Add memory")}
@@ -329,7 +334,7 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
                     d="M12 4v16m8-8H4"
                   />
                 </svg>
-              </button>
+              </SharedUi.Button>
             </div>
 
             <div className="space-y-3">
@@ -343,17 +348,17 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
                   </p>
                   <div className="flex items-center justify-between">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-md bg-[var(--bg-tertiary)] px-2 py-0.5 text-xs text-[var(--text-muted)]">
+                      <SharedUi.Badge variant="secondary">
                         {memoryTypeLabels[memory.type]}
-                      </span>
-                      <span className="rounded-md bg-[var(--bg-tertiary)] px-2 py-0.5 text-xs text-[var(--text-muted)]">
+                      </SharedUi.Badge>
+                      <SharedUi.Badge variant="outline">
                         {memorySourceLabels[memory.source]}
-                      </span>
+                      </SharedUi.Badge>
                       <span className="text-xs text-[var(--text-muted)]">
                         {formatDateTime(memory.createdAt)}
                       </span>
                     </div>
-                    <button
+                    <SharedUi.Button
                       onClick={() => void handleDeleteMemory(memory.id)}
                       className="p-1 text-[var(--text-muted)] transition-colors hover:text-red-500"
                       title={tr("Delete")}
@@ -366,15 +371,17 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
                           d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                         />
                       </svg>
-                    </button>
+                    </SharedUi.Button>
                   </div>
                 </div>
               ))}
 
               {memories.length === 0 ? (
-                <div className="py-8 text-center text-[var(--text-muted)]">
-                  {tr("No memory found.")}
-                </div>
+                <SharedUi.EmptyState
+                  title={tr("No memory found.")}
+                  description={tr("Add a memory entry or refine your search to see results here.")}
+                  className="py-8"
+                />
               ) : null}
             </div>
           </div>
@@ -383,7 +390,7 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
         {activeTab === "knowledge" ? (
           <div>
             <div className="mb-4 flex justify-end">
-              <button
+              <SharedUi.Button
                 onClick={() => setAddDocumentOpen(true)}
                 className="flex items-center gap-2 rounded-xl bg-[var(--ai-primary)] px-4 py-2 text-white transition-colors hover:bg-[var(--ai-primary-hover)]"
               >
@@ -396,7 +403,7 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
                   />
                 </svg>
                 {tr("Add document")}
-              </button>
+              </SharedUi.Button>
             </div>
 
             <div className="space-y-3">
@@ -411,11 +418,9 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
                         {document.title}
                       </h4>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs ${getDocumentStatusColor(document.status)}`}
-                        >
+                        <SharedUi.Badge variant={getDocumentStatusVariant(document.status)}>
                           {getDocumentStatusLabel(document.status)}
-                        </span>
+                        </SharedUi.Badge>
                         <span className="text-xs text-[var(--text-muted)]">
                           {tr("{{chunkCount}} chunks · {{tokenCount}} tokens", {
                             chunkCount: formatNumber(document.chunkCount),
@@ -424,7 +429,7 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
                         </span>
                       </div>
                     </div>
-                    <button
+                    <SharedUi.Button
                       onClick={() => void handleDeleteDocument(document.id)}
                       className="p-1 text-[var(--text-muted)] transition-colors hover:text-red-500"
                       title={tr("Delete")}
@@ -437,15 +442,17 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
                           d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                         />
                       </svg>
-                    </button>
+                    </SharedUi.Button>
                   </div>
                 </div>
               ))}
 
               {documents.length === 0 ? (
-                <div className="py-8 text-center text-[var(--text-muted)]">
-                  {tr("No knowledge documents found.")}
-                </div>
+                <SharedUi.EmptyState
+                  title={tr("No knowledge documents found.")}
+                  description={tr("Add a knowledge document to build the agent knowledge base.")}
+                  className="py-8"
+                />
               ) : null}
             </div>
           </div>
@@ -484,12 +491,9 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
                     <p className="mb-2 text-sm text-[var(--text-muted)]">{tr("By type")}</p>
                     <div className="flex flex-wrap gap-1">
                       {Object.entries(memoryStats.byType).map(([type, count]) => (
-                        <span
-                          key={type}
-                          className="rounded-md bg-[var(--bg-tertiary)] px-2 py-1 text-xs text-[var(--text-secondary)]"
-                        >
+                        <SharedUi.Badge key={type} variant="secondary">
                           {memoryTypeLabels[type as MemoryType]}: {formatNumber(count)}
-                        </span>
+                        </SharedUi.Badge>
                       ))}
                     </div>
                   </div>
@@ -528,113 +532,104 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
         ) : null}
       </div>
 
-      {addMemoryOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-2xl bg-[var(--bg-secondary)] shadow-xl">
-            <div className="border-b border-[var(--border-color)] p-4">
-              <h3 className="text-lg font-medium text-[var(--text-primary)]">
-                {tr("Add memory")}
-              </h3>
+      <SharedUi.Dialog
+        isOpen={addMemoryOpen}
+        onClose={() => setAddMemoryOpen(false)}
+        title={tr("Add memory")}
+        size="md"
+        closeOnOverlayClick={false}
+        closeOnEscape={false}
+        bodyClassName="p-4"
+        footer={
+          <SharedUi.ModalButtonGroup
+            onCancel={() => setAddMemoryOpen(false)}
+            onConfirm={() => void handleAddMemory()}
+            confirmText={tr("Add")}
+            disabled={!newMemory.content.trim()}
+          />
+        }
+      >
+        <div className="space-y-4">
+          <SharedUi.Field>
+            <SharedUi.FieldLabel>{tr("Memory content")}</SharedUi.FieldLabel>
+            <SharedUi.Textarea
+              value={newMemory.content}
+              onChange={(event) =>
+                setNewMemory((previous) => ({ ...previous, content: event.target.value }))
+              }
+              placeholder={tr("Memory content...")}
+              rows={4}
+              className="w-full resize-none"
+            />
+          </SharedUi.Field>
+          <SharedUi.Field>
+            <SharedUi.FieldLabel>{tr("Memory type")}</SharedUi.FieldLabel>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(memoryTypeLabels).map(([type, label]) => (
+                <SharedUi.Button
+                  key={type}
+                  variant={newMemory.type === type ? "primary" : "secondary"}
+                  size="small"
+                  onClick={() =>
+                    setNewMemory((previous) => ({
+                      ...previous,
+                      type: type as MemoryType,
+                    }))
+                  }
+                  className="rounded-lg"
+                >
+                  {label}
+                </SharedUi.Button>
+              ))}
             </div>
-            <div className="space-y-4 p-4">
-              <textarea
-                value={newMemory.content}
-                onChange={(event) =>
-                  setNewMemory((previous) => ({ ...previous, content: event.target.value }))
-                }
-                placeholder={tr("Memory content...")}
-                rows={4}
-                className="w-full resize-none rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--ai-primary)] focus:outline-none"
-              />
-              <div>
-                <p className="mb-2 text-sm text-[var(--text-muted)]">{tr("Memory type")}</p>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(memoryTypeLabels).map(([type, label]) => (
-                    <button
-                      key={type}
-                      onClick={() =>
-                        setNewMemory((previous) => ({
-                          ...previous,
-                          type: type as MemoryType,
-                        }))
-                      }
-                      className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                        newMemory.type === type
-                          ? "bg-[var(--ai-primary)] text-white"
-                          : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 border-t border-[var(--border-color)] p-4">
-              <button
-                onClick={() => setAddMemoryOpen(false)}
-                className="px-4 py-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-              >
-                {tr("Cancel")}
-              </button>
-              <button
-                onClick={() => void handleAddMemory()}
-                disabled={!newMemory.content.trim()}
-                className="rounded-lg bg-[var(--ai-primary)] px-4 py-2 text-sm text-white transition-colors hover:bg-[var(--ai-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {tr("Add")}
-              </button>
-            </div>
-          </div>
+          </SharedUi.Field>
         </div>
-      ) : null}
+      </SharedUi.Dialog>
 
-      {addDocumentOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-2xl bg-[var(--bg-secondary)] shadow-xl">
-            <div className="border-b border-[var(--border-color)] p-4">
-              <h3 className="text-lg font-medium text-[var(--text-primary)]">
-                {tr("Add knowledge document")}
-              </h3>
-            </div>
-            <div className="space-y-4 p-4">
-              <input
-                type="text"
-                value={newDocument.title}
-                onChange={(event) =>
-                  setNewDocument((previous) => ({ ...previous, title: event.target.value }))
-                }
-                placeholder={tr("Document title")}
-                className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--ai-primary)] focus:outline-none"
-              />
-              <textarea
-                value={newDocument.content}
-                onChange={(event) =>
-                  setNewDocument((previous) => ({ ...previous, content: event.target.value }))
-                }
-                placeholder={tr("Document content...")}
-                rows={6}
-                className="w-full resize-none rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--ai-primary)] focus:outline-none"
-              />
-            </div>
-            <div className="flex justify-end gap-2 border-t border-[var(--border-color)] p-4">
-              <button
-                onClick={() => setAddDocumentOpen(false)}
-                className="px-4 py-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-              >
-                {tr("Cancel")}
-              </button>
-              <button
-                onClick={() => void handleAddDocument()}
-                disabled={!newDocument.title.trim() || !newDocument.content.trim()}
-                className="rounded-lg bg-[var(--ai-primary)] px-4 py-2 text-sm text-white transition-colors hover:bg-[var(--ai-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {tr("Add")}
-              </button>
-            </div>
-          </div>
+      <SharedUi.Dialog
+        isOpen={addDocumentOpen}
+        onClose={() => setAddDocumentOpen(false)}
+        title={tr("Add knowledge document")}
+        size="md"
+        closeOnOverlayClick={false}
+        closeOnEscape={false}
+        bodyClassName="p-4"
+        footer={
+          <SharedUi.ModalButtonGroup
+            onCancel={() => setAddDocumentOpen(false)}
+            onConfirm={() => void handleAddDocument()}
+            confirmText={tr("Add")}
+            disabled={!newDocument.title.trim() || !newDocument.content.trim()}
+          />
+        }
+      >
+        <div className="space-y-4">
+          <SharedUi.Field>
+            <SharedUi.FieldLabel>{tr("Document title")}</SharedUi.FieldLabel>
+            <SharedUi.Input
+              type="text"
+              value={newDocument.title}
+              onChange={(event) =>
+                setNewDocument((previous) => ({ ...previous, title: event.target.value }))
+              }
+              placeholder={tr("Document title")}
+              className="w-full"
+            />
+          </SharedUi.Field>
+          <SharedUi.Field>
+            <SharedUi.FieldLabel>{tr("Document content")}</SharedUi.FieldLabel>
+            <SharedUi.Textarea
+              value={newDocument.content}
+              onChange={(event) =>
+                setNewDocument((previous) => ({ ...previous, content: event.target.value }))
+              }
+              placeholder={tr("Document content...")}
+              rows={6}
+              className="w-full resize-none"
+            />
+          </SharedUi.Field>
         </div>
-      ) : null}
+      </SharedUi.Dialog>
     </div>
   );
 };

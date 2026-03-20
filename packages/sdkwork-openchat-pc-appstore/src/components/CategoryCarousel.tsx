@@ -1,5 +1,6 @@
 import { memo } from "react";
 import type { AppCategory } from "../entities/app.entity";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface CategoryCarouselProps {
   categories: AppCategory[];
@@ -13,7 +14,7 @@ export const CategoryCarousel = memo(({ categories, selectedId, onSelect }: Cate
       {categories.map((category) => {
         const active = category.id === selectedId;
         return (
-          <button
+          <SharedUi.Button
             key={category.id}
             onClick={() => onSelect(category.id)}
             className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-sm transition-colors ${
@@ -27,7 +28,7 @@ export const CategoryCarousel = memo(({ categories, selectedId, onSelect }: Cate
             <span className={`ml-1 rounded px-1 py-0.5 text-[10px] ${active ? "bg-white/20" : "bg-bg-tertiary"}`}>
               {category.appCount}
             </span>
-          </button>
+          </SharedUi.Button>
         );
       })}
     </div>

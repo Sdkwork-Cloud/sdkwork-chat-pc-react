@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 import type { Friend } from "../entities/contact.entity";
 
@@ -50,27 +51,27 @@ export const FriendDetail = memo(function FriendDetail({
                 </div>
 
                 <div className="mt-5 flex space-x-3">
-                  <button
+                  <SharedUi.Button
                     type="button"
                     onClick={() => onStartChat?.(friend)}
                     className="rounded-xl bg-[var(--ai-primary)] px-5 py-2.5 text-sm font-medium text-white shadow-[var(--shadow-sm)] transition-colors hover:bg-[var(--ai-primary-hover)]"
                   >
                     {tr("Message")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     type="button"
                     onClick={() => onCall?.("audio")}
                     className="rounded-xl bg-[var(--bg-hover)] px-5 py-2.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-tertiary)]"
                   >
                     {tr("Audio Call")}
-                  </button>
-                  <button
+                  </SharedUi.Button>
+                  <SharedUi.Button
                     type="button"
                     onClick={() => onCall?.("video")}
                     className="rounded-xl bg-[var(--bg-hover)] px-5 py-2.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-tertiary)]"
                   >
                     {tr("Video Call")}
-                  </button>
+                  </SharedUi.Button>
                 </div>
               </div>
             </div>
@@ -107,13 +108,13 @@ export const FriendDetail = memo(function FriendDetail({
               <h4 className="text-sm font-medium text-[var(--text-tertiary)]">{tr("More")}</h4>
             </div>
             <div className="divide-y divide-[var(--border-color)]">
-              <button type="button" className="flex w-full items-center justify-between px-6 py-4 transition-colors hover:bg-[var(--bg-hover)]">
+              <SharedUi.Button type="button" className="flex w-full items-center justify-between px-6 py-4 transition-colors hover:bg-[var(--bg-hover)]">
                 <span className="text-sm text-[var(--text-primary)]">{tr("Moments")}</span>
                 <svg className="h-4 w-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-              </button>
-              <button type="button" className="flex w-full items-center justify-between px-6 py-4 transition-colors hover:bg-[var(--bg-hover)]">
+              </SharedUi.Button>
+              <SharedUi.Button type="button" className="flex w-full items-center justify-between px-6 py-4 transition-colors hover:bg-[var(--bg-hover)]">
                 <span className="text-sm text-[var(--text-primary)]">{tr("Shared Groups")}</span>
                 <div className="flex items-center">
                   <span className="mr-2 text-sm text-[var(--text-muted)]">3</span>
@@ -121,13 +122,13 @@ export const FriendDetail = memo(function FriendDetail({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>
-              </button>
-              <button type="button" className="flex w-full items-center justify-between px-6 py-4 transition-colors hover:bg-[var(--bg-hover)]">
+              </SharedUi.Button>
+              <SharedUi.Button type="button" className="flex w-full items-center justify-between px-6 py-4 transition-colors hover:bg-[var(--bg-hover)]">
                 <span className="text-sm text-[var(--ai-error)]">{tr("Delete Contact")}</span>
                 <svg className="h-4 w-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-              </button>
+              </SharedUi.Button>
             </div>
           </div>
         </div>

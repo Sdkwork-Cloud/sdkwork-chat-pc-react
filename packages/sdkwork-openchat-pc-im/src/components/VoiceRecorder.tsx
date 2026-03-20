@@ -1,3 +1,4 @@
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
@@ -136,7 +137,7 @@ export function VoiceRecorder({ isRecording, onStart, onStop, onCancel }: VoiceR
 
   if (!isRecording) {
     return (
-      <button
+      <SharedUi.Button
         onClick={startRecording}
         className="p-2 rounded-lg text-text-tertiary hover:text-primary hover:bg-bg-hover transition-colors"
         title={tr("Voice message")}
@@ -144,13 +145,13 @@ export function VoiceRecorder({ isRecording, onStart, onStop, onCancel }: VoiceR
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
         </svg>
-      </button>
+      </SharedUi.Button>
     );
   }
 
   return (
     <div className="flex items-center space-x-3 px-4 py-2 bg-bg-tertiary rounded-lg border border-border animate-in fade-in duration-200">
-      <button
+      <SharedUi.Button
         onClick={cancelRecording}
         className="p-2 rounded-full text-error hover:bg-error/10 transition-colors"
         title={tr("Cancel")}
@@ -158,7 +159,7 @@ export function VoiceRecorder({ isRecording, onStart, onStop, onCancel }: VoiceR
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
         </svg>
-      </button>
+      </SharedUi.Button>
 
       <div className="flex items-center space-x-2">
         <div className="relative">
@@ -183,7 +184,7 @@ export function VoiceRecorder({ isRecording, onStart, onStop, onCancel }: VoiceR
         </div>
       </div>
 
-      <button
+      <SharedUi.Button
         onClick={stopRecording}
         className="p-2 rounded-full text-success hover:bg-success/10 transition-colors"
         title={tr("Done")}
@@ -191,7 +192,7 @@ export function VoiceRecorder({ isRecording, onStart, onStop, onCancel }: VoiceR
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
-      </button>
+      </SharedUi.Button>
     </div>
   );
 }

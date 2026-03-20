@@ -6,6 +6,7 @@ import {
 } from "@sdkwork/openchat-pc-contacts";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { Button, Modal, ModalButtonGroup } from "@sdkwork/openchat-pc-ui";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface AddFriendModalProps {
   isOpen: boolean;
@@ -137,7 +138,7 @@ export function AddFriendModal({ isOpen, onClose, onSuccess }: AddFriendModalPro
       <div className="space-y-4 p-5">
         <div className="space-y-2">
           <label className="text-xs text-text-muted">{tr("Search by user id, nickname, or name")}</label>
-          <input
+          <SharedUi.Input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
             placeholder={tr("Type a keyword")}
@@ -174,7 +175,7 @@ export function AddFriendModal({ isOpen, onClose, onSuccess }: AddFriendModalPro
             {!isSearching &&
               !searchError &&
               searchResults.map((user) => (
-                <button
+                <SharedUi.Button
                   key={user.id}
                   onClick={() => setSelectedUser(user)}
                   className="flex w-full items-center rounded-lg border border-border bg-bg-secondary p-3 text-left transition-colors hover:border-primary/50 hover:bg-bg-hover"
@@ -191,7 +192,7 @@ export function AddFriendModal({ isOpen, onClose, onSuccess }: AddFriendModalPro
                       {user.region ? ` - ${user.region}` : ""}
                     </div>
                   </div>
-                </button>
+                </SharedUi.Button>
               ))}
           </div>
         ) : (
@@ -213,7 +214,7 @@ export function AddFriendModal({ isOpen, onClose, onSuccess }: AddFriendModalPro
 
             <div className="space-y-2">
               <label className="text-xs text-text-muted">{tr("Request message")}</label>
-              <textarea
+              <SharedUi.Textarea
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
                 maxLength={100}

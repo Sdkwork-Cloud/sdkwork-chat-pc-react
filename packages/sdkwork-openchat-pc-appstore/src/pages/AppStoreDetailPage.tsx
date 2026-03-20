@@ -15,6 +15,7 @@ import {
   buildSyntheticReviews,
   resolveCapabilityPathByType,
 } from "./appstore.workspace.model";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 function formatDate(value: string, locale: AppLanguage): string {
   if (!value) {
@@ -294,16 +295,16 @@ export function AppStoreDetailPage() {
             </div>
             <div className="flex flex-col gap-2">
               {isInstalled ? (
-                <button
+                <SharedUi.Button
                   type="button"
                   onClick={handleOpen}
                   disabled={isActionLoading}
                   className="rounded-full bg-primary px-5 py-2 text-center text-sm font-semibold text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {tr("OPEN")}
-                </button>
+                </SharedUi.Button>
               ) : (
-                <button
+                <SharedUi.Button
                   type="button"
                   onClick={() => {
                     void handleInstall();
@@ -312,12 +313,12 @@ export function AppStoreDetailPage() {
                   className="rounded-full bg-primary px-5 py-2 text-center text-sm font-semibold text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {app.price > 0 ? formatCurrency(app.price, app.currency) : tr("GET")}
-                </button>
+                </SharedUi.Button>
               )}
 
               <div className="flex gap-2">
                 {isInstalled ? (
-                  <button
+                  <SharedUi.Button
                     type="button"
                     onClick={() => {
                       void handleUninstall();
@@ -326,7 +327,7 @@ export function AppStoreDetailPage() {
                     className="rounded-full border border-warning/50 bg-warning/10 px-4 py-2 text-center text-xs text-warning transition-colors hover:bg-warning/20 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {tr("REMOVE")}
-                  </button>
+                  </SharedUi.Button>
                 ) : null}
                 <Link
                   to="/appstore"
@@ -371,7 +372,7 @@ export function AppStoreDetailPage() {
           {tabs.map((tab) => {
             const active = activeTab === tab.key;
             return (
-              <button
+              <SharedUi.Button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`rounded-full border px-4 py-2 text-xs font-medium transition-colors ${
@@ -382,7 +383,7 @@ export function AppStoreDetailPage() {
               >
                 {tab.label}
                 <span className={`ml-2 ${active ? "text-white/80" : "text-text-muted"}`}>{tab.hint}</span>
-              </button>
+              </SharedUi.Button>
             );
           })}
         </div>
@@ -447,20 +448,20 @@ export function AppStoreDetailPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <button
+                <SharedUi.Button
                   onClick={() => handlePreviewStep(-1)}
                   disabled={previewTiles.length <= 1}
                   className="rounded-full border border-border bg-bg-primary px-3 py-1 text-xs text-text-secondary transition-colors hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {tr("Previous")}
-                </button>
-                <button
+                </SharedUi.Button>
+                <SharedUi.Button
                   onClick={() => handlePreviewStep(1)}
                   disabled={previewTiles.length <= 1}
                   className="rounded-full border border-border bg-bg-primary px-3 py-1 text-xs text-text-secondary transition-colors hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {tr("Next")}
-                </button>
+                </SharedUi.Button>
               </div>
             </div>
 
@@ -496,7 +497,7 @@ export function AppStoreDetailPage() {
               {previewTiles.map((tile, index) => {
                 const active = tile.id === selectedPreview?.id;
                 return (
-                  <button
+                  <SharedUi.Button
                     key={tile.id}
                     onClick={() => setSelectedPreviewId(tile.id)}
                     className={`overflow-hidden rounded-xl border text-left transition-colors ${
@@ -523,7 +524,7 @@ export function AppStoreDetailPage() {
                       </p>
                       <p className="mt-1 truncate text-xs font-medium text-text-primary">{tile.title}</p>
                     </div>
-                  </button>
+                  </SharedUi.Button>
                 );
               })}
             </div>
@@ -543,7 +544,7 @@ export function AppStoreDetailPage() {
             <article className="rounded-2xl border border-border bg-bg-secondary p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold text-text-primary">{tr("Rating Distribution")}</h2>
-                <select
+                <SharedUi.Select
                   value={reviewSort}
                   onChange={(event) => setReviewSort(event.target.value as ReviewSort)}
                   className="h-9 rounded-lg border border-border bg-bg-primary px-3 text-xs text-text-primary focus:border-primary focus:outline-none"
@@ -553,7 +554,7 @@ export function AppStoreDetailPage() {
                       {item.label}
                     </option>
                   ))}
-                </select>
+                </SharedUi.Select>
               </div>
               <div className="mt-4 space-y-3">
                 {[5, 4, 3, 2, 1].map((star) => {

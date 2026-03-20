@@ -5,6 +5,7 @@ import { ToolCard } from "../components/ToolCard";
 import type { ToolCategoryInfo, ToolMarketItem } from "../entities/tool.entity";
 import { ToolResultService, ToolService } from "../services";
 import { buildToolWorkspaceLibrary, buildToolWorkspaceSummary } from "./tool.workspace.model";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 type ToolSortType = "popular" | "successRate" | "newest";
 
@@ -159,12 +160,12 @@ export function ToolMarketPage() {
               {tr("Browse available integration tools and enable them for your workspace.")}
             </p>
           </div>
-          <button
+          <SharedUi.Button
             onClick={() => navigate("/tools/my")}
             className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
           >
             {tr("My Tools")}
-          </button>
+          </SharedUi.Button>
         </div>
       </header>
 
@@ -185,13 +186,13 @@ export function ToolMarketPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_200px_180px]">
-          <input
+          <SharedUi.Input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
             placeholder={tr("Search by tool name or description")}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
           />
-          <select
+          <SharedUi.Select
             value={category}
             onChange={(event) => setCategory(event.target.value)}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary focus:border-primary focus:outline-none"
@@ -201,8 +202,8 @@ export function ToolMarketPage() {
                 {item.icon} {tr(item.name)}
               </option>
             ))}
-          </select>
-          <select
+          </SharedUi.Select>
+          <SharedUi.Select
             value={sortBy}
             onChange={(event) => setSortBy(event.target.value as ToolSortType)}
             className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary focus:border-primary focus:outline-none"
@@ -210,7 +211,7 @@ export function ToolMarketPage() {
             <option value="popular">{tr("Sort by popularity")}</option>
             <option value="successRate">{tr("Sort by success rate")}</option>
             <option value="newest">{tr("Sort by newest")}</option>
-          </select>
+          </SharedUi.Select>
         </div>
 
         {errorText ? (
@@ -230,13 +231,13 @@ export function ToolMarketPage() {
             <h2 className="text-sm font-semibold text-text-primary">{tr("Recently Used")}</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               {recentVisibleTools.map((tool) => (
-                <button
+                <SharedUi.Button
                   key={`recent-${tool.id}`}
                   onClick={() => handleOpenConfig(tool.id)}
                   className="rounded-full border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-bg-hover"
                 >
                   {tool.icon} {tool.name}
-                </button>
+                </SharedUi.Button>
               ))}
             </div>
           </div>
@@ -261,13 +262,13 @@ export function ToolMarketPage() {
                     onClick={() => handleOpenConfig(tool.id)}
                   />
                   <div className="flex items-center gap-2">
-                    <button
+                    <SharedUi.Button
                       onClick={() => handleOpenConfig(tool.id)}
                       className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-bg-hover"
                     >
                       {tr("Open config")}
-                    </button>
-                    <button
+                    </SharedUi.Button>
+                    <SharedUi.Button
                       onClick={() => handleToggleFavorite(tool.id)}
                       className={`rounded-md border px-3 py-1.5 text-xs transition-colors ${
                         favoriteToolIdSet.has(tool.id)
@@ -276,7 +277,7 @@ export function ToolMarketPage() {
                       }`}
                     >
                       {favoriteToolIdSet.has(tool.id) ? tr("Favorited") : tr("Add favorite")}
-                    </button>
+                    </SharedUi.Button>
                   </div>
                 </div>
               ))}

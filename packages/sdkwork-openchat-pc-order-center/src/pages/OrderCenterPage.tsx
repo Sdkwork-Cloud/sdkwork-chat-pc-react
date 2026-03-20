@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
 interface OrderItem {
   id: string;
@@ -180,7 +181,7 @@ export function OrderCenterPage() {
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-xs uppercase tracking-wide text-text-muted">
                   {tr("Status")}
-                  <select
+                  <SharedUi.Select
                     value={status}
                     onChange={(event) => setStatus(event.target.value as typeof status)}
                     className="mt-2 h-9 w-full rounded-md border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
@@ -190,11 +191,11 @@ export function OrderCenterPage() {
                     <option value="paid">{tr("Paid")}</option>
                     <option value="shipped">{tr("Shipped")}</option>
                     <option value="completed">{tr("Completed")}</option>
-                  </select>
+                  </SharedUi.Select>
                 </label>
                 <label className="text-xs uppercase tracking-wide text-text-muted">
                   {tr("Search")}
-                  <input
+                  <SharedUi.Input
                     ref={searchInputRef}
                     value={keyword}
                     onChange={(event) => setKeyword(event.target.value)}
@@ -214,7 +215,7 @@ export function OrderCenterPage() {
                   const active = selected?.id === item.id;
                   const customerLabel = tr(item.customerKey);
                   return (
-                    <button
+                    <SharedUi.Button
                       key={item.id}
                       onClick={() => setSelectedId(item.id)}
                       className={`w-full rounded-lg border px-3 py-2 text-left ${
@@ -226,7 +227,7 @@ export function OrderCenterPage() {
                       <p className="text-sm font-semibold text-text-primary">{item.id}</p>
                       <p className="mt-1 text-xs text-text-secondary">{customerLabel}</p>
                       <p className="mt-1 text-[11px] text-text-muted">{formatOrderCurrency(item.amount)}</p>
-                    </button>
+                    </SharedUi.Button>
                   );
                 })}
               </div>
@@ -274,24 +275,24 @@ export function OrderCenterPage() {
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <button
+                    <SharedUi.Button
                       onClick={advanceOrderStatus}
                       className="rounded-md bg-primary px-3 py-1.5 text-xs text-white"
                     >
                       {tr("Update Status (Ctrl+Enter)")}
-                    </button>
-                    <button
+                    </SharedUi.Button>
+                    <SharedUi.Button
                       onClick={() => navigate("/shopping")}
                       className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                     >
                       {tr("Continue Shopping")}
-                    </button>
-                    <button
+                    </SharedUi.Button>
+                    <SharedUi.Button
                       onClick={() => navigate("/commerce/cart")}
                       className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
                     >
                       {tr("Open Cart")}
-                    </button>
+                    </SharedUi.Button>
                   </div>
                   <p className="mt-3 rounded-md border border-border bg-bg-tertiary px-3 py-2 text-xs text-text-secondary">
                     {actionMessage}
