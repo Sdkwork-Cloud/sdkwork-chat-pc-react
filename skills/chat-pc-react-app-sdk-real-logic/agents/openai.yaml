@@ -1,0 +1,4 @@
+interface:
+  display_name: "Chat PC React App SDK Real Logic"
+  short_description: "Standardize PC React modules on generated app SDKs."
+  default_prompt: "Use $chat-pc-react-app-sdk-real-logic to standardize PC React modules on spring-ai-plus-app-api and close missing app-sdk contracts end to end."
