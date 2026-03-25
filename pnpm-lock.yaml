@@ -14,6 +14,9 @@ importers:
       '@sdkwork/app-sdk':
         specifier: workspace:*
         version: link:../../spring-ai-plus-app-api/sdkwork-sdk-app/sdkwork-app-sdk-typescript
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:packages/sdkwork-openchat-pc-i18n
       '@tanstack/react-query':
         specifier: ^5.90.20
         version: 5.90.20(react@18.3.1)
@@ -214,8 +217,8 @@ importers:
   ../../spring-ai-plus-app-api/sdkwork-sdk-app/sdkwork-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.0
-        version: 1.0.1
+        specifier: ^1.0.2
+        version: 1.0.2
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -235,9 +238,15 @@ importers:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -248,14 +257,59 @@ importers:
         specifier: ^6.20.0
         version: 6.30.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
+  packages/sdkwork-openchat-pc-agents:
+    dependencies:
+      '@sdkwork/openchat-pc-agent':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-agent
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
+  packages/sdkwork-openchat-pc-app:
+    dependencies:
+      '@sdkwork/openchat-pc-appstore':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-appstore
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
+  packages/sdkwork-openchat-pc-appointments:
+    dependencies:
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
   packages/sdkwork-openchat-pc-appstore:
     dependencies:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       '@tanstack/react-query':
         specifier: ^5.90.20
         version: 5.90.20(react@18.3.1)
@@ -277,9 +331,27 @@ importers:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
+  packages/sdkwork-openchat-pc-chat:
+    dependencies:
+      '@sdkwork/openchat-pc-im':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-im
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -292,9 +364,15 @@ importers:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       lucide-react:
         specifier: ^0.575.0
         version: 0.575.0(react@18.3.1)
@@ -316,6 +394,9 @@ importers:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
@@ -386,14 +467,53 @@ importers:
         specifier: ^5.1.0
         version: 5.1.0
 
+  packages/sdkwork-openchat-pc-communication:
+    dependencies:
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
   packages/sdkwork-openchat-pc-contacts:
     dependencies:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
+  packages/sdkwork-openchat-pc-content:
+    dependencies:
+      '@sdkwork/openchat-pc-discover':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-discover
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -410,7 +530,7 @@ importers:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
 
-  packages/sdkwork-openchat-pc-creation:
+  packages/sdkwork-openchat-pc-core:
     dependencies:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
@@ -418,6 +538,30 @@ importers:
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
+  packages/sdkwork-openchat-pc-creation:
+    dependencies:
+      '@sdkwork/openchat-pc-contracts':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
+      '@sdkwork/openchat-pc-kernel':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       lucide-react:
         specifier: ^0.575.0
         version: 0.575.0(react@18.3.1)
@@ -439,9 +583,15 @@ importers:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -457,9 +607,15 @@ importers:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       lucide-react:
         specifier: ^0.575.0
         version: 0.575.0(react@18.3.1)
@@ -478,9 +634,15 @@ importers:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       lucide-react:
         specifier: ^0.575.0
         version: 0.575.0(react@18.3.1)
@@ -497,6 +659,21 @@ importers:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
+  packages/sdkwork-openchat-pc-i18n:
+    dependencies:
+      i18next:
+        specifier: ^25.8.0
+        version: 25.8.0(typescript@5.9.3)
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+      react-i18next:
+        specifier: ^16.5.4
+        version: 16.5.4(i18next@25.8.0(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
+
   packages/sdkwork-openchat-pc-im:
     dependencies:
       '@openchat/typescript-sdk':
@@ -511,6 +688,9 @@ importers:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
@@ -547,6 +727,66 @@ importers:
       '@sdkwork/app-sdk':
         specifier: workspace:*
         version: link:../../../../spring-ai-plus-app-api/sdkwork-sdk-app/sdkwork-app-sdk-typescript
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
+  packages/sdkwork-openchat-pc-look:
+    dependencies:
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
+  packages/sdkwork-openchat-pc-media:
+    dependencies:
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
+  packages/sdkwork-openchat-pc-moments:
+    dependencies:
+      '@sdkwork/openchat-pc-social':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-social
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
+  packages/sdkwork-openchat-pc-nearby:
+    dependencies:
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -559,9 +799,15 @@ importers:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       lucide-react:
         specifier: ^0.575.0
         version: 0.575.0(react@18.3.1)
@@ -578,14 +824,35 @@ importers:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
+  packages/sdkwork-openchat-pc-order-center:
+    dependencies:
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
   packages/sdkwork-openchat-pc-rtc:
     dependencies:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -595,9 +862,18 @@ importers:
 
   packages/sdkwork-openchat-pc-search:
     dependencies:
+      '@sdkwork/openchat-pc-contracts':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       lucide-react:
         specifier: ^0.575.0
         version: 0.575.0(react@18.3.1)
@@ -622,6 +898,9 @@ importers:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
@@ -641,11 +920,26 @@ importers:
         specifier: ^6.20.0
         version: 6.30.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
+  packages/sdkwork-openchat-pc-shopping:
+    dependencies:
+      '@sdkwork/openchat-pc-commerce':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-commerce
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
   packages/sdkwork-openchat-pc-skill:
     dependencies:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
@@ -662,14 +956,32 @@ importers:
         specifier: ^6.20.0
         version: 6.30.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
+  packages/sdkwork-openchat-pc-skills:
+    dependencies:
+      '@sdkwork/openchat-pc-skill':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-skill
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
   packages/sdkwork-openchat-pc-social:
     dependencies:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       lucide-react:
         specifier: ^0.575.0
         version: 0.575.0(react@18.3.1)
@@ -691,6 +1003,9 @@ importers:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-ui':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-ui
@@ -712,6 +1027,9 @@ importers:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
@@ -733,9 +1051,15 @@ importers:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       lucide-react:
         specifier: ^0.575.0
         version: 0.575.0(react@18.3.1)
@@ -754,6 +1078,9 @@ importers:
 
   packages/sdkwork-openchat-pc-ui:
     dependencies:
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
@@ -767,14 +1094,35 @@ importers:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
+  packages/sdkwork-openchat-pc-user:
+    dependencies:
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
   packages/sdkwork-openchat-pc-video:
     dependencies:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       lucide-react:
         specifier: ^0.575.0
         version: 0.575.0(react@18.3.1)
@@ -799,6 +1147,12 @@ importers:
       '@sdkwork/openchat-pc-auth':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-auth
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -814,9 +1168,15 @@ importers:
       '@sdkwork/openchat-pc-contracts':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-contracts
+      '@sdkwork/openchat-pc-i18n':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-i18n
       '@sdkwork/openchat-pc-kernel':
         specifier: workspace:*
         version: link:../sdkwork-openchat-pc-kernel
+      '@sdkwork/openchat-pc-ui':
+        specifier: workspace:*
+        version: link:../sdkwork-openchat-pc-ui
       lucide-react:
         specifier: ^0.575.0
         version: 0.575.0(react@18.3.1)
@@ -1549,8 +1909,8 @@ packages:
   '@rushstack/ts-command-line@5.3.3':
     resolution: {integrity: sha512-c+ltdcvC7ym+10lhwR/vWiOhsrm/bP3By2VsFcs5qTKv+6tTmxgbVrtJ5NdNjANiV5TcmOZgUN+5KYQ4llsvEw==}
 
-  '@sdkwork/sdk-common@1.0.1':
-    resolution: {integrity: sha512-qf8NCHKLZsQTaKE3SCeqIq/Bda6ZJmEuN2USwqaMRYUBK3lX4e08ZtJxQ6TtMqQLKHMvZrsB8F+vgvZLLZRVsw==}
+  '@sdkwork/sdk-common@1.0.2':
+    resolution: {integrity: sha512-mjKQCRQBty8x2B1eM/sMiQwj46xvGucwSal2tymyAoF/vupsU3kzYcTSVLH3eVyAXON9U8gJwa7vRNAk13LWRQ==}
     engines: {node: '>=18.0.0'}
 
   '@standard-schema/spec@1.1.0':
@@ -4530,7 +4890,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@sdkwork/sdk-common@1.0.1': {}
+  '@sdkwork/sdk-common@1.0.2': {}
 
   '@standard-schema/spec@1.1.0': {}
 
