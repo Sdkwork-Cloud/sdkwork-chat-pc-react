@@ -34,6 +34,9 @@ test('shared sdk git preparation supports repo-specific pinned refs', async () =
   const helper = await import(pathToFileURL(helperPath).href);
   assert.equal(helper.SHARED_SDK_APP_GIT_REF_ENV_VAR, 'SDKWORK_SHARED_SDK_APP_GIT_REF');
   assert.equal(helper.SHARED_SDK_COMMON_GIT_REF_ENV_VAR, 'SDKWORK_SHARED_SDK_COMMON_GIT_REF');
+  assert.equal(helper.IM_SDK_GIT_REF_ENV_VAR, 'SDKWORK_IM_SDK_GIT_REF');
+  assert.equal(helper.IM_SDK_REPO_URL_ENV_VAR, 'SDKWORK_IM_SDK_REPO_URL');
+  assert.equal(helper.DEFAULT_IM_SDK_REPO_URL, 'https://github.com/Sdkwork-Cloud/sdkwork-im-sdk.git');
 });
 
 test('repository exposes shared sdk preparation helpers and dual-mode Vite resolution', () => {
@@ -51,9 +54,13 @@ test('repository exposes shared sdk preparation helpers and dual-mode Vite resol
   assert.match(viteConfig, /sdkwork-app-sdk-typescript/);
   assert.match(viteConfig, /@sdkwork\/sdk-common/);
   assert.match(viteConfig, /sdkwork-sdk-common-typescript/);
+  assert.match(viteConfig, /@openchat\/sdkwork-im-sdk/);
+  assert.match(viteConfig, /sdkwork-im-sdk-typescript/);
   assert.match(vitestConfig, /isSharedSdkSourceMode/);
   assert.match(vitestConfig, /@sdkwork\/app-sdk/);
   assert.match(vitestConfig, /sdkwork-app-sdk-typescript/);
+  assert.match(vitestConfig, /@openchat\/sdkwork-im-sdk/);
+  assert.match(vitestConfig, /sdkwork-im-sdk-typescript/);
 
   assert.match(packageJson, /"prepare:shared-sdk"\s*:\s*"node scripts\/prepare-shared-sdk-packages\.mjs"/);
   assert.match(packageJson, /"check:shared-sdk"\s*:\s*"node --test scripts\/shared-sdk-contract\.test\.mjs"/);
@@ -68,6 +75,19 @@ test('repository exposes shared sdk preparation helpers and dual-mode Vite resol
   assert.match(workspaceManifest, /spring-ai-plus-app-api\/sdkwork-sdk-app\/sdkwork-app-sdk-typescript/);
   assert.match(workspaceManifest, /sdk\/sdkwork-sdk-commons\/sdkwork-sdk-common-typescript/);
   assert.match(npmrcSource, /link-workspace-packages\s*=\s*true/);
+});
+
+test('kernel IM SDK barrels route through stable package aliases', () => {
+  const backendSdkBarrel = read('packages/sdkwork-openchat-pc-kernel/src/im-sdk/backend-sdk.ts');
+  const composedSdkBarrel = read('packages/sdkwork-openchat-pc-kernel/src/im-sdk/composed-sdk.ts');
+  const wukongimAdapterBarrel = read('packages/sdkwork-openchat-pc-kernel/src/im-sdk/wukongim-adapter.ts');
+
+  assert.match(backendSdkBarrel, /@sdkwork\/im-backend-sdk/);
+  assert.match(composedSdkBarrel, /@openchat\/sdkwork-im-sdk/);
+  assert.match(wukongimAdapterBarrel, /@openchat\/sdkwork-im-wukongim-adapter/);
+  assert.doesNotMatch(backendSdkBarrel, /(?:\.\.\/)+openchat\/sdkwork-im-sdk/);
+  assert.doesNotMatch(composedSdkBarrel, /(?:\.\.\/)+openchat\/sdkwork-im-sdk/);
+  assert.doesNotMatch(wukongimAdapterBarrel, /(?:\.\.\/)+openchat\/sdkwork-im-sdk/);
 });
 
 test('tracked env files align with development, test, and production desktop releases', () => {

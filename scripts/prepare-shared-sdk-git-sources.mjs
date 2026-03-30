@@ -10,9 +10,12 @@ export const SHARED_SDK_COMMON_REPO_URL_ENV_VAR = 'SDKWORK_SHARED_SDK_COMMON_REP
 export const SHARED_SDK_GIT_REF_ENV_VAR = 'SDKWORK_SHARED_SDK_GIT_REF';
 export const SHARED_SDK_APP_GIT_REF_ENV_VAR = 'SDKWORK_SHARED_SDK_APP_GIT_REF';
 export const SHARED_SDK_COMMON_GIT_REF_ENV_VAR = 'SDKWORK_SHARED_SDK_COMMON_GIT_REF';
+export const IM_SDK_REPO_URL_ENV_VAR = 'SDKWORK_IM_SDK_REPO_URL';
+export const IM_SDK_GIT_REF_ENV_VAR = 'SDKWORK_IM_SDK_GIT_REF';
 export const SHARED_SDK_GIT_FORCE_SYNC_ENV_VAR = 'SDKWORK_SHARED_SDK_GIT_FORCE_SYNC';
 export const DEFAULT_SHARED_SDK_APP_REPO_URL = 'https://github.com/Sdkwork-Cloud/sdkwork-sdk-app.git';
 export const DEFAULT_SHARED_SDK_COMMON_REPO_URL = 'https://github.com/Sdkwork-Cloud/sdkwork-sdk-commons.git';
+export const DEFAULT_IM_SDK_REPO_URL = 'https://github.com/Sdkwork-Cloud/sdkwork-im-sdk.git';
 
 function run(command, args, { cwd = process.cwd(), captureStdout = false } = {}) {
   const result = spawnSync(command, args, {
@@ -66,6 +69,17 @@ function createSourceSpecs(workspaceRootDir) {
       repoUrlEnvVar: SHARED_SDK_COMMON_REPO_URL_ENV_VAR,
       refEnvVar: SHARED_SDK_COMMON_GIT_REF_ENV_VAR,
       defaultRepoUrl: DEFAULT_SHARED_SDK_COMMON_REPO_URL,
+    },
+    {
+      id: 'im-sdk',
+      label: '@openchat/sdkwork-im-sdk',
+      repoRoot: path.resolve(workspaceRootDir, '../openchat/sdkwork-im-sdk'),
+      packageContainerDirName: '',
+      packageDirName: 'sdkwork-im-sdk-typescript',
+      monorepoSubmodulePath: '',
+      repoUrlEnvVar: IM_SDK_REPO_URL_ENV_VAR,
+      refEnvVar: IM_SDK_GIT_REF_ENV_VAR,
+      defaultRepoUrl: DEFAULT_IM_SDK_REPO_URL,
     },
   ];
 }

@@ -71,6 +71,21 @@ const sharedSdkSourceAliases = isSharedSdkSourceMode(process.env)
     }
   : {};
 
+const imSdkSourceAliases = {
+  '@openchat/sdkwork-im-sdk': path.resolve(
+    __dirname,
+    '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/composed/src/index.ts',
+  ),
+  '@openchat/sdkwork-im-wukongim-adapter': path.resolve(
+    __dirname,
+    '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/adapter-wukongim/src/index.ts',
+  ),
+  '@sdkwork/im-backend-sdk': path.resolve(
+    __dirname,
+    '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/generated/server-openapi/src/index.ts',
+  ),
+};
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   plugins: [
@@ -98,9 +113,7 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@openchat/sdkwork-im-sdk': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/composed/src/index.ts'),
-      '@openchat/sdkwork-im-wukongim-adapter': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/adapter-wukongim/src/index.ts'),
-      '@sdkwork/im-backend-sdk': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/generated/server-openapi/src/index.ts'),
+      ...imSdkSourceAliases,
       ...sharedSdkSourceAliases,
       ...workspacePackageAlias,
     },
@@ -185,9 +198,7 @@ export default defineConfig(({ mode }) => ({
 
   test: {
     alias: {
-      '@openchat/sdkwork-im-sdk': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/composed/src/index.ts'),
-      '@openchat/sdkwork-im-wukongim-adapter': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/adapter-wukongim/src/index.ts'),
-      '@sdkwork/im-backend-sdk': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/generated/server-openapi/src/index.ts'),
+      ...imSdkSourceAliases,
       ...sharedSdkSourceAliases,
     },
   },

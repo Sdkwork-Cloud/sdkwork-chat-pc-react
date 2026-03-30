@@ -36,8 +36,10 @@ env:
   SDKWORK_SHARED_SDK_MODE: git
   SDKWORK_SHARED_SDK_APP_GIT_REF: 66af5f1c1a28213d26ddce599cd336eb9ed6aec1
   SDKWORK_SHARED_SDK_COMMON_GIT_REF: e5c7e1680e0bbc1caa19a3e40488e0e502be57d5
+  SDKWORK_IM_SDK_GIT_REF: 6ba84d31c0e8f77e7d52cfb6c730ac9881283db1
   SDKWORK_SHARED_SDK_APP_REPO_URL: https://github.com/Sdkwork-Cloud/sdkwork-sdk-app.git
   SDKWORK_SHARED_SDK_COMMON_REPO_URL: https://github.com/Sdkwork-Cloud/sdkwork-sdk-commons.git
+  SDKWORK_IM_SDK_REPO_URL: https://github.com/Sdkwork-Cloud/sdkwork-im-sdk.git
 
 jobs:
   prepare:

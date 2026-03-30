@@ -1,1 +1,1 @@
-export * from "../../../../../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/adapter-wukongim/src/index";
+export * from "@openchat/sdkwork-im-wukongim-adapter";
