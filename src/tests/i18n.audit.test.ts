@@ -239,7 +239,10 @@ function collectFiles(directory: string): string[] {
 function getTrackedSourceFiles(): string[] {
   return SCAN_ROOTS.flatMap((root) => collectFiles(join(ROOT, root))).filter((absolutePath) => {
     const filePath = relative(ROOT, absolutePath).replaceAll("\\", "/");
-    return !DORMANT_COMMONS_AUDIT_EXCLUSIONS.has(filePath);
+    return (
+      !filePath.startsWith("src-tauri/icons/")
+      && !DORMANT_COMMONS_AUDIT_EXCLUSIONS.has(filePath)
+    );
   });
 }
 

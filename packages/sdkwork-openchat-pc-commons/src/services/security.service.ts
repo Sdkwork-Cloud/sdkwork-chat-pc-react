@@ -145,6 +145,9 @@ const SENSITIVE_PATTERNS: RegExp[] = [
   /\b[A-Fa-f0-9]{64}\b/,
 ];
 
+const DESKTOP_MEDIA_PERMISSIONS_POLICY =
+  "camera=(self), microphone=(self), display-capture=(self), speaker-selection=(self), geolocation=()";
+
 export class SecurityService extends EventEmitter {
   private static instance: SecurityService;
   private csrfToken: string | null = null;
@@ -452,7 +455,7 @@ export class SecurityService extends EventEmitter {
       },
       {
         name: "Permissions-Policy",
-        content: "camera=(), microphone=(), geolocation=()",
+        content: DESKTOP_MEDIA_PERMISSIONS_POLICY,
       },
     ];
 

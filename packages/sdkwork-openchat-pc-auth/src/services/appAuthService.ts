@@ -274,11 +274,19 @@ function mapSocialProvider(provider: AppAuthSocialProvider): OAuthAuthUrlForm["p
   throw new Error(`Unsupported social provider: ${provider}`);
 }
 
-function resolveDefaultRedirectUri(): string | undefined {
+function resolveRuntimeOriginRedirectUri(): string | undefined {
   if (typeof window === "undefined" || !window.location?.origin) {
     return undefined;
   }
-  return `${window.location.origin}/auth/callback`;
+  return window.location.origin;
+}
+
+export function resolveOAuthRedirectUri(provider: AppAuthSocialProvider): string | undefined {
+  const origin = resolveRuntimeOriginRedirectUri();
+  if (!origin) {
+    return undefined;
+  }
+  return `${origin}/login/oauth/callback/${provider}`;
 }
 
 function resolveDefaultDeviceType(): AppAuthOAuthDeviceType {
@@ -316,7 +324,7 @@ async function openSocialOAuthPopup(
     throw new Error("OAuth popup blocked");
   }
 
-  const targetRedirectUri = redirectUri || resolveDefaultRedirectUri();
+  const targetRedirectUri = redirectUri || resolveRuntimeOriginRedirectUri();
   const targetUrl = targetRedirectUri ? new URL(targetRedirectUri, window.location.origin) : undefined;
 
   return new Promise((resolve, reject) => {
@@ -1003,7 +1011,7 @@ export const appAuthService: IAppAuthService = {
   },
 
   async loginWithSocial(input: AppAuthSocialLoginInput): Promise<AppAuthSession> {
-    const redirectUri = input.redirectUri || resolveDefaultRedirectUri();
+    const redirectUri = input.redirectUri || resolveOAuthRedirectUri(input.provider);
     if (!redirectUri) {
       throw new Error("Social login redirect URI is required");
     }

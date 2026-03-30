@@ -1,4 +1,5 @@
 import * as SharedUi from "@sdkwork/openchat-pc-ui";
+import { requestUserMediaStream } from "@sdkwork/openchat-pc-rtc";
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
@@ -23,7 +24,7 @@ export function VoiceRecorder({ isRecording, onStart, onStop, onCancel }: VoiceR
 
   const startRecording = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await requestUserMediaStream({ audio: true, video: false });
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];

@@ -14,6 +14,7 @@ import {
   RichTextEditor,
   type RichTextEditorRef,
 } from "@sdkwork/openchat-pc-ui";
+import { requestDisplayCaptureStream } from "@sdkwork/openchat-pc-rtc";
 import { formatNumber, useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import * as SharedUi from "@sdkwork/openchat-pc-ui";
 
@@ -171,14 +172,10 @@ export const ChatInput = memo(function ChatInput({
   );
 
   const handleScreenshotCapture = useCallback(async () => {
-    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getDisplayMedia) {
-      return;
-    }
-
     let stream: MediaStream | null = null;
 
     try {
-      stream = await navigator.mediaDevices.getDisplayMedia({
+      stream = await requestDisplayCaptureStream({
         video: true,
         audio: false,
       });

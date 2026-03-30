@@ -1,11 +1,7 @@
-
-
-use portable_pty::{CommandBuilder, NativePtySystem, PtyPair, PtySize, PtySystem};
-use std::io::{Read, Write};
-use std::sync::Mutex;
-use tauri::Manager;
-
 use once_cell::sync::Lazy;
+use portable_pty::{CommandBuilder, NativePtySystem, PtyPair, PtySize, PtySystem};
+use std::io::Write;
+use std::sync::Mutex;
 
 static PTY_PAIRS: Lazy<Mutex<std::collections::HashMap<String, PtyPair>>> =
     Lazy::new(|| Mutex::new(std::collections::HashMap::new()));
@@ -24,9 +20,7 @@ pub fn create_pty(id: String, shell: Option<String>) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
 
     let cmd = CommandBuilder::new(shell.as_deref().unwrap_or("bash"));
-    pair.slave
-        .spawn_command(cmd)
-        .map_err(|e| e.to_string())?;
+    pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
 
     PTY_PAIRS.lock().unwrap().insert(id, pair);
 
@@ -39,7 +33,9 @@ pub fn write_pty(id: String, data: String) -> Result<(), String> {
     let pair = pairs.get_mut(&id).ok_or("PTY not found")?;
 
     let mut writer = pair.master.take_writer().map_err(|e| e.to_string())?;
-    writer.write_all(data.as_bytes()).map_err(|e| e.to_string())?;
+    writer
+        .write_all(data.as_bytes())
+        .map_err(|e| e.to_string())?;
     writer.flush().map_err(|e| e.to_string())?;
 
     Ok(())

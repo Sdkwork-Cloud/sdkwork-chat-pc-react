@@ -1,4 +1,5 @@
 export const DESKTOP_COMMANDS = {
+  setAppLanguage: "set_app_language",
   createPty: "create_pty",
   writePty: "write_pty",
   resizePty: "resize_pty",

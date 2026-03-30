@@ -1,10 +1,10 @@
 
-
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { compression } from 'vite-plugin-compression2';
+import { isSharedSdkSourceMode } from './scripts/shared-sdk-mode.mjs';
 
 const modulePackageNames = [
   'agents',
@@ -58,6 +58,19 @@ const workspacePackageAlias = Object.fromEntries(
   ])
 );
 
+const sharedSdkSourceAliases = isSharedSdkSourceMode(process.env)
+  ? {
+      '@sdkwork/app-sdk': path.resolve(
+        __dirname,
+        '../../spring-ai-plus-app-api/sdkwork-sdk-app/sdkwork-app-sdk-typescript/src/index.ts',
+      ),
+      '@sdkwork/sdk-common': path.resolve(
+        __dirname,
+        '../../sdk/sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts',
+      ),
+    }
+  : {};
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   plugins: [
@@ -85,11 +98,10 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@sdkwork/app-sdk': path.resolve(__dirname, '../../spring-ai-plus-app-api/sdkwork-sdk-app/sdkwork-app-sdk-typescript/src/index.ts'),
-      '@sdkwork/sdk-common': path.resolve(__dirname, '../../sdk/sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts'),
       '@openchat/sdkwork-im-sdk': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/composed/src/index.ts'),
       '@openchat/sdkwork-im-wukongim-adapter': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/adapter-wukongim/src/index.ts'),
       '@sdkwork/im-backend-sdk': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/generated/server-openapi/src/index.ts'),
+      ...sharedSdkSourceAliases,
       ...workspacePackageAlias,
     },
   },
@@ -173,10 +185,10 @@ export default defineConfig(({ mode }) => ({
 
   test: {
     alias: {
-      '@sdkwork/sdk-common': path.resolve(__dirname, '../../sdk/sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts'),
       '@openchat/sdkwork-im-sdk': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/composed/src/index.ts'),
       '@openchat/sdkwork-im-wukongim-adapter': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/adapter-wukongim/src/index.ts'),
       '@sdkwork/im-backend-sdk': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/generated/server-openapi/src/index.ts'),
+      ...sharedSdkSourceAliases,
     },
   },
 }));

@@ -1,8 +1,12 @@
 {
+  "package": {
+    "productName": "OpenChat",
+    "version": "0.0.1"
+  },
   "build": {
-    "beforeBuildCommand": "npm run build",
-    "beforeDevCommand": "npm run dev",
-    "devPath": "http://localhost:5173",
+    "beforeBuildCommand": "node scripts/run-tauri-host.mjs build",
+    "beforeDevCommand": "node scripts/run-tauri-host.mjs dev",
+    "devPath": "http://127.0.0.1:5173",
     "distDir": "../dist"
   },
   "tauri": {
@@ -14,11 +18,12 @@
       },
       "window": {
         "all": false,
-        "close": true,
         "hide": true,
         "show": true,
         "maximize": true,
         "minimize": true,
+        "setFocus": true,
+        "setFullscreen": true,
         "unmaximize": true,
         "unminimize": true,
         "startDragging": true
@@ -60,6 +65,9 @@
     },
     "bundle": {
       "active": true,
+      "appimage": {
+        "bundleMediaFramework": true
+      },
       "category": "DeveloperTool",
       "copyright": "",
       "deb": {
@@ -76,7 +84,7 @@
       "identifier": "com.openchat.app",
       "longDescription": "",
       "macOS": {
-        "entitlements": null,
+        "entitlements": "Entitlements.plist",
         "exceptionDomain": "",
         "frameworks": [],
         "providerShortName": null,
@@ -99,15 +107,17 @@
     },
     "windows": [
       {
+        "label": "main",
         "fullscreen": false,
-        "height": 800,
+        "height": 900,
         "resizable": true,
         "title": "OpenChat",
-        "width": 1200,
-        "minWidth": 800,
-        "minHeight": 600,
+        "width": 1440,
+        "minWidth": 1024,
+        "minHeight": 720,
         "center": true,
-        "decorations": true
+        "visible": false,
+        "decorations": false
       }
     ],
     "systemTray": {

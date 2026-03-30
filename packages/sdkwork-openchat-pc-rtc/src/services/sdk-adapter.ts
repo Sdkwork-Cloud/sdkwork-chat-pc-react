@@ -2,6 +2,10 @@
 
 import type { CallSession, CallType, CallSignal } from '../entities/rtc.entity';
 import { createSDKAdapterRegistry, type SDKAdapterBridge as BaseSDKAdapterBridge } from "@sdkwork/openchat-pc-contracts";
+import {
+  enumerateAvailableMediaDevices,
+  requestUserMediaStream,
+} from "./media-permissions";
 
 export interface SDKAdapterBridge extends BaseSDKAdapterBridge {}
 
@@ -337,9 +341,6 @@ class VolcEngineRTCSDKAdapter implements RTCSDK {
   }
 
   async getLocalStream(constraints: MediaConstraints): Promise<MediaStream> {
-    if (!navigator?.mediaDevices?.getUserMedia) {
-      throw new Error('[Volcengine RTC] mediaDevices.getUserMedia is unavailable.');
-    }
     await this.stopLocalStream();
 
     const hasAudio = constraints.audio !== false;
@@ -350,7 +351,7 @@ class VolcEngineRTCSDKAdapter implements RTCSDK {
       return emptyStream;
     }
 
-    const stream = await navigator.mediaDevices.getUserMedia({
+    const stream = await requestUserMediaStream({
       audio: constraints.audio,
       video: constraints.video,
     });
@@ -392,10 +393,7 @@ class VolcEngineRTCSDKAdapter implements RTCSDK {
       return providerDevices;
     }
 
-    if (!navigator?.mediaDevices?.enumerateDevices) {
-      return [];
-    }
-    const browserDevices = await navigator.mediaDevices.enumerateDevices();
+    const browserDevices = await enumerateAvailableMediaDevices();
     return browserDevices
       .filter((device) => {
         if (deviceType === 'camera') return device.kind === 'videoinput';
@@ -617,15 +615,11 @@ class VolcEngineRTCSDKAdapter implements RTCSDK {
   }
 
   private async replaceLocalTrack(kind: 'audio' | 'video', deviceId: string): Promise<void> {
-    if (!navigator?.mediaDevices?.getUserMedia) {
-      throw new Error('[Volcengine RTC] mediaDevices.getUserMedia is unavailable.');
-    }
-
     const constraints: MediaStreamConstraints = kind === 'video'
       ? { video: { deviceId: { exact: deviceId } }, audio: false }
       : { audio: { deviceId: { exact: deviceId } }, video: false };
 
-    const switchedStream = await navigator.mediaDevices.getUserMedia(constraints);
+    const switchedStream = await requestUserMediaStream(constraints);
     const newTrack = kind === 'video' ? switchedStream.getVideoTracks()[0] : switchedStream.getAudioTracks()[0];
     if (!newTrack) {
       throw new Error(`[Volcengine RTC] failed to acquire ${kind} track from device ${deviceId}.`);
@@ -923,10 +917,7 @@ class TencentCloudRTCSDKAdapter implements RTCSDK {
   }
 
   async getDevices(deviceType: DeviceType): Promise<DeviceInfo[]> {
-    if (!navigator?.mediaDevices?.enumerateDevices) {
-      return [];
-    }
-    const devices = await navigator.mediaDevices.enumerateDevices();
+    const devices = await enumerateAvailableMediaDevices();
     return devices
       .filter((device) => {
         if (deviceType === 'camera') return device.kind === 'videoinput';
@@ -1080,7 +1071,7 @@ class WebRTCAdapter implements RTCSDK {
     console.log('WebRTC getLocalStream', constraints);
     
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const stream = await requestUserMediaStream(constraints);
       return stream;
     } catch (error) {
       console.error('Error getting local stream:', error);
@@ -1104,7 +1095,7 @@ class WebRTCAdapter implements RTCSDK {
       if (deviceType === 'camera') {
         const videoTracks = stream.getVideoTracks();
         if (videoTracks.length > 0) {
-          const newStream = await navigator.mediaDevices.getUserMedia({
+          const newStream = await requestUserMediaStream({
             video: { deviceId: { exact: deviceId } },
             audio: false
           });
@@ -1121,7 +1112,7 @@ class WebRTCAdapter implements RTCSDK {
       } else if (deviceType === 'microphone') {
         const audioTracks = stream.getAudioTracks();
         if (audioTracks.length > 0) {
-          const newStream = await navigator.mediaDevices.getUserMedia({
+          const newStream = await requestUserMediaStream({
             audio: { deviceId: { exact: deviceId } },
             video: false
           });
@@ -1143,7 +1134,7 @@ class WebRTCAdapter implements RTCSDK {
     console.log('WebRTC getDevices', deviceType);
     
     try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
+      const devices = await enumerateAvailableMediaDevices();
       return devices
         .filter(device => {
           if (deviceType === 'camera') return device.kind === 'videoinput';

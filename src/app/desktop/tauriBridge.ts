@@ -12,8 +12,6 @@ import {
   waitForTauriRuntime,
 } from "./runtime";
 
-const DESKTOP_LANGUAGE_STORAGE_KEY = "openchat.desktop.language-preference";
-
 let desktopBridgeConfigured = false;
 
 interface TauriRuntimeWaitOptions {
@@ -165,9 +163,16 @@ export async function getAppInfo(options?: TauriRuntimeWaitOptions): Promise<Des
 }
 
 export async function setAppLanguage(languagePreference: LanguagePreference): Promise<void> {
-  if (typeof window !== "undefined" && typeof window.localStorage !== "undefined") {
-    window.localStorage.setItem(DESKTOP_LANGUAGE_STORAGE_KEY, languagePreference);
-  }
+  await runDesktopOrFallback(
+    "app.setLanguage",
+    () =>
+      invokeDesktopCommand<void>(
+        DESKTOP_COMMANDS.setAppLanguage,
+        { language: languagePreference },
+        { operation: "app.setLanguage" },
+      ),
+    async () => {},
+  );
 }
 
 async function withDesktopWindow(

@@ -1,8 +1,8 @@
 
-
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { isSharedSdkSourceMode } from './scripts/shared-sdk-mode.mjs';
 
 const modulePackageNames = [
   'agents',
@@ -56,6 +56,19 @@ const workspacePackageAlias = Object.fromEntries(
   ])
 );
 
+const sharedSdkSourceAliases = isSharedSdkSourceMode(process.env)
+  ? {
+      '@sdkwork/app-sdk': path.resolve(
+        __dirname,
+        '../../spring-ai-plus-app-api/sdkwork-sdk-app/sdkwork-app-sdk-typescript/src/index.ts',
+      ),
+      '@sdkwork/sdk-common': path.resolve(
+        __dirname,
+        '../../sdk/sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts',
+      ),
+    }
+  : {};
+
 export default defineConfig({
   plugins: [react()],
   test: {
@@ -82,14 +95,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@sdkwork/app-sdk': path.resolve(
-        __dirname,
-        '../../spring-ai-plus-app-api/sdkwork-sdk-app/sdkwork-app-sdk-typescript/src/index.ts'
-      ),
-      '@sdkwork/sdk-common': path.resolve(
-        __dirname,
-        '../../sdk/sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts'
-      ),
+      ...sharedSdkSourceAliases,
       ...workspacePackageAlias,
     },
   },

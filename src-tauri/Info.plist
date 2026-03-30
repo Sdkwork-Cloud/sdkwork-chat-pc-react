@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSCameraUsageDescription</key>
+  <string>OpenChat uses the camera for video calls, avatar capture, and media attachments.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>OpenChat uses the microphone for voice calls, video calls, and voice messages.</string>
+</dict>
+</plist>
