@@ -49,18 +49,20 @@ test('repository exposes shared sdk preparation helpers and dual-mode Vite resol
   assert.equal(existsSync(path.join(rootDir, 'scripts', 'prepare-shared-sdk-git-sources.mjs')), true);
   assert.equal(existsSync(path.join(rootDir, 'scripts', 'prepare-shared-sdk-packages.mjs')), true);
 
-  assert.match(viteConfig, /isSharedSdkSourceMode/);
   assert.match(viteConfig, /@sdkwork\/app-sdk/);
   assert.match(viteConfig, /sdkwork-app-sdk-typescript/);
   assert.match(viteConfig, /@sdkwork\/sdk-common/);
   assert.match(viteConfig, /sdkwork-sdk-common-typescript/);
   assert.match(viteConfig, /@openchat\/sdkwork-im-sdk/);
   assert.match(viteConfig, /sdkwork-im-sdk-typescript/);
-  assert.match(vitestConfig, /isSharedSdkSourceMode/);
   assert.match(vitestConfig, /@sdkwork\/app-sdk/);
   assert.match(vitestConfig, /sdkwork-app-sdk-typescript/);
+  assert.match(vitestConfig, /@sdkwork\/sdk-common/);
+  assert.match(vitestConfig, /sdkwork-sdk-common-typescript/);
   assert.match(vitestConfig, /@openchat\/sdkwork-im-sdk/);
   assert.match(vitestConfig, /sdkwork-im-sdk-typescript/);
+  assert.doesNotMatch(viteConfig, /isSharedSdkSourceMode\(process\.env\)/);
+  assert.doesNotMatch(vitestConfig, /isSharedSdkSourceMode\(process\.env\)/);
 
   assert.match(packageJson, /"prepare:shared-sdk"\s*:\s*"node scripts\/prepare-shared-sdk-packages\.mjs"/);
   assert.match(packageJson, /"check:shared-sdk"\s*:\s*"node --test scripts\/shared-sdk-contract\.test\.mjs"/);
