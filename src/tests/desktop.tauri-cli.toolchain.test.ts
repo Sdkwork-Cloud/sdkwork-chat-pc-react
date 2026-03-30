@@ -7,6 +7,26 @@ const runTauriCliModuleUrl = pathToFileURL(
 ).href;
 
 describe("desktop tauri cli rust toolchain bootstrap", () => {
+  it("uses target platform path semantics when resolving rustup bin candidates", async () => {
+    const originalArgv1 = process.argv[1];
+    process.argv[1] = path.resolve(__dirname, "desktop.tauri-cli.toolchain.test.ts");
+    const { resolvePathApiForPlatform, resolveRustToolchainBinCandidates } = await import(
+      runTauriCliModuleUrl
+    );
+    process.argv[1] = originalArgv1;
+
+    expect(resolvePathApiForPlatform("win32")).toBe(path.win32);
+    expect(resolvePathApiForPlatform("linux")).toBe(path.posix);
+    expect(
+      resolveRustToolchainBinCandidates({
+        env: {
+          USERPROFILE: "C:\\Users\\admin",
+        },
+        platform: "win32",
+      }),
+    ).toContain(path.win32.join("C:\\Users\\admin", ".cargo", "bin"));
+  });
+
   it("adds the local rustup cargo bin to PATH for windows desktop builds", async () => {
     const originalArgv1 = process.argv[1];
     process.argv[1] = path.resolve(__dirname, "desktop.tauri-cli.toolchain.test.ts");

@@ -59,14 +59,19 @@ function uniqueValues(values) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
+export function resolvePathApiForPlatform(platform = process.platform) {
+  return platform === 'win32' ? path.win32 : path.posix;
+}
+
 export function resolveRustToolchainBinCandidates({
   env = process.env,
   platform = process.platform,
 } = {}) {
+  const pathApi = resolvePathApiForPlatform(platform);
   const candidates = [];
   const cargoHome = String(env.CARGO_HOME ?? '').trim();
   if (cargoHome) {
-    candidates.push(path.resolve(cargoHome, 'bin'));
+    candidates.push(pathApi.resolve(cargoHome, 'bin'));
   }
 
   const homeDir =
@@ -75,7 +80,7 @@ export function resolveRustToolchainBinCandidates({
       : String(env.HOME ?? env.USERPROFILE ?? '').trim();
 
   if (homeDir) {
-    candidates.push(path.resolve(homeDir, '.cargo', 'bin'));
+    candidates.push(pathApi.resolve(homeDir, '.cargo', 'bin'));
   }
 
   return uniqueValues(candidates);
