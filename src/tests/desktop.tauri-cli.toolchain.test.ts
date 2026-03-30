@@ -43,6 +43,10 @@ describe("desktop tauri cli rust toolchain bootstrap", () => {
       },
       platform: "win32",
       pathExists: (candidatePath: string) => candidatePath === rustupBinDir,
+      inspectCommand: (command: string) => ({
+        available: true,
+        command,
+      }),
     });
 
     expect(plan.command).toBe("tauri.cmd");

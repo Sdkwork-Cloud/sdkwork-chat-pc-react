@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getAppInstallState,
   getAppInstallStateMap,
@@ -16,6 +16,10 @@ describe("appstore install lifecycle", () => {
   beforeEach(() => {
     localStorage.removeItem(STORAGE_KEY);
     resetAppInstallState();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("tracks install and uninstall status", async () => {
@@ -54,11 +58,16 @@ describe("appstore install lifecycle", () => {
   });
 
   it("returns installed lifecycle states sorted by recent activity", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-31T00:00:00.000Z"));
     await installApp("tool-clip");
+    vi.setSystemTime(new Date("2026-03-31T00:00:01.000Z"));
     await installApp("plugin-theme-kit");
 
     markAppOpened("plugin-theme-kit");
+    vi.setSystemTime(new Date("2026-03-31T00:00:02.000Z"));
     markAppOpened("tool-clip");
+    vi.setSystemTime(new Date("2026-03-31T00:00:03.000Z"));
     markAppOpened("tool-clip");
 
     const states = getInstalledAppStates();
