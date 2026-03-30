@@ -27,6 +27,10 @@ test('repository exposes mainline CI verification for desktop release prerequisi
   assert.match(workflow, /SDKWORK_SHARED_SDK_MODE:\s*git/);
   assert.match(workflow, /SDKWORK_SHARED_SDK_APP_GIT_REF:\s*[0-9a-f]{40}/);
   assert.match(workflow, /SDKWORK_SHARED_SDK_COMMON_GIT_REF:\s*[0-9a-f]{40}/);
+  assert.doesNotMatch(
+    workflow,
+    /uses:\s*pnpm\/action-setup@v4\s*\r?\n\s+with:\s*\r?\n\s+version:/,
+  );
   assert.ok(gitPreparationCount >= 2);
   assert.ok(sharedSdkPreparationCount >= 2);
   assert.match(workflow, /pnpm run check:automation/);

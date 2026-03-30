@@ -42,6 +42,10 @@ test('repository exposes a cross-platform desktop release workflow', () => {
   assert.match(workflow, /SDKWORK_SHARED_SDK_COMMON_GIT_REF:\s*[0-9a-f]{40}/);
   assert.match(workflow, /SDKWORK_SHARED_SDK_APP_REPO_URL:\s*https:\/\/github\.com\/Sdkwork-Cloud\/sdkwork-sdk-app\.git/);
   assert.match(workflow, /SDKWORK_SHARED_SDK_COMMON_REPO_URL:\s*https:\/\/github\.com\/Sdkwork-Cloud\/sdkwork-sdk-commons\.git/);
+  assert.doesNotMatch(
+    workflow,
+    /uses:\s*pnpm\/action-setup@v4\s*\r?\n\s+with:\s*\r?\n\s+version:/,
+  );
   assert.ok(gitPreparationCount >= 2);
   assert.ok(sharedSdkPreparationCount >= 2);
   assert.match(workflow, /pnpm install --frozen-lockfile/);
