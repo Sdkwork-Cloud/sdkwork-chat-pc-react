@@ -106,6 +106,31 @@ export function createWebPlatform(): PlatformAPI {
         await document.documentElement.requestFullscreen();
       }
     },
+
+    async restoreWindow(): Promise<void> {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+    },
+
+    async isWindowMaximized(): Promise<boolean> {
+      return Boolean(document.fullscreenElement);
+    },
+
+    async subscribeWindowMaximized(
+      callback: (isMaximized: boolean) => void,
+    ): Promise<() => void> {
+      const emit = () => {
+        callback(Boolean(document.fullscreenElement));
+      };
+
+      emit();
+      document.addEventListener("fullscreenchange", emit);
+
+      return () => {
+        document.removeEventListener("fullscreenchange", emit);
+      };
+    },
     
     async closeWindow(): Promise<void> {
       window.close();

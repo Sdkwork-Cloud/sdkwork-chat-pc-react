@@ -2,14 +2,15 @@ import { translate } from "@sdkwork/openchat-pc-i18n";
 import type { Message, MessageStatus } from "../entities/message.entity";
 import {
   convertFrontendContentToSDK,
-  convertSDKMessageToFrontend,
   deleteMessage as sdkDeleteMessage,
   getMessageList,
-  getSDKClient,
+  getUnreadCount as sdkGetUnreadCount,
   markMessageAsRead as sdkMarkMessageAsRead,
+  markMessagesAsRead as sdkMarkMessagesAsRead,
   recallMessage as sdkRecallMessage,
   registerSDKEvents,
   searchMessageList,
+  sendCustomMessage,
   sendImageMessage,
   sendTextMessage,
 } from "../adapters/sdk-adapter";
@@ -130,27 +131,30 @@ class MessageQueue {
     content: MessageContent,
     isGroup: boolean,
   ): Promise<Message> {
-    const client = getSDKClient(false);
-    if (!client) {
-      throw new Error("SDK not initialized");
-    }
-
-    const sdkContent = convertFrontendContentToSDK(content);
-    const params = isGroup
-      ? { groupId: conversationId, customType: content.type, data: sdkContent }
-      : { toUserId: conversationId, customType: content.type, data: sdkContent };
-
-    const sdkMessage = await client.im.messages.sendCustom(params);
-    return convertSDKMessageToFrontend(sdkMessage);
+    const sdkContent = convertFrontendContentToSDK(content as unknown as Record<string, unknown>);
+    return sendCustomMessage(
+      conversationId,
+      {
+        ...(sdkContent as Record<string, unknown>),
+        type: content.type,
+        ...(content as unknown as Record<string, unknown>),
+      },
+      { isGroup },
+    );
   }
 }
 
 const messageQueue = new MessageQueue();
 const messageStatusCache = new Map<string, MessageStatus>();
+let messageEventsDisposer: (() => void) | null = null;
 
 export function registerMessageEventListeners() {
+  if (messageEventsDisposer) {
+    return messageEventsDisposer;
+  }
+
   try {
-    registerSDKEvents({
+    messageEventsDisposer = registerSDKEvents({
       onMessageSent: (message) => {
         messageStatusCache.set(message.id, message.status);
       },
@@ -158,9 +162,16 @@ export function registerMessageEventListeners() {
         messageStatusCache.set(message.id, message.status);
       },
     });
+    return messageEventsDisposer;
   } catch (error) {
     console.warn("Failed to register message event listeners:", error);
+    messageEventsDisposer = null;
   }
+}
+
+export function destroyMessageEventListeners(): void {
+  messageEventsDisposer?.();
+  messageEventsDisposer = null;
 }
 
 export async function sendMessage(params: SendMessageParams): Promise<Message> {
@@ -285,17 +296,19 @@ export async function markMessagesAsRead(
 ): Promise<void> {
   try {
     if (messageIds && messageIds.length > 0) {
-      for (const messageId of messageIds) {
-        await sdkMarkMessageAsRead(messageId);
+      await sdkMarkMessagesAsRead(conversationId, messageIds);
+    } else {
+      const messages = await getMessages({
+        conversationId,
+        limit: 100,
+      });
+      const unreadIds = messages
+        .filter((item) => item.senderId !== "current-user" && item.status !== "read")
+        .map((item) => item.id);
+      if (unreadIds.length > 0) {
+        await sdkMarkMessagesAsRead(conversationId, unreadIds);
       }
-      return;
     }
-
-    const client = getSDKClient(false);
-    if (!client) {
-      throw new Error("SDK not initialized");
-    }
-    await client.im.messages.markConversationAsRead(conversationId);
   } catch (error) {
     console.error("Failed to mark messages as read:", error);
     throw error;
@@ -304,15 +317,7 @@ export async function markMessagesAsRead(
 
 export async function getUnreadCount(conversationId: string): Promise<number> {
   try {
-    const client = getSDKClient(false);
-    if (!client) {
-      throw new Error("SDK not initialized");
-    }
-
-    const conversation = await client.im.conversations.getConversation(
-      conversationId,
-    );
-    return conversation?.unreadCount || 0;
+    return await sdkGetUnreadCount(conversationId);
   } catch (error) {
     console.error("Failed to load unread count:", error);
     return 0;

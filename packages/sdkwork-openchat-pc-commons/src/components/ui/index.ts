@@ -53,6 +53,7 @@ export type { DataTableProps } from './DataTable';
 
 export { RichTextEditor } from './RichTextEditor';
 export type { RichTextEditorProps, RichTextEditorRef } from './RichTextEditor';
+export { EmojiPicker } from './EmojiPicker';
 
 export type { MarkdownRendererProps } from './MarkdownRenderer';
 
@@ -78,4 +79,3 @@ export type {
   ConversationBaseInfo,
   MessageBaseInfo,
 } from '../../types/common';
-

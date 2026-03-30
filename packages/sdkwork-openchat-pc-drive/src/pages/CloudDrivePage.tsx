@@ -1,574 +1,578 @@
-import { useEffect, useMemo, useState } from "react";
-import { FileResultService, FileService } from "../services";
-import type { BreadcrumbItem, FileNode, FileType, StorageStats } from "../types";
+import { useEffect, useRef, useState } from "react";
 import {
-  buildDriveWorkspaceLibrary,
-  buildDriveWorkspaceSummary,
-  filterDriveWorkspaceFiles,
-} from "./drive.workspace.model";
+  ArrowDownAZ,
+  Box,
+  ChevronDown,
+  Code,
+  Database,
+  Download,
+  FileText,
+  Film,
+  Filter,
+  Cloud,
+  LayoutGrid,
+  Image as ImageIcon,
+  List,
+  Pencil,
+  RefreshCw,
+  Search,
+  Music,
+  Star,
+  Trash2,
+  Upload,
+  Type,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
-import * as SharedUi from "@sdkwork/openchat-pc-ui";
+import { Button, Input } from "@sdkwork/openchat-pc-ui";
+import type { FileNode } from "../types";
+import { DriveBreadcrumbs } from "../components/DriveBreadcrumbs";
+import { DriveContextMenu } from "../components/DriveContextMenu";
+import { DriveGrid } from "../components/DriveGrid";
+import { DriveSidebar } from "../components/DriveSidebar";
+import { FilePreviewModal } from "../components/FilePreviewModal";
+import { DriveStoreProvider, useDriveStore, type DriveFileTypeFilter } from "../store/driveStore";
 
-function inferFileType(fileName: string): FileType {
-  const lower = fileName.toLowerCase();
-  if (/\.(png|jpg|jpeg|gif|webp)$/.test(lower)) return "image";
-  if (/\.(mp4|mov|avi|mkv)$/.test(lower)) return "video";
-  if (/\.(mp3|wav|aac|flac)$/.test(lower)) return "audio";
-  if (/\.(doc|docx|txt|md)$/.test(lower)) return "doc";
-  if (/\.(pdf)$/.test(lower)) return "pdf";
-  if (/\.(xls|xlsx|csv)$/.test(lower)) return "xls";
-  if (/\.(ppt|pptx)$/.test(lower)) return "ppt";
-  if (/\.(zip|rar|7z)$/.test(lower)) return "zip";
-  if (/\.(ts|tsx|js|jsx|java|go|py|rs)$/.test(lower)) return "code";
-  return "unknown";
-}
-
-const typeOptions: Array<{ value: "all" | FileType; label: string }> = [
-  { value: "all", label: "All" },
-  { value: "folder", label: "Folder" },
-  { value: "image", label: "Image" },
-  { value: "video", label: "Video" },
-  { value: "audio", label: "Audio" },
-  { value: "doc", label: "Doc" },
-  { value: "pdf", label: "PDF" },
-  { value: "xls", label: "Sheet" },
-  { value: "ppt", label: "Slides" },
-  { value: "zip", label: "Archive" },
-  { value: "code", label: "Code" },
-  { value: "unknown", label: "Unknown" },
+const filterOptions: Array<{
+  id: DriveFileTypeFilter;
+  label: string;
+  icon: LucideIcon;
+}> = [
+  { id: "all", label: "All Files", icon: Filter },
+  { id: "document", label: "Documents", icon: FileText },
+  { id: "sheet", label: "Spreadsheets", icon: Database },
+  { id: "presentation", label: "Presentations", icon: Box },
+  { id: "image", label: "Images", icon: ImageIcon },
+  { id: "video", label: "Videos", icon: Film },
+  { id: "audio", label: "Audio", icon: Music },
+  { id: "code", label: "Code", icon: Code },
+  { id: "font", label: "Fonts", icon: Type },
+  { id: "archive", label: "Archives", icon: Box },
+  { id: "3d", label: "3D Models", icon: Box },
 ];
 
-const sortOptions: Array<{ value: "updated" | "size"; label: string }> = [
-  { value: "updated", label: "Recently Updated" },
-  { value: "size", label: "Largest Size" },
-];
-
-const fileTypeLabels: Record<FileType, string> = {
-  folder: "Folder",
-  image: "Image",
-  video: "Video",
-  audio: "Audio",
-  doc: "Doc",
-  pdf: "PDF",
-  xls: "Sheet",
-  ppt: "Slides",
-  zip: "Archive",
-  code: "Code",
-  unknown: "Unknown",
-};
-
-export function CloudDrivePage() {
-  const [currentParentId, setCurrentParentId] = useState<string | null>(null);
+function DrivePageContent() {
   const { tr } = useAppTranslation();
-  const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
-  const [files, setFiles] = useState<FileNode[]>([]);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
+  const {
+    currentPath,
+    items,
+    viewMode,
+    isLoading,
+    setViewMode,
+    sortBy,
+    sortDirection,
+    setSort,
+    filterType,
+    setFilterType,
+    searchQuery,
+    setSearchQuery,
+    selection,
+    clearSelection,
+    deleteItems,
+    purgeItems,
+    restoreItems,
+    toggleStar,
+    refresh,
+    createFolder,
+    renameItem,
+    uploadFiles,
+    downloadItems,
+    emptyTrash,
+    isTrashView,
+    isVirtualView,
+    isStarredView,
+    isRecentView,
+    openItem,
+    selectAll,
+  } = useDriveStore();
 
-  const [keyword, setKeyword] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | FileType>("all");
-  const [onlyStarred, setOnlyStarred] = useState(false);
-  const [sortBy, setSortBy] = useState<"updated" | "size">("updated");
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorText, setErrorText] = useState<string | null>(null);
-  const [statusText, setStatusText] = useState("");
-
-  const [favoriteFileIds, setFavoriteFileIds] = useState<string[]>(() => FileService.getFavoriteFileIds());
-  const [recentFileIds, setRecentFileIds] = useState<string[]>(() => FileService.getRecentFileIds());
-
-  const loadData = async (parentId: string | null) => {
-    setIsLoading(true);
-    setErrorText(null);
-
-    try {
-      const [filesRes, statsRes, crumbs] = await Promise.all([
-        FileResultService.getFilesByParent(parentId, {
-          type: typeFilter === "all" ? undefined : typeFilter,
-          search: keyword.trim() || undefined,
-          isStarred: onlyStarred ? true : undefined,
-        }),
-        FileResultService.getStorageStats(),
-        FileResultService.getBreadcrumbs(parentId),
-      ]);
-
-      setFiles(filesRes.data || []);
-      setStorageStats(statsRes.data || null);
-      setBreadcrumbs(crumbs.data || []);
-      setSelectedIds([]);
-
-      if (!filesRes.success || !statsRes.success) {
-        setErrorText(filesRes.message || statsRes.message || tr("Some drive data could not be loaded."));
-      }
-    } catch (error) {
-      setFiles([]);
-      setStorageStats(null);
-      setBreadcrumbs([]);
-      setErrorText(error instanceof Error ? error.message : tr("Failed to load cloud drive."));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item?: FileNode } | null>(null);
+  const [previewItem, setPreviewItem] = useState<FileNode | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement | null>(null);
+  const filterMenuRef = useRef<HTMLDivElement | null>(null);
+  const dragCounterRef = useRef(0);
 
   useEffect(() => {
-    void loadData(currentParentId);
-  }, [currentParentId, keyword, typeFilter, onlyStarred, tr]);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
+        const target = event.target as HTMLElement | null;
+        if (target && ["INPUT", "TEXTAREA"].includes(target.tagName)) {
+          return;
+        }
+        event.preventDefault();
+        selectAll();
+      }
+      if (event.key === "Escape") {
+        setContextMenu(null);
+        setRenamingId(null);
+      }
+    };
 
-  const usedPercent = useMemo(() => {
-    if (!storageStats || storageStats.total <= 0) {
-      return 0;
-    }
-    return Math.round((storageStats.used / storageStats.total) * 100);
-  }, [storageStats]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectAll]);
 
-  const workspaceFiles = useMemo(
-    () =>
-      filterDriveWorkspaceFiles(files, {
-        keyword,
-        type: typeFilter,
-        starredOnly: onlyStarred,
-        sortBy,
-      }),
-    [files, keyword, onlyStarred, sortBy, typeFilter],
-  );
+  useEffect(() => {
+    const handleMouseDown = (event: MouseEvent) => {
+      if (!sortMenuOpen) {
+        if (!filterMenuOpen) {
+          return;
+        }
+      }
+      const target = event.target as Node | null;
+      if (target && sortMenuRef.current?.contains(target)) {
+        if (!filterMenuOpen || !filterMenuRef.current?.contains(target)) {
+          return;
+        }
+      }
+      if (target && filterMenuRef.current?.contains(target)) {
+        return;
+      }
+      setSortMenuOpen(false);
+      setFilterMenuOpen(false);
+    };
 
-  const workspaceSummary = useMemo(() => buildDriveWorkspaceSummary(workspaceFiles), [workspaceFiles]);
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [filterMenuOpen, sortMenuOpen]);
 
-  const workspaceLibrary = useMemo(
-    () =>
-      buildDriveWorkspaceLibrary(files, {
-        favoriteFileIds,
-        recentFileIds,
-      }),
-    [favoriteFileIds, files, recentFileIds],
-  );
+  const handleBackgroundContextMenu = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({ x: event.clientX, y: event.clientY });
+  };
 
-  const favoriteSet = useMemo(() => new Set(favoriteFileIds), [favoriteFileIds]);
-
-  const handleOpenFile = (node: FileNode) => {
-    setRecentFileIds(FileService.markFileOpened(node.id));
-    if (node.type === "folder") {
-      setCurrentParentId(node.id);
+  const handleDragEnter = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounterRef.current += 1;
+    if (event.dataTransfer.items?.length > 0 && Array.from(event.dataTransfer.types).includes("Files")) {
+      setIsDragging(true);
     }
   };
 
-  const handleCreateFolder = async () => {
-    const folderName = window.prompt(tr("Folder name"), tr("New Folder"));
-    if (!folderName?.trim()) {
+  const handleDragLeave = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0;
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const handleDrop = async (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+    if (event.dataTransfer.files.length > 0) {
+      await uploadFiles(Array.from(event.dataTransfer.files));
+    }
+  };
+
+  const handleItemContextMenu = (event: React.MouseEvent, item?: FileNode) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({ x: event.clientX, y: event.clientY, item });
+  };
+
+  const handleRenameCommit = async (id: string, name: string) => {
+    await renameItem(id, name);
+    setRenamingId(null);
+  };
+
+  const handlePreview = (item: FileNode) => {
+    if (item.trashedAt) {
       return;
     }
-
-    try {
-      const result = await FileResultService.createFolder(currentParentId, folderName.trim());
-      if (!result.success) {
-        setStatusText(result.message || tr("Failed to create folder."));
-        return;
-      }
-
-      setStatusText(tr("Folder created."));
-      await loadData(currentParentId);
-    } catch (error) {
-      setStatusText(error instanceof Error ? error.message : tr("Failed to create folder."));
-    }
+    setPreviewItem(item);
+    void openItem(item);
   };
 
-  const handleUploadMockFile = async () => {
-    const defaultName = `demo_${Date.now()}.txt`;
-    const fileName = window.prompt(tr("File name"), defaultName);
-    if (!fileName?.trim()) {
+  const selectedItems = items.filter((item) => selection.has(item.id));
+  const currentLabel = isTrashView
+    ? tr("Trash")
+    : isStarredView
+      ? tr("Starred")
+      : isRecentView
+        ? tr("Recent")
+        : currentPath
+          ? tr("Folder")
+          : tr("My Drive");
+
+  const handleSelectedDelete = async () => {
+    if (selectedItems.length === 0) {
       return;
     }
-
-    try {
-      const type = inferFileType(fileName.trim());
-      const result = await FileResultService.uploadFile(currentParentId, {
-        name: fileName.trim(),
-        size: 1024 + Math.floor(Math.random() * 500_000),
-        type,
-      });
-      if (!result.success) {
-        setStatusText(result.message || tr("Failed to upload file."));
-        return;
-      }
-
-      setStatusText(tr("File uploaded."));
-      await loadData(currentParentId);
-    } catch (error) {
-      setStatusText(error instanceof Error ? error.message : tr("Failed to upload file."));
+    if (isTrashView) {
+      await purgeItems(selectedItems.map((item) => item.id));
+    } else {
+      await deleteItems(selectedItems.map((item) => item.id));
     }
+    clearSelection();
   };
 
-  const handleToggleFavorite = (id: string) => {
-    FileService.toggleFavoriteFile(id);
-    setFavoriteFileIds(FileService.getFavoriteFileIds());
-  };
-
-  const handleToggleStar = async (id: string) => {
-    try {
-      const result = await FileResultService.toggleStar(id);
-      if (!result.success) {
-        setStatusText(result.message || tr("Failed to update favorite state."));
-        return;
-      }
-
-      await loadData(currentParentId);
-    } catch (error) {
-      setStatusText(error instanceof Error ? error.message : tr("Failed to update favorite state."));
-    }
-  };
-
-  const handleRename = async (file: FileNode) => {
-    const nextName = window.prompt(tr("Rename file"), file.name);
-    if (!nextName?.trim() || nextName.trim() === file.name) {
+  const handleSelectedRestore = async () => {
+    if (selectedItems.length === 0) {
       return;
     }
-
-    try {
-      const result = await FileResultService.renameFile(file.id, nextName.trim());
-      if (!result.success) {
-        setStatusText(result.message || tr("Failed to rename file."));
-        return;
-      }
-
-      setStatusText(tr("File renamed."));
-      await loadData(currentParentId);
-    } catch (error) {
-      setStatusText(error instanceof Error ? error.message : tr("Failed to rename file."));
-    }
+    await restoreItems(selectedItems.map((item) => item.id));
+    clearSelection();
   };
 
-  const handleDeleteSelected = async () => {
-    if (selectedIds.length === 0) {
-      setStatusText(tr("Please select at least one item."));
+  const handleSelectedStar = async () => {
+    if (selectedItems.length === 0) {
       return;
     }
-
-    try {
-      const result = await FileResultService.deleteFiles(selectedIds);
-      if (!result.success) {
-        setStatusText(result.message || tr("Failed to delete selected files."));
-        return;
-      }
-
-      setStatusText(tr("Selected files deleted."));
-      await loadData(currentParentId);
-    } catch (error) {
-      setStatusText(error instanceof Error ? error.message : tr("Failed to delete selected files."));
+    for (const item of selectedItems) {
+      await toggleStar(item.id);
     }
+    clearSelection();
   };
 
-  const handleMoveSelectedToRoot = async () => {
-    if (selectedIds.length === 0) {
-      setStatusText(tr("Please select at least one item."));
-      return;
-    }
-
-    try {
-      const result = await FileResultService.moveFiles(selectedIds, null);
-      if (!result.success) {
-        setStatusText(result.message || tr("Failed to move selected files."));
-        return;
-      }
-
-      setStatusText(tr("Selected files moved to root."));
-      await loadData(currentParentId);
-    } catch (error) {
-      setStatusText(error instanceof Error ? error.message : tr("Failed to move selected files."));
+  const handleNewFolder = async () => {
+    const name = window.prompt(tr("Folder name"));
+    if (name && name.trim()) {
+      await createFolder(name.trim());
     }
   };
-
-  const breadcrumbPath = [{ id: null, name: "Root" }, ...breadcrumbs];
 
   return (
-    <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
-      <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <h1 className="text-xl font-semibold text-text-primary">{tr("Cloud Drive")}</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          {tr("Manage folders, files, and storage usage from your workspace.")}
-        </p>
-      </header>
-
-      <div className="flex-1 overflow-auto p-6">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">{tr("Current Entries")}</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.total}</p>
-          </div>
-          <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">{tr("Folders")}</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.folders}</p>
-          </div>
-          <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">{tr("Files")}</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.files}</p>
-          </div>
-          <div className="rounded-xl border border-border bg-bg-secondary p-4">
-            <p className="text-xs text-text-muted">{tr("Starred in View")}</p>
-            <p className="mt-1 text-xl font-semibold text-text-primary">{workspaceSummary.starred}</p>
-          </div>
-        </div>
-
-          <div className="mt-4 rounded-xl border border-border bg-bg-secondary p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-text-primary">{tr("Storage")}</p>
-              <p className="text-xs text-text-secondary">
-                {storageStats
-                  ? `${FileService.formatBytes(storageStats.used)} / ${FileService.formatBytes(storageStats.total)}`
-                  : "-"}
-              </p>
-            </div>
-            <div className="mt-2 h-2 rounded-full bg-bg-tertiary">
-              <div className="h-2 rounded-full bg-primary" style={{ width: `${usedPercent}%` }} />
-            </div>
-          </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-[1fr_140px_160px_auto_auto_auto]">
-          <SharedUi.Input
-            value={keyword}
-            onChange={(event) => setKeyword(event.target.value)}
-            placeholder={tr("Search files and folders")}
-            className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
-          />
-          <SharedUi.Select
-            value={typeFilter}
-            onChange={(event) => setTypeFilter(event.target.value as "all" | FileType)}
-            className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
-          >
-            {typeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {tr(option.label)}
-              </option>
-            ))}
-          </SharedUi.Select>
-          <SharedUi.Select
-            value={sortBy}
-            onChange={(event) => setSortBy(event.target.value as "updated" | "size")}
-            className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary"
-          >
-            {sortOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {tr(option.label)}
-              </option>
-            ))}
-          </SharedUi.Select>
-          <SharedUi.Button
-            onClick={() => setOnlyStarred((prev) => !prev)}
-            className={`rounded-lg border px-3 py-2 text-xs ${
-              onlyStarred
-                ? "border-primary bg-primary text-white"
-                : "border-border bg-bg-tertiary text-text-secondary"
-            }`}
-          >
-            {tr("Starred only")}
-          </SharedUi.Button>
-          <SharedUi.Button
-            onClick={() => void handleCreateFolder()}
-            className="rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-xs text-text-secondary"
-          >
-            {tr("New Folder")}
-          </SharedUi.Button>
-          <SharedUi.Button
-            onClick={() => void handleUploadMockFile()}
-            className="rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-xs text-text-secondary"
-          >
-            {tr("Upload Demo")}
-          </SharedUi.Button>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-text-muted">
-          {breadcrumbPath.map((item) => (
-            <SharedUi.Button
-              key={item.id || "root"}
-              onClick={() => setCurrentParentId(item.id)}
-              className={`rounded-md px-2 py-1 ${
-                item.id === currentParentId ? "bg-primary text-white" : "bg-bg-tertiary"
-              }`}
-            >
-              {item.id === null ? tr("Root") : item.name}
-            </SharedUi.Button>
-          ))}
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
-          <div className="rounded-xl border border-border bg-bg-secondary p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Favorites")}</h4>
-              <span className="text-[11px] text-text-muted">{workspaceLibrary.favorites.length}</span>
-            </div>
-            <div className="space-y-1">
-              {workspaceLibrary.favorites.slice(0, 3).map((item) => (
-                <SharedUi.Button
-                  key={`favorite-${item.id}`}
-                  onClick={() => handleOpenFile(item)}
-                  className="w-full rounded border border-border bg-bg-primary px-2 py-1 text-left text-[11px] text-text-secondary hover:bg-bg-hover"
-                >
-                  {item.name}
-                </SharedUi.Button>
-              ))}
-              {workspaceLibrary.favorites.length === 0 ? (
-                <p className="text-[11px] text-text-muted">{tr("No favorites yet.")}</p>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border bg-bg-secondary p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Recent Opened")}</h4>
-              <span className="text-[11px] text-text-muted">{workspaceLibrary.recent.length}</span>
-            </div>
-            <div className="space-y-1">
-              {workspaceLibrary.recent.slice(0, 3).map((item) => (
-                <SharedUi.Button
-                  key={`recent-${item.id}`}
-                  onClick={() => handleOpenFile(item)}
-                  className="w-full rounded border border-border bg-bg-primary px-2 py-1 text-left text-[11px] text-text-secondary hover:bg-bg-hover"
-                >
-                  {item.name}
-                </SharedUi.Button>
-              ))}
-              {workspaceLibrary.recent.length === 0 ? (
-                <p className="text-[11px] text-text-muted">{tr("No recent history.")}</p>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border bg-bg-secondary p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Largest Files")}</h4>
-              <span className="text-[11px] text-text-muted">{workspaceLibrary.largest.length}</span>
-            </div>
-            <div className="space-y-1">
-              {workspaceLibrary.largest.slice(0, 3).map((item) => (
-                <SharedUi.Button
-                  key={`largest-${item.id}`}
-                  onClick={() => handleOpenFile(item)}
-                  className="w-full rounded border border-border bg-bg-primary px-2 py-1 text-left text-[11px] text-text-secondary hover:bg-bg-hover"
-                >
-                  {item.name} ({FileService.formatBytes(item.size || 0)})
-                </SharedUi.Button>
-              ))}
-              {workspaceLibrary.largest.length === 0 ? (
-                <p className="text-[11px] text-text-muted">{tr("No files in this view.")}</p>
-              ) : null}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <SharedUi.Button
-            onClick={() => void handleDeleteSelected()}
-            className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary"
-          >
-            {tr("Delete Selected")}
-          </SharedUi.Button>
-          <SharedUi.Button
-            onClick={() => void handleMoveSelectedToRoot()}
-            className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary"
-          >
-            {tr("Move to Root")}
-          </SharedUi.Button>
-        </div>
-
-        {statusText && <p className="mt-3 text-xs text-text-secondary">{statusText}</p>}
-        {errorText && (
-          <div className="mt-3 rounded-lg border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
-            {errorText}
-          </div>
-        )}
-
-        <div className="mt-5">
-          {isLoading ? (
-            <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-              {tr("Loading drive files...")}
-            </div>
-          ) : workspaceFiles.length === 0 ? (
-            <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
-              {tr("No files found in this folder.")}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {workspaceFiles.map((file) => {
-                const icon = FileService.getFileIcon(file.type);
-
-                return (
-                  <article key={file.id} className="rounded-xl border border-border bg-bg-secondary p-4">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <SharedUi.Input
-                        type="checkbox"
-                        checked={selectedIds.includes(file.id)}
-                        onChange={(event) => {
-                          setSelectedIds((prev) => {
-                            if (event.target.checked) {
-                              return [...prev, file.id];
-                            }
-                            return prev.filter((id) => id !== file.id);
-                          });
-                        }}
-                        className="h-4 w-4 accent-primary"
-                      />
-
-                      <SharedUi.Button
-                        onClick={() => handleOpenFile(file)}
-                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                      >
-                        <span
-                          className="rounded px-2 py-1 text-[11px] font-semibold"
-                          style={{ color: icon.color, background: icon.bg }}
-                        >
-                          {icon.icon}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="truncate text-sm font-semibold text-text-primary">{file.name}</p>
-                          {favoriteSet.has(file.id) ? (
-                            <span className="rounded bg-warning/20 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
-                              {tr("Fav")}
-                            </span>
-                          ) : null}
-                          </div>
-                          <p className="text-xs text-text-muted">
-                            {tr(fileTypeLabels[file.type])} | {file.size ? FileService.formatBytes(file.size) : "-"}
-                          </p>
-                        </div>
-                      </SharedUi.Button>
-
-                      <SharedUi.Button
-                        onClick={() => handleToggleFavorite(file.id)}
-                        className={`rounded-md border px-2 py-1 text-xs ${
-                          favoriteSet.has(file.id)
-                            ? "border-warning/40 bg-warning/20 text-warning"
-                            : "border-border bg-bg-tertiary text-text-secondary"
-                        }`}
-                      >
-                        {favoriteSet.has(file.id) ? tr("Favorited") : tr("Favorite")}
-                      </SharedUi.Button>
-
-                      <SharedUi.Button
-                        onClick={() => void handleToggleStar(file.id)}
-                        className={`rounded-md px-2 py-1 text-xs ${
-                          file.isStarred
-                            ? "bg-warning/20 text-warning"
-                            : "bg-bg-tertiary text-text-secondary"
-                        }`}
-                      >
-                        {file.isStarred ? tr("Starred") : tr("Star")}
-                      </SharedUi.Button>
-
-                      <SharedUi.Button
-                        onClick={() => void handleRename(file)}
-                        className="rounded-md border border-border bg-bg-tertiary px-2 py-1 text-xs text-text-secondary"
-                      >
-                        {tr("Rename")}
-                      </SharedUi.Button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </div>
+    <div className="flex h-full w-full overflow-hidden bg-bg-primary text-text-primary">
+      <div className="hidden lg:block">
+        <DriveSidebar />
       </div>
-    </section>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="border-b border-border bg-bg-secondary px-4 py-3">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <div className="flex items-center gap-3">
+                <div className="text-lg font-semibold text-text-primary">{tr("Drive")}</div>
+                <span className="rounded-full border border-border bg-bg-hover px-2.5 py-1 text-[11px] font-medium text-text-secondary">
+                  {currentLabel}
+                </span>
+                <span className="rounded-full border border-border bg-bg-hover px-2.5 py-1 text-[11px] font-medium text-text-secondary">
+                  {tr("{{count}} items", { count: items.length })}
+                </span>
+              </div>
+              <div className="text-xs text-text-secondary">
+                {tr("Manage folders, recent items, favorites, and trash from one place.")}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="min-w-[240px] flex-1 xl:max-w-[360px]">
+                <Input
+                  value={searchQuery}
+                  onValueChange={setSearchQuery}
+                  placeholder={tr("Search files")}
+                  prefix={<Search size={15} className="text-text-muted" />}
+                />
+              </div>
+              <div ref={filterMenuRef} className="relative">
+                <Button
+                  type="button"
+                  variant="unstyled"
+                  onClick={() => setFilterMenuOpen((open) => !open)}
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs transition-colors ${
+                    filterType === "all"
+                      ? "border-border bg-bg-primary text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+                      : "border-primary/30 bg-primary/10 text-primary"
+                  }`}
+                >
+                  <Filter size={14} />
+                  <span className="hidden sm:inline">
+                    {tr(filterOptions.find((option) => option.id === filterType)?.label || "All Files")}
+                  </span>
+                  <ChevronDown size={12} className="opacity-60" />
+                </Button>
+                {filterMenuOpen ? (
+                  <div className="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-2xl border border-border bg-bg-elevated p-2 shadow-xl">
+                    {filterOptions.map((option) => {
+                      const ActiveIcon = option.icon;
+                      const active = filterType === option.id;
+                      return (
+                        <Button
+                          key={option.id}
+                          type="button"
+                          variant="unstyled"
+                          onClick={() => {
+                            setFilterType(option.id);
+                            setFilterMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-bg-hover ${
+                            active ? "text-primary" : "text-text-secondary"
+                          }`}
+                        >
+                          <ActiveIcon size={15} />
+                          <span>{tr(option.label)}</span>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+              <Button type="button" variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={() => void refresh()}>
+                {tr("Refresh")}
+              </Button>
+              {!isVirtualView ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  icon={<Upload size={14} />}
+                  onClick={() => void uploadFiles()}
+                >
+                  {tr("Upload")}
+                </Button>
+              ) : null}
+              {!isVirtualView ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  icon={<Pencil size={14} />}
+                  onClick={handleNewFolder}
+                >
+                  {tr("New folder")}
+                </Button>
+              ) : null}
+              {isTrashView ? (
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  icon={<Trash2 size={14} />}
+                  onClick={() => void emptyTrash()}
+                >
+                  {tr("Empty trash")}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <DriveBreadcrumbs />
+            <div ref={sortMenuRef} className="relative flex items-center gap-1 rounded-xl border border-border bg-bg-primary p-1">
+              <Button
+                type="button"
+                variant="unstyled"
+                onClick={() => setViewMode("list")}
+                className={`rounded-lg p-2 transition-colors ${viewMode === "list" ? "bg-bg-hover text-text-primary" : "text-text-muted hover:bg-bg-hover hover:text-text-primary"}`}
+                aria-label={tr("List view")}
+              >
+                <List size={15} />
+              </Button>
+              <Button
+                type="button"
+                variant="unstyled"
+                onClick={() => setViewMode("grid")}
+                className={`rounded-lg p-2 transition-colors ${viewMode === "grid" ? "bg-bg-hover text-text-primary" : "text-text-muted hover:bg-bg-hover hover:text-text-primary"}`}
+                aria-label={tr("Grid view")}
+              >
+                <LayoutGrid size={15} />
+              </Button>
+              <Button
+                type="button"
+                variant="unstyled"
+                onClick={() => setSortMenuOpen((open) => !open)}
+                className="rounded-lg p-2 text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary"
+                aria-label={tr("Toggle sort direction")}
+              >
+                <ArrowDownAZ size={15} className={sortDirection === "asc" ? "rotate-180" : ""} />
+              </Button>
+              {sortMenuOpen ? (
+                <div className="absolute right-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-border bg-bg-elevated p-2 shadow-xl">
+                  {(["name", "date", "size"] as const).map((option) => (
+                    <Button
+                      key={option}
+                      type="button"
+                      variant="unstyled"
+                      onClick={() => {
+                        setSort(option, sortDirection);
+                        setSortMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-bg-hover ${
+                        sortBy === option ? "text-primary" : "text-text-secondary"
+                      }`}
+                    >
+                      <span className="capitalize">{tr(option)}</span>
+                      {sortBy === option ? <span className="text-xs">{tr("Selected")}</span> : null}
+                    </Button>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="unstyled"
+                    onClick={() => {
+                      setSort(sortBy, sortDirection === "asc" ? "desc" : "asc");
+                      setSortMenuOpen(false);
+                    }}
+                    className="mt-1 flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-text-secondary transition-colors hover:bg-bg-hover"
+                  >
+                    <span>{tr("Direction")}</span>
+                    <span>{sortDirection === "asc" ? tr("Asc") : tr("Desc")}</span>
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </header>
+
+        <main
+          className="relative min-h-0 flex-1 overflow-hidden"
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          onContextMenu={handleBackgroundContextMenu}
+          onClick={() => {
+            clearSelection();
+            setContextMenu(null);
+          }}
+        >
+          <div className="h-full overflow-y-auto px-4 py-4">
+            {isLoading ? (
+              <div className="flex h-full items-center justify-center gap-3 text-text-muted">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <span className="text-sm">{tr("Loading content...")}</span>
+              </div>
+            ) : (
+              <DriveGrid
+                renamingId={renamingId}
+                onRenameCommit={handleRenameCommit}
+                onRenameCancel={() => setRenamingId(null)}
+                onContextMenu={handleItemContextMenu}
+                onPreview={handlePreview}
+              />
+            )}
+          </div>
+          {isDragging && !isTrashView ? (
+            <div className="pointer-events-none absolute inset-4 z-20 flex flex-col items-center justify-center rounded-2xl border border-dashed border-primary/50 bg-primary/5 backdrop-blur-[1px]">
+              <Cloud size={56} className="mb-3 text-primary" />
+              <div className="text-xl font-semibold text-text-primary">{tr("Drop files to upload")}</div>
+            </div>
+          ) : null}
+        </main>
+      </div>
+
+      {selection.size > 0 ? (
+        <div className="fixed bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-bg-elevated px-3 py-2 shadow-2xl">
+          <div className="rounded-full border-r border-border pr-3 text-xs font-medium text-text-primary">
+            {tr("{{count}} selected", { count: selection.size })}
+          </div>
+          {isTrashView ? (
+            <>
+              <Button type="button" variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={() => void handleSelectedRestore()}>
+                {tr("Restore")}
+              </Button>
+              <Button type="button" variant="danger" size="sm" icon={<Trash2 size={14} />} onClick={() => void handleSelectedDelete()}>
+                {tr("Delete")}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button type="button" variant="secondary" size="sm" icon={<Download size={14} />} onClick={() => void downloadItems(selectedItems.map((item) => item.id))}>
+                {tr("Download")}
+              </Button>
+              <Button type="button" variant="secondary" size="sm" icon={<Star size={14} />} onClick={() => void handleSelectedStar()}>
+                {tr("Star")}
+              </Button>
+              {selectedItems.length === 1 ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  icon={<Pencil size={14} />}
+                  onClick={() => setRenamingId(selectedItems[0].id)}
+                >
+                  {tr("Rename")}
+                </Button>
+              ) : null}
+              <Button type="button" variant="danger" size="sm" icon={<Trash2 size={14} />} onClick={() => void handleSelectedDelete()}>
+                {tr("Trash")}
+              </Button>
+            </>
+          )}
+          <Button type="button" variant="ghost" size="sm" icon={<X size={14} />} onClick={clearSelection} />
+        </div>
+      ) : null}
+
+      {contextMenu ? (
+        <DriveContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          item={contextMenu.item}
+          isTrashView={isTrashView}
+          isVirtualView={isVirtualView}
+          onClose={() => setContextMenu(null)}
+          onNewFolder={handleNewFolder}
+          onUpload={() => void uploadFiles()}
+          onRefresh={() => void refresh()}
+          onRename={() => {
+            if (contextMenu.item) {
+              setRenamingId(contextMenu.item.id);
+            }
+            setContextMenu(null);
+          }}
+          onToggleStar={() => {
+            if (contextMenu.item) {
+              void toggleStar(contextMenu.item.id);
+            }
+            setContextMenu(null);
+          }}
+          onDelete={() => {
+            if (!contextMenu.item) {
+              setContextMenu(null);
+              return;
+            }
+            if (isTrashView) {
+              void purgeItems([contextMenu.item.id]);
+            } else {
+              void deleteItems([contextMenu.item.id]);
+            }
+            setContextMenu(null);
+          }}
+          onRestore={() => {
+            if (contextMenu.item) {
+              void restoreItems([contextMenu.item.id]);
+            }
+            setContextMenu(null);
+          }}
+          onOpen={() => {
+            if (contextMenu.item) {
+              if (contextMenu.item.type === "folder") {
+                void openItem(contextMenu.item);
+              } else {
+                handlePreview(contextMenu.item);
+              }
+            }
+            setContextMenu(null);
+          }}
+        />
+      ) : null}
+
+      <FilePreviewModal item={previewItem} onClose={() => setPreviewItem(null)} />
+    </div>
+  );
+}
+
+export function CloudDrivePage() {
+  return (
+    <DriveStoreProvider>
+      <DrivePageContent />
+    </DriveStoreProvider>
   );
 }
 

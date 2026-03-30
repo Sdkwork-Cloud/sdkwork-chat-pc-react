@@ -1,7 +1,15 @@
-
+﻿/**
+ * WebSocket 瀹㈡埛绔?- 澧炲己鐗? *
+ * 鍔熻兘锛? * 1. 鑷姩閲嶈繛锛堟寚鏁伴€€閬匡紝甯︽渶澶у欢杩熼檺鍒讹級
+ * 2. 蹇冭烦妫€娴嬶紙鏅鸿兘蹇冭烦鏈哄埗锛? * 3. 娑堟伅闃熷垪锛堜紭鍏堢骇绠＄悊锛屾秷鎭繃鏈熸満鍒讹級
+ * 4. 浜嬩欢璁㈤槄锛堝寮虹殑浜嬩欢绯荤粺锛? * 5. ACK 纭鏈哄埗锛堣秴鏃跺鐞嗭級
+ * 6. 杩炴帴鐘舵€佺鐞嗭紙璇︾粏鐨勭姸鎬佷俊鎭級
+ * 7. 閿欒澶勭悊锛堝仴澹殑閿欒澶勭悊绛栫暐锛? * 8. 鎬ц兘浼樺寲锛堝唴瀛樹娇鐢ㄤ紭鍖栵級
+ */
 
 import { IM_WS_URL } from '../config/env';
 
+// 鑷畾涔変簨浠跺彂灏勫櫒锛屽吋瀹规祻瑙堝櫒鐜
 class EventEmitter {
   private events: Map<string, Function[]> = new Map();
 
@@ -123,17 +131,20 @@ export class WebSocketClient extends EventEmitter {
     };
   }
 
-  
+  /**
+   * 鑾峰彇褰撳墠杩炴帴鐘舵€?   */
   get state(): ConnectionState {
     return this.connectionState;
   }
 
-  
+  /**
+   * 鏄惁宸茶繛鎺?   */
   get isConnected(): boolean {
     return this.connectionState === 'connected' && this.ws?.readyState === WebSocket.OPEN;
   }
 
-  
+  /**
+   * 鑾峰彇璇︾粏鐨勮繛鎺ヤ俊鎭?   */
   get connectionInfo(): ConnectionInfo {
     return {
       state: this.connectionState,
@@ -145,7 +156,9 @@ export class WebSocketClient extends EventEmitter {
     };
   }
 
-  
+  /**
+   * 杩炴帴 WebSocket
+   */
   connect(): void {
     if (this.connectionState === 'connected' || this.connectionState === 'connecting') {
       return;
@@ -167,10 +180,12 @@ export class WebSocketClient extends EventEmitter {
     }
   }
 
-  
+  /**
+   * 鏂紑杩炴帴
+   */
   disconnect(): void {
     this.stopHeartbeat();
-    this.reconnectAttempts = this.config.reconnectAttempts; 
+    this.reconnectAttempts = this.config.reconnectAttempts; // 闃绘鑷姩閲嶈繛
 
     if (this.ws) {
       this.ws.close();
@@ -183,7 +198,8 @@ export class WebSocketClient extends EventEmitter {
     this.emit('disconnected', this.connectionInfo);
   }
 
-  
+  /**
+   * 鍙戦€佹秷鎭?   */
   send(event: string, payload: any, options?: {
     requireAck?: boolean;
     priority?: 'low' | 'normal' | 'high';
@@ -213,6 +229,7 @@ export class WebSocketClient extends EventEmitter {
 
       return Promise.resolve();
     } else {
+      // 缂撳瓨鍒伴槦鍒楋紙甯︿紭鍏堢骇锛?      this.enqueueMessage(message);
       this.emit('messageQueued', message, this.messageQueue.length);
 
       if (requireAck && message.messageId) {
@@ -223,7 +240,9 @@ export class WebSocketClient extends EventEmitter {
     }
   }
 
-  
+  /**
+   * 鍙戦€佹秷鎭苟绛夊緟纭
+   */
   async sendWithAck(event: string, payload: any, options?: {
     timeout?: number;
     priority?: 'low' | 'normal' | 'high';
@@ -246,6 +265,7 @@ export class WebSocketClient extends EventEmitter {
     };
 
     return new Promise((resolve, reject) => {
+      // 璁剧疆瓒呮椂
       const timeoutTimer = window.setTimeout(() => {
         this.pendingAcks.delete(messageId);
         const error = new Error('Message acknowledgment timeout');
@@ -253,6 +273,7 @@ export class WebSocketClient extends EventEmitter {
         reject(error);
       }, timeout);
 
+      // 瀛樺偍 ACK 绛夊緟
       this.pendingAcks.set(messageId, {
         resolve: () => {
           clearTimeout(timeoutTimer);
@@ -265,6 +286,7 @@ export class WebSocketClient extends EventEmitter {
         timeout: timeoutTimer,
       });
 
+      // 鍙戦€佹秷鎭?      if (this.isConnected) {
         this.doSend(message);
       } else {
         this.enqueueMessage(message);
@@ -272,7 +294,9 @@ export class WebSocketClient extends EventEmitter {
     });
   }
 
-  
+  /**
+   * 纭娑堟伅鎺ユ敹
+   */
   ack(messageId: string, status: 'delivered' | 'read' = 'delivered'): void {
     this.send('message:ack', {
       messageId,
@@ -283,11 +307,13 @@ export class WebSocketClient extends EventEmitter {
     });
   }
 
-  
+  /**
+   * 娓呯悊杩囨湡娑堟伅
+   */
   cleanupExpiredMessages(): number {
     const now = Date.now();
     const initialSize = this.messageQueue.length;
-    
+
     this.messageQueue = this.messageQueue.filter(message => {
       const isExpired = message.expiryTime && message.expiryTime < now;
       if (isExpired) {
@@ -295,24 +321,27 @@ export class WebSocketClient extends EventEmitter {
       }
       return !isExpired;
     });
-    
+
     return initialSize - this.messageQueue.length;
   }
 
-  
+  /**
+   * 娓呯┖娑堟伅闃熷垪
+   */
   clearMessageQueue(): void {
     const clearedMessages = [...this.messageQueue];
     this.messageQueue = [];
     this.emit('messageQueueCleared', clearedMessages.length);
   }
 
-  
+  /**
+   * 鑾峰彇娑堟伅闃熷垪鐘舵€?   */
   getMessageQueueStatus() {
     const now = Date.now();
-    const expiredCount = this.messageQueue.filter(message => 
+    const expiredCount = this.messageQueue.filter(message =>
       message.expiryTime && message.expiryTime < now
     ).length;
-    
+
     return {
       total: this.messageQueue.length,
       expired: expiredCount,
@@ -325,6 +354,7 @@ export class WebSocketClient extends EventEmitter {
     };
   }
 
+  // ========== 绉佹湁鏂规硶 ==========
 
   private handleOpen(): void {
     this.reconnectAttempts = 0;
@@ -332,19 +362,23 @@ export class WebSocketClient extends EventEmitter {
     this.lastConnectedAt = Date.now();
     this.heartbeatStatus = 'healthy';
     this.lastHeartbeatTime = Date.now();
-    
+
     this.emit('stateChange', this.connectionState, this.connectionInfo);
     this.emit('connected', this.connectionInfo);
 
+    // 鍚姩蹇冭烦
     this.startHeartbeat();
 
+    // 娓呯悊杩囨湡娑堟伅
     const expiredCount = this.cleanupExpiredMessages();
     if (expiredCount > 0) {
       this.emit('expiredMessagesCleaned', expiredCount);
     }
 
+    // 鍒锋柊娑堟伅闃熷垪
     this.flushMessageQueue();
 
+    // 鍚屾绂荤嚎娑堟伅
     this.emit('syncRequired');
   }
 
@@ -352,16 +386,19 @@ export class WebSocketClient extends EventEmitter {
     try {
       const data = JSON.parse(event.data) as WebSocketMessage;
 
+      // 澶勭悊蹇冭烦鍝嶅簲
       if (data.event === 'pong') {
         this.handlePong();
         return;
       }
 
+      // 澶勭悊 ACK
       if (data.event === 'message:ack' && data.payload?.messageId) {
         this.handleAck(data.payload as MessageAck);
         return;
       }
 
+      // 瑙﹀彂浜嬩欢
       this.emit(data.event, data.payload, data);
       this.emit('message', data);
     } catch (error: any) {
@@ -376,30 +413,34 @@ export class WebSocketClient extends EventEmitter {
     this.connectionState = 'disconnected';
     this.lastDisconnectedAt = Date.now();
     this.heartbeatStatus = 'error';
-    
+
     this.emit('stateChange', this.connectionState, this.connectionInfo);
     this.emit('disconnected', event.code, event.reason);
 
+    // 灏濊瘯閲嶈繛
     this.attemptReconnect();
   }
 
   private handleError(error: any): void {
     this.connectionState = 'error';
     this.heartbeatStatus = 'error';
-    
+
     this.emit('stateChange', this.connectionState, this.connectionInfo);
     this.emit('error', error);
     this.emit('connectionError', error);
 
+    // 灏濊瘯閲嶈繛
     this.attemptReconnect();
   }
 
   private handlePong(): void {
+    // 娓呴櫎蹇冭烦瓒呮椂
     if (this.heartbeatTimeoutTimer) {
       clearTimeout(this.heartbeatTimeoutTimer);
       this.heartbeatTimeoutTimer = null;
     }
 
+    // 鏇存柊蹇冭烦鐘舵€?    this.lastHeartbeatTime = Date.now();
     this.heartbeatStatus = 'healthy';
     this.emit('heartbeatHealthy');
   }
@@ -421,26 +462,32 @@ export class WebSocketClient extends EventEmitter {
         this.emit('messageSent', message);
       } catch (error) {
         this.emit('sendError', error, message);
+        // 閲嶆柊鍔犲叆闃熷垪
         this.enqueueMessage(message);
       }
     } else {
+      // 閲嶆柊鍔犲叆闃熷垪
       this.enqueueMessage(message);
     }
   }
 
   private enqueueMessage(message: WebSocketMessage): void {
+    // 妫€鏌ラ槦鍒楀ぇ灏?    if (this.messageQueue.length >= this.config.messageQueueSize) {
+      // 绉婚櫎鏈€鏃х殑浣庝紭鍏堢骇娑堟伅
       const lowPriorityIndex = this.messageQueue.findIndex(m => m.priority === 'low');
       if (lowPriorityIndex !== -1) {
         this.messageQueue.splice(lowPriorityIndex, 1);
       } else {
+        // 濡傛灉娌℃湁浣庝紭鍏堢骇娑堟伅锛岀Щ闄ゆ渶鏃х殑娑堟伅
         this.messageQueue.shift();
       }
       this.emit('messageQueueFull', this.config.messageQueueSize);
     }
 
+    // 鎸変紭鍏堢骇鎻掑叆
     const priorityOrder = { high: 0, normal: 1, low: 2 };
     const messagePriority = priorityOrder[message.priority || 'normal'];
-    
+
     let insertIndex = this.messageQueue.length;
     for (let i = 0; i < this.messageQueue.length; i++) {
       const queuePriority = priorityOrder[this.messageQueue[i].priority || 'normal'];
@@ -449,22 +496,26 @@ export class WebSocketClient extends EventEmitter {
         break;
       }
     }
-    
+
     this.messageQueue.splice(insertIndex, 0, message);
   }
 
   private flushMessageQueue(): void {
+    // 娓呯悊杩囨湡娑堟伅
     this.cleanupExpiredMessages();
-    
+
+    // 鎸変紭鍏堢骇鍙戦€?    const priorityOrder = { high: 0, normal: 1, low: 2 };
     this.messageQueue.sort((a, b) => {
       const priorityA = priorityOrder[a.priority || 'normal'];
       const priorityB = priorityOrder[b.priority || 'normal'];
       return priorityA - priorityB;
     });
 
+    // 鍙戦€佹秷鎭?    const messagesToSend = [...this.messageQueue];
     this.messageQueue = [];
-    
+
     messagesToSend.forEach(message => {
+      // 鍐嶆妫€鏌ユ槸鍚﹁繃鏈?      if (!message.expiryTime || message.expiryTime >= Date.now()) {
         this.doSend(message);
       } else {
         this.emit('messageExpired', message);
@@ -480,11 +531,13 @@ export class WebSocketClient extends EventEmitter {
     this.heartbeatTimer = window.setInterval(() => {
       const now = Date.now();
       const timeSinceLastHeartbeat = now - this.lastHeartbeatTime;
-      
+
+      // 妫€鏌ュ績璺崇姸鎬?      if (timeSinceLastHeartbeat > this.config.heartbeatInterval * 1.5) {
         this.heartbeatStatus = 'warning';
         this.emit('heartbeatWarning', timeSinceLastHeartbeat);
       }
 
+      // 鍙戦€佸績璺?      this.send('ping', {
         timestamp: now,
         sequence: Math.floor(now / this.config.heartbeatInterval)
       }, {
@@ -492,11 +545,13 @@ export class WebSocketClient extends EventEmitter {
         requireAck: false,
       });
 
+      // 璁剧疆蹇冭烦瓒呮椂
       this.heartbeatTimeoutTimer = window.setTimeout(() => {
         this.heartbeatStatus = 'error';
         this.emit('heartbeatTimeout');
         this.emit('connectionError', new Error('Heartbeat timeout'));
-        
+
+        // 涓诲姩鍏抽棴杩炴帴浠ヨЕ鍙戦噸杩?        if (this.ws) {
           this.ws.close(4000, 'Heartbeat timeout');
         }
       }, this.config.heartbeatTimeout);
@@ -528,10 +583,12 @@ export class WebSocketClient extends EventEmitter {
     this.emit('stateChange', this.connectionState, this.connectionInfo);
     this.emit('reconnecting', this.reconnectAttempts, this.config.reconnectAttempts);
 
+    // 鎸囨暟閫€閬匡紝甯︽渶澶у欢杩熼檺鍒?    const delay = Math.min(
       this.config.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
       this.config.maxReconnectDelay
     );
 
+    // 娣诲姞闅忔満鎶栧姩锛岄伩鍏嶉噸杩為鏆?    const jitter = delay * 0.1 * (Math.random() * 2 - 1);
     const finalDelay = Math.max(this.config.reconnectDelay, delay + jitter);
 
     setTimeout(() => {
@@ -563,6 +620,7 @@ export class WebSocketClient extends EventEmitter {
 
 export default WebSocketClient;
 
+// 瀵煎嚭鍗曚緥瀹炰緥
 export const websocketClient = new WebSocketClient({
   url: IM_WS_URL || 'ws://localhost:5200',
   token: localStorage.getItem('token') || '',

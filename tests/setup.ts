@@ -81,6 +81,74 @@ Object.defineProperty(window.URL, "revokeObjectURL", {
   value: vi.fn(),
 });
 
+function createMockDomRect(): DOMRect {
+  return {
+    x: 0,
+    y: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: 0,
+    height: 0,
+    toJSON: () => ({}),
+  } as DOMRect;
+}
+
+function createMockDomRectList(): DOMRectList {
+  const rect = createMockDomRect();
+  const rectList = [rect] as unknown as DOMRectList & DOMRect[];
+  rectList.item = vi.fn((index: number) => rectList[index] ?? null);
+  return rectList;
+}
+
+const mockDomRect = createMockDomRect();
+const mockDomRectList = createMockDomRectList();
+
+Object.defineProperty(document, "elementFromPoint", {
+  writable: true,
+  value: vi.fn(() => document.body),
+});
+
+Object.defineProperty(window.HTMLElement.prototype, "getBoundingClientRect", {
+  writable: true,
+  value: vi.fn(() => mockDomRect),
+});
+
+Object.defineProperty(window.HTMLElement.prototype, "getClientRects", {
+  writable: true,
+  value: vi.fn(() => mockDomRectList),
+});
+
+Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
+  writable: true,
+  value: vi.fn(),
+});
+
+if (typeof window.Text !== "undefined") {
+  Object.defineProperty(window.Text.prototype, "getBoundingClientRect", {
+    writable: true,
+    value: vi.fn(() => mockDomRect),
+  });
+
+  Object.defineProperty(window.Text.prototype, "getClientRects", {
+    writable: true,
+    value: vi.fn(() => mockDomRectList),
+  });
+}
+
+if (typeof Range !== "undefined") {
+  Object.defineProperty(Range.prototype, "getBoundingClientRect", {
+    writable: true,
+    value: vi.fn(() => mockDomRect),
+  });
+
+  Object.defineProperty(Range.prototype, "getClientRects", {
+    writable: true,
+    value: vi.fn(() => mockDomRectList),
+  });
+}
+
 beforeAll(async () => {
   await initializeI18n();
 });

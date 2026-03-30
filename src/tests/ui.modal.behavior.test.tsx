@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Modal } from "@sdkwork/openchat-pc-ui";
 
@@ -18,7 +18,7 @@ describe("shared modal foundation", () => {
   });
 
   it("supports top placement and custom overlay classes", () => {
-    const { container } = render(
+    render(
       <Modal
         isOpen
         onClose={() => undefined}
@@ -31,8 +31,23 @@ describe("shared modal foundation", () => {
     );
 
     expect(screen.getByText("Palette body")).toBeInTheDocument();
-    const overlay = container.querySelector(".test-overlay");
+    const overlay = document.body.querySelector(".test-overlay");
     expect(overlay).toBeTruthy();
     expect(overlay).toHaveClass("items-start");
+  });
+
+  it("renders outside transformed containers so dialogs stay centered instead of binding to the sidebar", () => {
+    render(
+      <div data-testid="sidebar-shell" style={{ transform: "translateX(24px)" }}>
+        <Modal isOpen onClose={() => undefined} title="Create Group Chat">
+          <div>Centered dialog body</div>
+        </Modal>
+      </div>,
+    );
+
+    const sidebarShell = screen.getByTestId("sidebar-shell");
+
+    expect(screen.getByText("Centered dialog body")).toBeInTheDocument();
+    expect(within(sidebarShell).queryByText("Centered dialog body")).not.toBeInTheDocument();
   });
 });

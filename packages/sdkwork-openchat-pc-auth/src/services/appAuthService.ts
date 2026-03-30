@@ -6,6 +6,8 @@ import type {
   OAuthUrlVO,
   PasswordResetForm,
   PasswordResetRequestForm,
+  QrCodeStatusVO,
+  QrCodeVO,
   RegisterForm,
   TokenRefreshForm,
   UserInfoVO,
@@ -14,6 +16,7 @@ import type {
   VerifyCodeSendForm,
   VerifyResultVO,
 } from "@sdkwork/app-sdk";
+import { isTauriRuntime } from "@sdkwork/openchat-pc-kernel";
 import type { IMConfig, PasswordStrength, StoredAuthData, User } from "../entities/auth.entity";
 import { destroySDK, initializeSDK, isSDKInitialized } from "./sdk-adapter";
 import {
@@ -68,7 +71,40 @@ export interface AppAuthPasswordResetInput {
   confirmPassword: string;
 }
 
-export type AppAuthSocialProvider = "wechat" | "github" | "google" | "apple";
+export type AppAuthSocialProvider = "wechat" | "github" | "google" | "apple" | "douyin";
+export type AppAuthOAuthDeviceType = "ios" | "android" | "web" | "desktop";
+export type AppAuthLoginQrCodeStatus = "pending" | "scanned" | "confirmed" | "expired";
+
+export interface AppAuthOAuthAuthorizationInput {
+  provider: AppAuthSocialProvider;
+  redirectUri: string;
+  scope?: string;
+  state?: string;
+}
+
+export interface AppAuthOAuthLoginInput {
+  provider: AppAuthSocialProvider;
+  code: string;
+  state?: string;
+  deviceId?: string;
+  deviceType?: AppAuthOAuthDeviceType;
+}
+
+export interface AppAuthLoginQrCode {
+  type?: string;
+  title?: string;
+  description?: string;
+  qrKey: string;
+  qrUrl?: string;
+  qrContent?: string;
+  expireTime?: number;
+}
+
+export interface AppAuthLoginQrCodeStatusResult {
+  status: AppAuthLoginQrCodeStatus;
+  session?: AppAuthSession;
+  userInfo?: UserInfoVO;
+}
 
 export interface AppAuthSocialLoginInput {
   provider: AppAuthSocialProvider;
@@ -77,7 +113,7 @@ export interface AppAuthSocialLoginInput {
   redirectUri?: string;
   scope?: string;
   deviceId?: string;
-  deviceType?: "ios" | "android" | "web";
+  deviceType?: AppAuthOAuthDeviceType;
 }
 
 export interface AppAuthSession {
@@ -87,6 +123,7 @@ export interface AppAuthSession {
   authToken: string;
   accessToken: string;
   refreshToken?: string;
+  userInfo?: UserInfoVO;
 }
 
 export interface AppAuthRestoreResult {
@@ -104,6 +141,10 @@ export interface IAppAuthService {
   verifyCode(input: AppAuthVerifyCodeInput): Promise<boolean>;
   requestPasswordReset(input: AppAuthPasswordResetRequestInput): Promise<void>;
   resetPassword(input: AppAuthPasswordResetInput): Promise<void>;
+  getOAuthAuthorizationUrl(input: AppAuthOAuthAuthorizationInput): Promise<string>;
+  loginWithOAuth(input: AppAuthOAuthLoginInput): Promise<AppAuthSession>;
+  generateLoginQrCode(): Promise<AppAuthLoginQrCode>;
+  checkLoginQrCodeStatus(qrKey: string): Promise<AppAuthLoginQrCodeStatusResult>;
   loginWithSocial(input: AppAuthSocialLoginInput): Promise<AppAuthSession>;
   restoreAuth(): Promise<AppAuthRestoreResult | null>;
   getCurrentSession(): Promise<AppAuthSession | null>;
@@ -229,6 +270,7 @@ function mapSocialProvider(provider: AppAuthSocialProvider): OAuthAuthUrlForm["p
   if (provider === "github") return "GITHUB";
   if (provider === "google") return "GOOGLE";
   if (provider === "apple") return "APPLE";
+  if (provider === "douyin") return "DOUYIN";
   throw new Error(`Unsupported social provider: ${provider}`);
 }
 
@@ -239,14 +281,22 @@ function resolveDefaultRedirectUri(): string | undefined {
   return `${window.location.origin}/auth/callback`;
 }
 
-function resolveDefaultDeviceType(): OAuthLoginForm["deviceType"] {
+function resolveDefaultDeviceType(): AppAuthOAuthDeviceType {
   if (typeof navigator === "undefined") {
     return "web";
   }
   const userAgent = navigator.userAgent || "";
   if (/android/i.test(userAgent)) return "android";
   if (/iphone|ipad|ipod/i.test(userAgent)) return "ios";
+  if (isTauriRuntime()) return "desktop";
   return "web";
+}
+
+function mapQrStatus(status?: QrCodeStatusVO["status"]): AppAuthLoginQrCodeStatus {
+  if (status === "scanned" || status === "confirmed" || status === "expired") {
+    return status;
+  }
+  return "pending";
 }
 
 async function openSocialOAuthPopup(
@@ -426,6 +476,7 @@ function mapSessionFromLoginVO(
     authToken,
     accessToken: resolveAppSdkAccessToken(),
     refreshToken: (loginData.refreshToken || "").trim() || undefined,
+    userInfo: loginData.userInfo,
   };
 }
 
@@ -857,38 +908,38 @@ export const appAuthService: IAppAuthService = {
     await client.auth.resetPassword(request);
   },
 
-  async loginWithSocial(input: AppAuthSocialLoginInput): Promise<AppAuthSession> {
+  async getOAuthAuthorizationUrl(input: AppAuthOAuthAuthorizationInput): Promise<string> {
     const client = getAppSdkClientWithSession();
-    const provider = mapSocialProvider(input.provider);
-    const redirectUri = input.redirectUri || resolveDefaultRedirectUri();
+    const redirectUri = (input.redirectUri || "").trim();
     if (!redirectUri) {
-      throw new Error("Social login redirect URI is required");
+      throw new Error("OAuth redirect URI is required");
     }
 
-    let code = (input.code || "").trim();
-    let state = (input.state || "").trim() || undefined;
+    const oauthUrlResult = await client.auth.getOauthUrl({
+      provider: mapSocialProvider(input.provider),
+      redirectUri,
+      scope: input.scope,
+      state: (input.state || "").trim() || undefined,
+    });
+    const oauthUrlData = unwrapApiData<OAuthUrlVO>(oauthUrlResult);
+    const authUrl = (oauthUrlData?.authUrl || "").trim();
+    if (!authUrl) {
+      throw new Error("OAuth authorization URL is empty");
+    }
+    return authUrl;
+  },
 
+  async loginWithOAuth(input: AppAuthOAuthLoginInput): Promise<AppAuthSession> {
+    const client = getAppSdkClientWithSession();
+    const code = (input.code || "").trim();
     if (!code) {
-      const oauthUrlResult = await client.auth.getOauthUrl({
-        provider,
-        redirectUri,
-        scope: input.scope,
-        state,
-      });
-      const oauthUrlData = unwrapApiData<OAuthUrlVO>(oauthUrlResult);
-      const authUrl = (oauthUrlData?.authUrl || "").trim();
-      if (!authUrl) {
-        throw new Error("OAuth authorization URL is empty");
-      }
-      const popupResult = await openSocialOAuthPopup(authUrl, redirectUri);
-      code = popupResult.code;
-      state = popupResult.state || state;
+      throw new Error("OAuth code is required");
     }
 
     const oauthLoginResult = await client.auth.oauthLogin({
-      provider,
+      provider: mapSocialProvider(input.provider),
       code,
-      state,
+      state: (input.state || "").trim() || undefined,
       deviceId: input.deviceId,
       deviceType: input.deviceType || resolveDefaultDeviceType(),
     });
@@ -903,6 +954,82 @@ export const appAuthService: IAppAuthService = {
     const imConfig = resolveImConfig(rawLoginData, user.id, session.authToken, stored?.imConfig);
     await persistPcAuthSession(session, user, imConfig);
     return session;
+  },
+
+  async generateLoginQrCode(): Promise<AppAuthLoginQrCode> {
+    const client = getAppSdkClientWithSession();
+    const qrCode = unwrapApiData<QrCodeVO>(await client.auth.generateQrCode());
+    const qrKey = (qrCode?.qrKey || "").trim();
+    if (!qrKey) {
+      throw new Error("QR code key is missing");
+    }
+
+    return {
+      type: readString(qrCode.type),
+      title: readString(qrCode.title),
+      description: readString(qrCode.description),
+      qrKey,
+      qrUrl: readString(qrCode.qrUrl),
+      qrContent: readString(qrCode.qrContent),
+      expireTime: typeof qrCode.expireTime === "number" ? qrCode.expireTime : undefined,
+    };
+  },
+
+  async checkLoginQrCodeStatus(qrKey: string): Promise<AppAuthLoginQrCodeStatusResult> {
+    const client = getAppSdkClientWithSession();
+    const qrCodeStatus = unwrapApiData<QrCodeStatusVO>(await client.auth.checkQrCodeStatus(qrKey.trim()));
+    const status = mapQrStatus(qrCodeStatus?.status);
+
+    if (status !== "confirmed" || !qrCodeStatus?.token) {
+      return {
+        status,
+        userInfo: qrCodeStatus?.userInfo,
+      };
+    }
+
+    const tokenSession = qrCodeStatus.token;
+    const userFields = await resolveProfileOrFallback("", tokenSession.userInfo || qrCodeStatus.userInfo);
+    const session = mapSessionFromLoginVO(tokenSession, userFields);
+    const user = mapUserFromSessionFields(userFields, tokenSession.userInfo || qrCodeStatus.userInfo);
+    const stored = loadStoredAuthData();
+    const rawTokenSession = tokenSession as unknown as Record<string, unknown>;
+    const imConfig = resolveImConfig(rawTokenSession, user.id, session.authToken, stored?.imConfig);
+    await persistPcAuthSession(session, user, imConfig);
+    return {
+      status,
+      session,
+      userInfo: tokenSession.userInfo || qrCodeStatus.userInfo,
+    };
+  },
+
+  async loginWithSocial(input: AppAuthSocialLoginInput): Promise<AppAuthSession> {
+    const redirectUri = input.redirectUri || resolveDefaultRedirectUri();
+    if (!redirectUri) {
+      throw new Error("Social login redirect URI is required");
+    }
+
+    let code = (input.code || "").trim();
+    let state = (input.state || "").trim() || undefined;
+
+    if (!code) {
+      const authUrl = await this.getOAuthAuthorizationUrl({
+        provider: input.provider,
+        redirectUri,
+        scope: input.scope,
+        state,
+      });
+      const popupResult = await openSocialOAuthPopup(authUrl, redirectUri);
+      code = popupResult.code;
+      state = popupResult.state || state;
+    }
+
+    return this.loginWithOAuth({
+      provider: input.provider,
+      code,
+      state,
+      deviceId: input.deviceId,
+      deviceType: input.deviceType || resolveDefaultDeviceType(),
+    });
   },
 
   async restoreAuth(): Promise<AppAuthRestoreResult | null> {

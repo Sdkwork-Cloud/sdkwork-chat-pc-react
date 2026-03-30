@@ -1,9 +1,18 @@
-
+﻿/**
+ * 铏氭嫙鍒楄〃 DOM 鍥炴敹姹?Hook
+ *
+ * 鑱岃矗锛氬疄鐜?DOM 鑺傜偣鐨勫鐢紝鍑忓皯鍐呭瓨鍒嗛厤鍜?GC 鍘嬪姏
+ * 搴旂敤锛氳秴澶ф暟鎹垪琛紙10涓?锛夌殑鏋佽嚧鎬ц兘浼樺寲
+ *
+ * 鐗圭偣锛? * - DOM 鑺傜偣澶嶇敤锛岄伩鍏嶉绻佸垱寤?閿€姣? * - 棰勫垎閰嶆睜锛屽噺灏戣繍琛屾椂鍒嗛厤
+ * - 鏅鸿兘鍥炴敹绛栫暐锛屼紭鍏堝鐢ㄧ浉鍚岀被鍨嬭妭鐐? */
 
 import { useRef, useCallback, useEffect } from 'react';
 
-  poolSize: number;        
+// 姹犻厤缃?interface PoolConfig {
+  poolSize: number;        // 姹犲ぇ灏?  itemHeight: number;      // 棰勪及椤归珮搴?  overscan: number;        // 棰勬覆鏌撴暟閲?}
 
+// 姹犻」
 interface PoolItem {
   id: string;
   element: HTMLElement;
@@ -12,6 +21,7 @@ interface PoolItem {
   data: unknown;
 }
 
+// 姹犵粺璁?interface PoolStats {
   total: number;
   inUse: number;
   available: number;
@@ -19,7 +29,8 @@ interface PoolItem {
   missRate: number;
 }
 
-
+/**
+ * DOM 鍥炴敹姹? */
 class DOMPool {
   private pool: Map<string, PoolItem> = new Map();
   private available: PoolItem[] = [];
@@ -36,7 +47,9 @@ class DOMPool {
     this.initializePool();
   }
 
-  
+  /**
+   * 鍒濆鍖栨睜
+   */
   private initializePool(): void {
     for (let i = 0; i < this.config.poolSize; i++) {
       const element = this.createElement();
@@ -56,7 +69,9 @@ class DOMPool {
     console.log(`[DOMPool] Initialized with ${this.config.poolSize} items`);
   }
 
-  
+  /**
+   * 鍒涘缓 DOM 鍏冪礌
+   */
   private createElement(): HTMLElement {
     const element = document.createElement('div');
     element.style.position = 'absolute';
@@ -67,8 +82,10 @@ class DOMPool {
     return element;
   }
 
-  
+  /**
+   * 鑾峰彇鍙敤椤?   */
   acquire(): PoolItem | null {
+    // 浼樺厛澶嶇敤鏈€杩戜娇鐢ㄧ殑锛圠RU锛?    const item = this.available.pop();
 
     if (item) {
       item.inUse = true;
@@ -78,11 +95,13 @@ class DOMPool {
       return item;
     }
 
+    // 姹犺€楀敖锛岄渶瑕佹墿瀹规垨绛夊緟
     this.stats.misses++;
     return null;
   }
 
-  
+  /**
+   * 閲婃斁椤?   */
   release(item: PoolItem): void {
     if (!item.inUse) return;
 
@@ -95,7 +114,8 @@ class DOMPool {
     this.available.push(item);
   }
 
-  
+  /**
+   * 閲婃斁鎵€鏈?   */
   releaseAll(): void {
     this.inUse.forEach((id) => {
       const item = this.pool.get(id);
@@ -105,13 +125,16 @@ class DOMPool {
     });
   }
 
-  
+  /**
+   * 鏇存柊椤逛綅缃?   */
   updatePosition(item: PoolItem, index: number, offset: number): void {
     const y = index * this.config.itemHeight + offset;
     item.element.style.transform = `translateY(${y}px)`;
   }
 
-  
+  /**
+   * 鑾峰彇缁熻
+   */
   getStats(): PoolStats {
     const total = this.stats.hits + this.stats.misses;
     return {
@@ -123,7 +146,9 @@ class DOMPool {
     };
   }
 
-  
+  /**
+   * 鎵╁
+   */
   expand(additionalSize: number): void {
     const currentSize = this.pool.size;
 
@@ -145,7 +170,8 @@ class DOMPool {
     console.log(`[DOMPool] Expanded by ${additionalSize}, total: ${this.pool.size}`);
   }
 
-  
+  /**
+   * 閿€姣?   */
   destroy(): void {
     this.pool.forEach((item) => {
       item.element.remove();
@@ -156,13 +182,15 @@ class DOMPool {
   }
 }
 
-
+/**
+ * 浣跨敤铏氭嫙鍒楄〃 DOM 姹? */
 export function useVirtualListPool(
   containerRef: React.RefObject<HTMLElement>,
   config: PoolConfig
 ) {
   const poolRef = useRef<DOMPool | null>(null);
 
+  // 鍒濆鍖栨睜
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -174,11 +202,13 @@ export function useVirtualListPool(
     };
   }, []);
 
-  
+  /**
+   * 鑾峰彇娓叉煋椤?   */
   const getRenderItems = useCallback(
     (startIndex: number, endIndex: number, renderFn: (index: number) => string) => {
       if (!poolRef.current) return [];
 
+      // 閲婃斁涓嶅湪鍙鑼冨洿鐨勯」
       poolRef.current.releaseAll();
 
       const items: PoolItem[] = [];
@@ -197,12 +227,15 @@ export function useVirtualListPool(
     []
   );
 
-  
+  /**
+   * 鑾峰彇姹犵粺璁?   */
   const getStats = useCallback((): PoolStats | null => {
     return poolRef.current?.getStats() || null;
   }, []);
 
-  
+  /**
+   * 鎵╁
+   */
   const expand = useCallback((size: number) => {
     poolRef.current?.expand(size);
   }, []);
@@ -214,7 +247,8 @@ export function useVirtualListPool(
   };
 }
 
-
+/**
+ * 浣跨敤浼樺寲鐨勮櫄鎷熸粴鍔? */
 export function useOptimizedVirtualScroll<T>(
   items: T[],
   itemHeight: number,
@@ -224,6 +258,7 @@ export function useOptimizedVirtualScroll<T>(
   const scrollTopRef = useRef(0);
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 0 });
 
+  // 璁＄畻鍙鑼冨洿
   const calculateRange = useCallback(() => {
     if (!containerRef.current) return;
 
@@ -242,6 +277,7 @@ export function useOptimizedVirtualScroll<T>(
     });
   }, [items.length, itemHeight, overscan]);
 
+  // 鐩戝惉婊氬姩
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -256,6 +292,7 @@ export function useOptimizedVirtualScroll<T>(
     return () => container.removeEventListener('scroll', handleScroll);
   }, [calculateRange]);
 
+  // 鐩戝惉灏哄鍙樺寲
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -269,8 +306,11 @@ export function useOptimizedVirtualScroll<T>(
     return () => resizeObserver.disconnect();
   }, [calculateRange]);
 
+  // 鎬婚珮搴?  const totalHeight = items.length * itemHeight;
 
+  // 鍙椤?  const visibleItems = items.slice(visibleRange.start, visibleRange.end + 1);
 
+  // 鍋忕Щ閲?  const offsetY = visibleRange.start * itemHeight;
 
   return {
     containerRef,

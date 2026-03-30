@@ -1,5 +1,4 @@
-
-
+import { isTauriRuntime } from "@sdkwork/openchat-pc-kernel";
 import type { TerminalSession } from "../entities/terminalSession.entity";
 import {
   createTerminalSession,
@@ -92,11 +91,7 @@ class TerminalService {
   }
 
   isDesktop(): boolean {
-    const g = globalThis as unknown as {
-      __TAURI__?: unknown;
-      __TAURI_INTERNALS__?: unknown;
-    };
-    return Boolean(g.__TAURI__ || g.__TAURI_INTERNALS__);
+    return isTauriRuntime();
   }
 
   private emitData(id: string, data: string): void {

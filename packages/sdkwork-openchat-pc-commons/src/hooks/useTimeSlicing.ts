@@ -1,30 +1,42 @@
-
+﻿/**
+ * 鏃堕棿鍒囩墖娓叉煋 Hook
+ *
+ * 鑱岃矗锛氬皢澶т换鍔℃媶鍒嗕负灏忎换鍔★紝閬垮厤闃诲涓荤嚎绋? * 搴旂敤锛氬ぇ鏁版嵁娓叉煋銆佸鏉傝绠椼€佹壒閲忔洿鏂? *
+ * 鎶€鏈細
+ * - requestIdleCallback / scheduler
+ * - React Concurrent Mode
+ * - 浠诲姟浼樺厛绾ц皟搴? */
 
 import { useCallback, useRef, useEffect, useState } from 'react';
 
-  IMMEDIATE = 1,    
-  USER_BLOCKING = 2, 
-  NORMAL = 3,       
-  LOW = 4,          
-  IDLE = 5,         
+// 浠诲姟浼樺厛绾?export enum TaskPriority {
+  IMMEDIATE = 1,    // 绔嬪嵆鎵ц
+  USER_BLOCKING = 2, // 鐢ㄦ埛闃诲
+  NORMAL = 3,       // 姝ｅ父
+  LOW = 4,          // 浣庝紭鍏堢骇
+  IDLE = 5,         // 绌洪棽鏃?}
 
+// 浠诲姟閰嶇疆
 interface TaskConfig {
   priority: TaskPriority;
-  deadline: number;  
+  deadline: number;  // 浠诲姟鎴鏃堕棿锛坢s锛?  chunkSize: number; // 姣忓抚澶勭悊鏁伴噺
 }
 
+// 榛樿閰嶇疆
 const DEFAULT_CONFIG: TaskConfig = {
   priority: TaskPriority.NORMAL,
   deadline: 1000,
   chunkSize: 10,
 };
 
-
+/**
+ * 璋冨害鍣ㄥ吋瀹规€у皝瑁? */
 const scheduler = {
   schedule: (callback: IdleRequestCallback, options?: IdleRequestOptions): number => {
     if ('requestIdleCallback' in window) {
       return requestIdleCallback(callback, options);
     }
+    // 闄嶇骇鍒?setTimeout
     return (window as any).setTimeout(() => {
       callback({
         didTimeout: false,
@@ -42,13 +54,16 @@ const scheduler = {
   },
 };
 
-
+/**
+ * 浣跨敤鏃堕棿鍒囩墖
+ */
 export function useTimeSlicing<T>(config: Partial<TaskConfig> = {}) {
   const finalConfig = { ...DEFAULT_CONFIG, ...config };
   const scheduledTasks = useRef<Set<number>>(new Set());
   const isRunning = useRef(false);
   const [progress, setProgress] = useState(0);
 
+  // 娓呯悊
   useEffect(() => {
     return () => {
       scheduledTasks.current.forEach((id) => scheduler.cancel(id));
@@ -56,7 +71,9 @@ export function useTimeSlicing<T>(config: Partial<TaskConfig> = {}) {
     };
   }, []);
 
-  
+  /**
+   * 鎵ц鏃堕棿鍒囩墖浠诲姟
+   */
   const runTimeSliced = useCallback(
     async (
       items: T[],
@@ -80,6 +97,7 @@ export function useTimeSlicing<T>(config: Partial<TaskConfig> = {}) {
           const startTime = performance.now();
           const timeLimit = deadline.timeRemaining();
 
+          // 澶勭悊涓€鎵规暟鎹?          while (
             completed < total &&
             (deadline.timeRemaining() > 0 || deadline.didTimeout)
           ) {
@@ -90,19 +108,23 @@ export function useTimeSlicing<T>(config: Partial<TaskConfig> = {}) {
               completed++;
             }
 
+            // 妫€鏌ユ槸鍚﹁秴鏃?            if (performance.now() - startTime > timeLimit && !deadline.didTimeout) {
               break;
             }
           }
 
+          // 鏇存柊杩涘害
           const currentProgress = Math.floor((completed / total) * 100);
           setProgress(currentProgress);
           onProgress?.(completed, total);
 
           if (completed < total) {
+            // 缁х画涓嬩竴甯?            const taskId = scheduler.schedule(processChunk, {
               timeout: finalConfig.deadline,
             });
             scheduledTasks.current.add(taskId);
           } else {
+            // 瀹屾垚
             isRunning.current = false;
             onComplete?.();
             resolve();
@@ -116,7 +138,9 @@ export function useTimeSlicing<T>(config: Partial<TaskConfig> = {}) {
     [finalConfig.chunkSize, finalConfig.deadline]
   );
 
-  
+  /**
+   * 鎵归噺鏇存柊锛圧eact 鐘舵€侊級
+   */
   const batchUpdate = useCallback(
     async <U extends unknown>(
       items: U[],
@@ -124,7 +148,8 @@ export function useTimeSlicing<T>(config: Partial<TaskConfig> = {}) {
       onComplete?: () => void
     ): Promise<void> => {
       const batches: U[][] = [];
-      
+
+      // 鍒嗘壒
       for (let i = 0; i < items.length; i += finalConfig.chunkSize) {
         batches.push(items.slice(i, i + finalConfig.chunkSize));
       }
@@ -160,7 +185,8 @@ export function useTimeSlicing<T>(config: Partial<TaskConfig> = {}) {
     [finalConfig.chunkSize, finalConfig.deadline]
   );
 
-  
+  /**
+   * 鍙栨秷鎵€鏈変换鍔?   */
   const cancel = useCallback(() => {
     scheduledTasks.current.forEach((id) => scheduler.cancel(id));
     scheduledTasks.current.clear();
@@ -177,7 +203,9 @@ export function useTimeSlicing<T>(config: Partial<TaskConfig> = {}) {
   };
 }
 
-
+/**
+ * 浣跨敤铏氭嫙鍒楄〃鏃堕棿鍒囩墖
+ */
 export function useVirtualListTimeSlicing<T>(
   items: T[],
   renderFn: (item: T, index: number) => React.ReactNode,
@@ -188,6 +216,7 @@ export function useVirtualListTimeSlicing<T>(
   const isFirstRender = useRef(true);
 
   useEffect(() => {
+    // 棣栨娓叉煋蹇€熷睍绀?    if (isFirstRender.current) {
       const initialItems = items.slice(0, 50).map((item, index) => ({
         item,
         index,
@@ -196,6 +225,7 @@ export function useVirtualListTimeSlicing<T>(
       setVisibleItems(initialItems);
       isFirstRender.current = false;
 
+      // 鍓╀綑椤圭洰鏃堕棿鍒囩墖娓叉煋
       if (items.length > 50) {
         const remainingItems = items.slice(50);
         runTimeSliced(
@@ -224,7 +254,8 @@ export function useVirtualListTimeSlicing<T>(
   return { visibleItems, progress };
 }
 
-
+/**
+ * 浣跨敤娓愯繘寮忓浘鐗囧姞杞? */
 export function useProgressiveImageLoading(imageUrls: string[]) {
   const [loadedImages, setLoadedImages] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
@@ -253,7 +284,8 @@ export function useProgressiveImageLoading(imageUrls: string[]) {
   return { loadedImages, progress };
 }
 
-
+/**
+ * 浣跨敤浼樺厛绾ц皟搴? */
 export function usePriorityScheduler() {
   const taskQueue = useRef<Array<{ fn: () => void; priority: TaskPriority }>>([]);
   const isProcessing = useRef(false);
@@ -277,6 +309,7 @@ export function usePriorityScheduler() {
     const task = taskQueue.current.shift();
 
     if (task) {
+      // 浣跨敤 MessageChannel 杩涜寰换鍔¤皟搴?      const channel = new MessageChannel();
       channel.port1.onmessage = () => {
         task.fn();
         processQueue();
@@ -288,7 +321,9 @@ export function usePriorityScheduler() {
   return { schedule };
 }
 
-
+/**
+ * 浣跨敤 React 18 Concurrent Features
+ */
 export function useConcurrentTransition() {
   const [isPending, startTransition] = useState(false);
   const [value, setValue] = useState<any>(null);

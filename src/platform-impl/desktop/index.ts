@@ -1,22 +1,43 @@
-
-
-import { invoke } from '@tauri-apps/api/tauri';
-import type { PlatformAPI, FileFilter } from '../../platform';
-
+import type { FileFilter, PlatformAPI } from "../../platform";
+import {
+  closeWindow as closeDesktopWindow,
+  copyText,
+  createDesktopPty,
+  destroyDesktopPty,
+  getDesktopDeviceId,
+  isWindowMaximized as isDesktopWindowMaximized,
+  maximizeWindow as maximizeDesktopWindow,
+  minimizeWindow as minimizeDesktopWindow,
+  openExternalUrl,
+  readClipboardText,
+  readDesktopTextFile,
+  resizeDesktopPty,
+  restoreWindow as restoreDesktopWindow,
+  saveDesktopFile,
+  selectDesktopFiles,
+  setDesktopFullscreen,
+  showDesktopNotification,
+  subscribeWindowMaximized as subscribeDesktopWindowMaximized,
+  writeDesktopPty,
+  writeDesktopTextFile,
+} from "../../app/desktop/tauriBridge";
 
 export class DesktopPlatform implements PlatformAPI {
   private eventListeners: Map<string, Set<(data: any) => void>> = new Map();
+  private deviceId: string | null = null;
 
-  getPlatform(): 'desktop' {
-    return 'desktop';
+  getPlatform(): "desktop" {
+    return "desktop";
   }
 
   async getDeviceId(): Promise<string> {
-    const { platform } = await import('@tauri-apps/api/os');
-    const platformName = await platform();
-    return `desktop-${platformName}-${Date.now()}`;
-  }
+    if (this.deviceId) {
+      return this.deviceId;
+    }
 
+    this.deviceId = await getDesktopDeviceId();
+    return this.deviceId;
+  }
 
   async setStorage(key: string, value: string): Promise<void> {
     localStorage.setItem(key, value);
@@ -30,121 +51,88 @@ export class DesktopPlatform implements PlatformAPI {
     localStorage.removeItem(key);
   }
 
-
   async copy(text: string): Promise<void> {
-    const { writeText } = await import('@tauri-apps/api/clipboard');
-    await writeText(text);
+    await copyText(text);
   }
 
   async readClipboard(): Promise<string> {
-    const { readText } = await import('@tauri-apps/api/clipboard');
-    const text = await readText();
-    return text || '';
+    return readClipboardText();
   }
 
-
   async openExternal(url: string): Promise<void> {
-    const { open } = await import('@tauri-apps/api/shell');
-    await open(url);
+    await openExternalUrl(url);
   }
 
   async showNotification(options: { title: string; body: string; icon?: string }): Promise<void> {
-    const { isPermissionGranted, requestPermission, sendNotification } = await import('@tauri-apps/api/notification');
-    
-    let permissionGranted = await isPermissionGranted();
-    if (!permissionGranted) {
-      const permission = await requestPermission();
-      permissionGranted = permission === 'granted';
-    }
-
-    if (permissionGranted) {
-      sendNotification({
-        title: options.title,
-        body: options.body,
-        icon: options.icon,
-      });
-    }
+    await showDesktopNotification(options);
   }
 
-
   async selectFile(options?: { multiple?: boolean; filters?: FileFilter[] }): Promise<string[]> {
-    const { open } = await import('@tauri-apps/api/dialog');
-    const selected = await open({
-      multiple: options?.multiple,
-      filters: options?.filters,
-    });
-    
-    if (selected === null) {
-      return [];
-    }
-    
-    return Array.isArray(selected) ? selected : [selected];
+    return selectDesktopFiles(options);
   }
 
   async saveFile(data: Blob, filename: string): Promise<void> {
-    const { save } = await import('@tauri-apps/api/dialog');
-    const { writeBinaryFile } = await import('@tauri-apps/api/fs');
-    
-    const filePath = await save({
-      defaultPath: filename,
-    });
-    
-    if (filePath) {
-      const arrayBuffer = await data.arrayBuffer();
-      await writeBinaryFile(filePath, new Uint8Array(arrayBuffer));
-    }
+    await saveDesktopFile(data, filename);
   }
 
   async readFile(path: string): Promise<string> {
-    const { readTextFile } = await import('@tauri-apps/api/fs');
-    return readTextFile(path);
+    return readDesktopTextFile(path);
   }
 
   async writeFile(path: string, content: string): Promise<void> {
-    const { writeTextFile } = await import('@tauri-apps/api/fs');
-    await writeTextFile(path, content);
+    await writeDesktopTextFile(path, content);
   }
 
-
   async minimizeWindow(): Promise<void> {
-    await invoke('minimize_window');
+    await minimizeDesktopWindow();
   }
 
   async maximizeWindow(): Promise<void> {
-    await invoke('maximize_window');
+    await maximizeDesktopWindow();
+  }
+
+  async restoreWindow(): Promise<void> {
+    await restoreDesktopWindow();
+  }
+
+  async isWindowMaximized(): Promise<boolean> {
+    return isDesktopWindowMaximized();
+  }
+
+  async subscribeWindowMaximized(
+    callback: (isMaximized: boolean) => void,
+  ): Promise<() => void | Promise<void>> {
+    return subscribeDesktopWindowMaximized(callback);
   }
 
   async closeWindow(): Promise<void> {
-    await invoke('close_window');
+    await closeDesktopWindow();
   }
 
   async setFullscreen(fullscreen: boolean): Promise<void> {
-    const { appWindow } = await import('@tauri-apps/api/window');
-    await appWindow.setFullscreen(fullscreen);
+    await setDesktopFullscreen(fullscreen);
   }
 
-
   async createPty(id: string, shell?: string): Promise<void> {
-    await invoke('create_pty', { id, shell });
+    await createDesktopPty(id, shell);
   }
 
   async writePty(id: string, data: string): Promise<void> {
-    await invoke('write_pty', { id, data });
+    await writeDesktopPty(id, data);
   }
 
   async resizePty(id: string, cols: number, rows: number): Promise<void> {
-    await invoke('resize_pty', { id, cols, rows });
+    await resizeDesktopPty(id, cols, rows);
   }
 
   async destroyPty(id: string): Promise<void> {
-    await invoke('destroy_pty', { id });
+    await destroyDesktopPty(id);
   }
 
   onPtyData(id: string, _callback: (data: string) => void): () => void {
-    console.log('Listening PTY data for:', id);
+    console.log("Listening PTY data for:", id);
     return () => {};
   }
-
 
   isOnline(): boolean {
     return navigator.onLine;
@@ -153,16 +141,15 @@ export class DesktopPlatform implements PlatformAPI {
   onNetworkChange(callback: (online: boolean) => void): () => void {
     const handleOnline = () => callback(true);
     const handleOffline = () => callback(false);
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }
-
 
   onEvent(event: string, callback: (data: any) => void): () => void {
     if (!this.eventListeners.has(event)) {
@@ -175,7 +162,6 @@ export class DesktopPlatform implements PlatformAPI {
     };
   }
 }
-
 
 export function createDesktopPlatform(): PlatformAPI {
   return new DesktopPlatform();

@@ -279,7 +279,7 @@ export async function setMemberRole(
   const roleValue = role === "admin" ? 1 : 0;
   const groupApi = getGroupApi();
 
-  await tryInvokeMethodVariants(groupApi, ["setMemberRole"], [
+  await tryInvokeMethodVariants(groupApi, ["setMemberRole", "updateMemberRole"], [
     [groupId, memberId, roleValue],
     [{ groupId, memberId, role: roleValue }],
     [{ groupId, memberId, role }],
@@ -356,9 +356,10 @@ export async function publishNotice(
   };
 
   const groupApi = getGroupApi();
-  await tryInvokeMethodVariants(groupApi, ["publishNotice", "addNotice", "postNotice"], [
+  await tryInvokeMethodVariants(groupApi, ["publishNotice", "addNotice", "postNotice", "updateAnnouncement"], [
     [groupId, normalizedContent, isPinned],
     [{ groupId, content: normalizedContent, isPinned }],
+    [groupId, normalizedContent],
   ]);
 
   const patch = getRuntimePatch(groupId);
@@ -471,7 +472,7 @@ export async function transferOwnership(
   }
 
   const groupApi = getGroupApi();
-  await tryInvokeMethodVariants(groupApi, ["transferOwnership", "changeOwner"], [
+  await tryInvokeMethodVariants(groupApi, ["transferOwnership", "changeOwner", "transfer"], [
     [groupId, newOwnerId],
     [{ groupId, newOwnerId }],
   ]);

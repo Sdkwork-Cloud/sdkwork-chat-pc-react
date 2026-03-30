@@ -26,6 +26,11 @@ export const routes: AppRouteObject[] = [
     meta: { title: "Forgot Password", hiddenInMenu: true },
   },
   {
+    path: ROUTES.LOGIN_OAUTH_CALLBACK,
+    element: null,
+    meta: { title: "OAuth Callback", hiddenInMenu: true },
+  },
+  {
     path: ROUTES.HOME,
     element: null,
     meta: { title: "Home", hiddenInMenu: true },

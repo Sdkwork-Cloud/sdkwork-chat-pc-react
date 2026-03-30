@@ -6,7 +6,12 @@ import { MePage } from "@sdkwork/openchat-pc-user";
 describe("MePage desktop interactions", () => {
   it("supports keyboard search focus and opens selected quick action", () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <MePage />
       </MemoryRouter>,
     );
@@ -23,7 +28,12 @@ describe("MePage desktop interactions", () => {
 
   it("filters quick actions by keyword", () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <MePage />
       </MemoryRouter>,
     );

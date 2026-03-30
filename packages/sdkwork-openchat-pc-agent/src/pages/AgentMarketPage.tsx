@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
-import { AgentCategory, AgentStatus, type Agent } from "../entities/agent.entity";
+import { Modal, ModalButtonGroup } from "@sdkwork/openchat-pc-ui";
+import { AgentCategory, AgentStatus, AgentType, type Agent, type CreateAgentRequest } from "../entities/agent.entity";
 import { AgentResultService, AgentService } from "../services";
 import {
   applyAgentWorkbenchFilter,
-  buildAgentWorkbenchLibrary,
-  buildAgentWorkbenchSummary,
-  pickAgentPreviewTarget,
   type AgentWorkbenchRail,
 } from "./agent.workspace.model";
 import * as SharedUi from "@sdkwork/openchat-pc-ui";
@@ -42,24 +40,42 @@ function formatStatus(status: AgentStatus): string {
   return status;
 }
 
+function getAgentTypeLabel(tr: ReturnType<typeof useAppTranslation>["tr"], type: AgentType): string {
+  return tr(type);
+}
+
 export function AgentMarketPage() {
-  const { tr, formatDate, formatNumber } = useAppTranslation();
+  const { tr, formatNumber } = useAppTranslation();
   const navigate = useNavigate();
 
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
   const [keyword, setKeyword] = useState("");
-  const [category, setCategory] = useState<AgentCategory>(AgentCategory.ALL);
-  const [sortBy, setSortBy] = useState<"popular" | "newest" | "rating">("popular");
   const [rail, setRail] = useState<AgentWorkbenchRail>("all");
-  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => AgentService.getFavoriteAgentIds());
-  const [recentOpenedIds, setRecentOpenedIds] = useState<string[]>(() => AgentService.getRecentAgentIds());
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [createName, setCreateName] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
+  const [createType, setCreateType] = useState<AgentType>(AgentType.ASSISTANT);
+  const [createCategory, setCreateCategory] = useState<AgentCategory>(AgentCategory.PRODUCTIVITY);
+  const [createTags, setCreateTags] = useState("");
+
+  const railOptions = useMemo<Array<{ key: AgentWorkbenchRail; label: string }>>(
+    () => [
+      { key: "all", label: tr("All agents") },
+      { key: "featured", label: tr("Featured") },
+      { key: "mine", label: tr("My agents") },
+      { key: "active", label: tr("Active") },
+      { key: "recent", label: tr("Recently updated") },
+    ],
+    [tr],
+  );
 
   const categoryOptions = useMemo<Array<{ value: AgentCategory; label: string }>>(
     () => [
-      { value: AgentCategory.ALL, label: tr("All categories") },
       { value: AgentCategory.PRODUCTIVITY, label: tr("Productivity") },
       { value: AgentCategory.EDUCATION, label: tr("Education") },
       { value: AgentCategory.ENTERTAINMENT, label: tr("Entertainment") },
@@ -72,30 +88,16 @@ export function AgentMarketPage() {
     [tr],
   );
 
-  const sortOptions = useMemo<Array<{ value: "popular" | "newest" | "rating"; label: string }>>(
+  const typeOptions = useMemo<Array<{ value: AgentType; label: string }>>(
     () => [
-      { value: "popular", label: tr("Most popular") },
-      { value: "newest", label: tr("Newest first") },
-      { value: "rating", label: tr("Highest rating") },
+      { value: AgentType.CHAT, label: getAgentTypeLabel(tr, AgentType.CHAT) },
+      { value: AgentType.TASK, label: getAgentTypeLabel(tr, AgentType.TASK) },
+      { value: AgentType.KNOWLEDGE, label: getAgentTypeLabel(tr, AgentType.KNOWLEDGE) },
+      { value: AgentType.ASSISTANT, label: getAgentTypeLabel(tr, AgentType.ASSISTANT) },
+      { value: AgentType.CUSTOM, label: getAgentTypeLabel(tr, AgentType.CUSTOM) },
     ],
     [tr],
   );
-
-  const railOptions = useMemo<Array<{ key: AgentWorkbenchRail; label: string; description: string }>>(
-    () => [
-      { key: "all", label: tr("All agents"), description: tr("Marketplace overview") },
-      { key: "featured", label: tr("Featured"), description: tr("High rating and usage") },
-      { key: "mine", label: tr("My agents"), description: tr("Created or managed by you") },
-      { key: "active", label: tr("Active"), description: tr("Currently chatting or running") },
-      { key: "recent", label: tr("Recently updated"), description: tr("Latest maintenance and releases") },
-    ],
-    [tr],
-  );
-
-  useEffect(() => {
-    setFavoriteIds(AgentService.getFavoriteAgentIds());
-    setRecentOpenedIds(AgentService.getRecentAgentIds());
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,16 +107,15 @@ export function AgentMarketPage() {
       setErrorText("");
       try {
         const result = await AgentResultService.getAgents({
-          category,
           search: keyword.trim() || undefined,
-          sortBy,
+          sortBy: "popular",
           page: 1,
           pageSize: 24,
         });
 
         if (!cancelled) {
           if (!result.success || !result.data) {
-            setErrorText(result.error || result.message || "Failed to load agent list.");
+            setErrorText(result.error || result.message || tr("Failed to load agent list."));
             setAgents([]);
             return;
           }
@@ -123,7 +124,7 @@ export function AgentMarketPage() {
       } catch (error) {
         if (!cancelled) {
           console.error("Failed to load agents:", error);
-          setErrorText("Failed to load agent list.");
+          setErrorText(tr("Failed to load agent list."));
           setAgents([]);
         }
       } finally {
@@ -137,77 +138,24 @@ export function AgentMarketPage() {
     return () => {
       cancelled = true;
     };
-  }, [category, keyword, sortBy]);
-
-  const summary = useMemo(() => buildAgentWorkbenchSummary(agents), [agents]);
-  const library = useMemo(
-    () =>
-      buildAgentWorkbenchLibrary(agents, {
-        favoriteAgentIds: favoriteIds,
-        recentOpenedAgentIds: recentOpenedIds,
-      }),
-    [agents, favoriteIds, recentOpenedIds],
-  );
+  }, [keyword, tr]);
 
   const scopedAgents = useMemo(() => {
     return applyAgentWorkbenchFilter({
       agents,
       rail,
-      category,
+      category: AgentCategory.ALL,
       keyword,
     });
-  }, [agents, rail, category, keyword]);
+  }, [agents, rail, keyword]);
 
-  useEffect(() => {
-    const next = pickAgentPreviewTarget({
-      agents,
-      preferredId: selectedAgentId,
-      rail,
-      category,
-      keyword,
-    });
-
-    if (next !== selectedAgentId) {
-      setSelectedAgentId(next);
-    }
-  }, [agents, category, keyword, rail, selectedAgentId]);
-
-  const selectedAgent = useMemo(() => {
-    if (!selectedAgentId) {
-      return scopedAgents[0] || null;
-    }
-    return scopedAgents.find((item) => item.id === selectedAgentId) || scopedAgents[0] || null;
-  }, [scopedAgents, selectedAgentId]);
-
-  const emptyText = useMemo(() => {
-    if (keyword.trim()) {
-      return "No matching agent. Try another keyword or category.";
-    }
-    return "No available agent in current filter set.";
-  }, [keyword]);
-
-  const featuredAgents = useMemo(() => summary.featured.slice(0, 4), [summary.featured]);
   const favoriteAgentIdSet = useMemo(
-    () => new Set(library.favorites.map((item) => item.id)),
-    [library.favorites],
+    () => new Set(favoriteIds),
+    [favoriteIds],
   );
-  const recentOpenedAgents = useMemo(() => library.recentOpened.slice(0, 4), [library.recentOpened]);
-
-  const examplePrompts = useMemo(() => {
-    if (!selectedAgent) {
-      return [];
-    }
-    const source = selectedAgent.config.customSettings?.exampleQuestions;
-    if (!Array.isArray(source)) {
-      return [];
-    }
-    return source.filter((item): item is string => typeof item === "string").slice(0, 3);
-  }, [selectedAgent]);
 
   const resetFilters = () => {
     setKeyword("");
-    setCategory(AgentCategory.ALL);
-    setSortBy("popular");
     setRail("all");
   };
 
@@ -217,12 +165,12 @@ export function AgentMarketPage() {
   };
 
   const handleOpenDetail = (agentId: string) => {
-    setRecentOpenedIds(AgentService.markAgentOpened(agentId));
+    AgentService.markAgentOpened(agentId);
     navigate(`/agents/${agentId}`);
   };
 
   const handleLaunchChat = (agent: Agent, prompt?: string) => {
-    setRecentOpenedIds(AgentService.markAgentOpened(agent.id));
+    AgentService.markAgentOpened(agent.id);
     const params = new URLSearchParams({
       agentId: agent.id,
       agentName: agent.name,
@@ -233,375 +181,332 @@ export function AgentMarketPage() {
     navigate(`/chat?${params.toString()}`);
   };
 
+  const resetCreateForm = () => {
+    setCreateName("");
+    setCreateDescription("");
+    setCreateType(AgentType.ASSISTANT);
+    setCreateCategory(AgentCategory.PRODUCTIVITY);
+    setCreateTags("");
+    setCreateError("");
+    setIsCreating(false);
+  };
+
+  const handleCreateClose = () => {
+    setIsCreateOpen(false);
+    resetCreateForm();
+  };
+
+  const handleCreateAgent = async () => {
+    const name = createName.trim();
+    if (!name || isCreating) {
+      return;
+    }
+
+    setIsCreating(true);
+    setCreateError("");
+
+    try {
+      const request: CreateAgentRequest = {
+        name,
+        description: createDescription.trim() || undefined,
+        type: createType,
+        isPublic: true,
+        config: {
+          category: createCategory,
+          creator: "You",
+          tags: createTags
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter(Boolean),
+        },
+      };
+
+      const result = await AgentResultService.createAgent(request);
+      if (!result.success || !result.data) {
+        setCreateError(result.error || result.message || tr("Save failed."));
+        return;
+      }
+
+      const createdAgent = result.data as Agent;
+      setAgents((previous) => [createdAgent, ...previous.filter((item) => item.id !== createdAgent.id)]);
+      handleCreateClose();
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : tr("Save failed."));
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const modalConfirmDisabled = !createName.trim() || isCreating;
+
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
-      <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold text-text-primary">{tr("Agent Market")}</h1>
-            <p className="mt-1 text-sm text-text-secondary">
-              {tr("Discover, compare, and launch specialized agents with a desktop-first control panel.")}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <SharedUi.Button
-              onClick={() => navigate("/skills")}
-              className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
+      <div className="border-b border-border bg-bg-secondary/70 px-4 py-4 backdrop-blur-sm sm:px-6">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="overflow-x-auto pb-1">
+            <div
+              role="tablist"
+              aria-label={tr("Agent Market")}
+              className="inline-flex min-w-full gap-2 rounded-2xl border border-border bg-bg-primary p-1 sm:min-w-0"
             >
-              {tr("Skill Market")}
-            </SharedUi.Button>
-            <SharedUi.Button
-              onClick={() => navigate("/appstore")}
-              className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
-            >
-              {tr("App Store")}
-            </SharedUi.Button>
-          </div>
-        </div>
-      </header>
-
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-6 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
-        <aside className="min-h-0 overflow-auto rounded-2xl border border-border bg-bg-secondary p-4">
-          <h2 className="text-sm font-semibold text-text-primary">{tr("Workbench Lens")}</h2>
-          <p className="mt-1 text-xs text-text-muted">{tr("Select a business lens first, then narrow list filters.")}</p>
-
-          <div className="mt-4 space-y-2">
-            {railOptions.map((option) => {
-              const active = option.key === rail;
-              return (
-                <SharedUi.Button
-                  key={option.key}
-                  onClick={() => setRail(option.key)}
-                  className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
-                    active
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-bg-primary text-text-secondary hover:bg-bg-hover"
-                  }`}
-                >
-                  <p className="text-sm font-medium">{option.label}</p>
-                  <p className="mt-1 text-xs opacity-80">{option.description}</p>
-                </SharedUi.Button>
-              );
-            })}
-          </div>
-
-          <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Category")}</h3>
-          <div className="mt-2 space-y-1">
-            {categoryOptions.map((item) => {
-              const active = item.value === category;
-              return (
-                <SharedUi.Button
-                  key={item.value}
-                  onClick={() => setCategory(item.value)}
-                  className={`w-full rounded-md px-3 py-1.5 text-left text-sm transition-colors ${
-                    active ? "bg-primary/10 text-primary" : "text-text-secondary hover:bg-bg-hover"
-                  }`}
-                >
-                  {item.label}
-                </SharedUi.Button>
-              );
-            })}
-          </div>
-
-          <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Quick Tags")}</h3>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {categoryOptions
-              .filter((item) => item.value !== AgentCategory.ALL)
-              .slice(0, 6)
-              .map((item) => (
-                <SharedUi.Button
-                  key={`quick-${item.value}`}
-                  onClick={() => setCategory(item.value)}
-                  className="rounded-full border border-border bg-bg-primary px-2.5 py-1 text-xs text-text-secondary transition-colors hover:border-primary/40 hover:bg-bg-hover"
-                >
-                  {item.label}
-                </SharedUi.Button>
-              ))}
-          </div>
-
-          <div className="mt-5 grid grid-cols-2 gap-2">
-            <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">{tr("Total")}</p>
-              <p className="mt-1 text-base font-semibold text-text-primary">{summary.total}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">{tr("Active")}</p>
-              <p className="mt-1 text-base font-semibold text-text-primary">{summary.active}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">{tr("Mine")}</p>
-              <p className="mt-1 text-base font-semibold text-text-primary">{summary.mine}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">{tr("Favorites")}</p>
-              <p className="mt-1 text-base font-semibold text-text-primary">{library.favorites.length}</p>
-            </div>
-          </div>
-        </aside>
-
-        <div className="min-h-0 overflow-auto rounded-2xl border border-border bg-bg-secondary p-4">
-          {featuredAgents.length > 0 ? (
-            <div className="mb-4 rounded-xl border border-border bg-gradient-to-r from-primary/10 via-bg-primary to-bg-primary p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">{tr("Today Focus")}</p>
-              <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
-                {featuredAgents.map((item) => (
+              {railOptions.map((option) => {
+                const active = option.key === rail;
+                return (
                   <SharedUi.Button
-                    key={`focus-${item.id}`}
-                    onClick={() => setSelectedAgentId(item.id)}
-                    className="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary px-3 py-2 text-left transition-colors hover:border-primary/40"
+                    key={option.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setRail(option.key)}
+                    className={`inline-flex min-w-[120px] flex-1 items-center justify-center rounded-[14px] px-4 py-3 text-sm font-medium transition-all ${
+                      active
+                        ? "bg-primary text-white shadow-sm"
+                        : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+                    }`}
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-bg-tertiary text-lg">
-                      {item.avatar || "AG"}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-text-primary">{item.name}</p>
-                      <p className="truncate text-xs text-text-muted">
-                          {item.config.rating !== undefined
-                            ? formatNumber(item.config.rating, {
-                                minimumFractionDigits: 1,
-                                maximumFractionDigits: 1,
-                              })
-                            : "-"} / {formatNumber(item.config.usageCount || 0)}
-                      </p>
-                    </div>
+                    {option.label}
                   </SharedUi.Button>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          ) : null}
+          </div>
 
-          <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px]">
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center xl:w-auto">
             <SharedUi.Input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
               placeholder={tr("Search by name, description, or tags")}
-              className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
+              className="h-11 w-full rounded-xl border border-border bg-bg-primary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none sm:w-[320px]"
             />
-            <SharedUi.Select
-              value={sortBy}
-              onChange={(event) => setSortBy(event.target.value as "popular" | "newest" | "rating")}
-              className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary focus:border-primary focus:outline-none"
+            <SharedUi.Button
+              onClick={() => setIsCreateOpen(true)}
+              className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-white transition-colors hover:brightness-110"
             >
-              {sortOptions.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </SharedUi.Select>
+              {tr("Create")}
+            </SharedUi.Button>
           </div>
-
-          {errorText ? (
-            <div className="mb-4 rounded-lg border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
-              {tr(errorText)}
-            </div>
-          ) : null}
-
-          {isLoading ? (
-            <div className="rounded-xl border border-border bg-bg-primary p-5 text-sm text-text-secondary">
-              {tr("Loading agents...")}
-            </div>
-          ) : scopedAgents.length === 0 ? (
-            <div className="rounded-xl border border-border bg-bg-primary p-5 text-sm text-text-secondary">
-              <p>{tr(emptyText)}</p>
-              <SharedUi.Button
-                onClick={resetFilters}
-                className="mt-3 rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
-              >
-                {tr("Reset filters")}
-              </SharedUi.Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {scopedAgents.map((agent) => {
-                const active = selectedAgent?.id === agent.id;
-                return (
-                  <article
-                    key={agent.id}
-                    onClick={() => setSelectedAgentId(agent.id)}
-                    className={`cursor-pointer rounded-xl border p-4 transition ${
-                      active ? "border-primary bg-primary/5" : "border-border bg-bg-primary hover:border-primary/40"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-bg-tertiary text-xl">
-                          {agent.avatar || "AG"}
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="truncate text-base font-semibold text-text-primary">{agent.name}</h3>
-                          <p className="truncate text-xs text-text-muted">{agent.config.creator || "OpenChat"}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <SharedUi.Button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleToggleFavorite(agent.id);
-                          }}
-                          className={`rounded-full px-2 py-1 text-[11px] font-medium transition-colors ${
-                            favoriteAgentIdSet.has(agent.id)
-                              ? "bg-warning/15 text-warning hover:bg-warning/25"
-                              : "bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
-                          }`}
-                        >
-                          {favoriteAgentIdSet.has(agent.id) ? tr("Saved") : tr("Save")}
-                        </SharedUi.Button>
-                        <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${getStatusClass(agent.status)}`}>
-                          {tr(formatStatus(agent.status))}
-                        </span>
-                      </div>
-                    </div>
-
-                    <p className="mt-3 line-clamp-2 min-h-[40px] text-sm text-text-secondary">
-                      {agent.description || tr("No description.")}
-                    </p>
-
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {(agent.config.tags || []).slice(0, 4).map((tag) => (
-                        <span key={`${agent.id}-${tag}`} className="rounded-md bg-bg-tertiary px-2 py-1 text-xs text-text-tertiary">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between text-xs text-text-muted">
-                            <span>{tr("Rating")} {agent.config.rating !== undefined
-                              ? formatNumber(agent.config.rating, {
-                                  minimumFractionDigits: 1,
-                                  maximumFractionDigits: 1,
-                                })
-                              : "-"}</span>
-                      <span>{tr("Usage")} {formatNumber(agent.config.usageCount || 0)}</span>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
         </div>
+      </div>
 
-        <aside className="hidden min-h-0 overflow-auto rounded-2xl border border-border bg-bg-secondary p-4 xl:block">
-          <h2 className="text-sm font-semibold text-text-primary">{tr("Live Preview")}</h2>
-          {!selectedAgent ? (
-            <div className="mt-3 rounded-lg border border-border bg-bg-primary p-4 text-sm text-text-secondary">
-              {tr("Select an agent to view details.")}
-            </div>
-          ) : (
-            <div className="mt-3 space-y-4">
-              <div className="rounded-lg border border-border bg-bg-primary p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-bg-tertiary text-xl">
-                    {selectedAgent.avatar || "AG"}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="truncate text-base font-semibold text-text-primary">{selectedAgent.name}</h3>
-                    <p className="truncate text-xs text-text-muted">{selectedAgent.config.creator || "OpenChat"}</p>
-                  </div>
-                </div>
-                <p className="mt-3 text-sm text-text-secondary">{selectedAgent.description || tr("No description.")}</p>
-              </div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4 sm:px-6">
+        {errorText ? (
+          <div className="mb-4 rounded-xl border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+            {tr(errorText)}
+          </div>
+        ) : null}
 
-              <div className="rounded-lg border border-border bg-bg-primary p-4">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Capabilities")}</h4>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {(selectedAgent.config.tags || []).length > 0 ? (
-                    (selectedAgent.config.tags || []).map((tag) => (
-                      <span key={`${selectedAgent.id}-${tag}`} className="rounded-md bg-bg-tertiary px-2 py-1 text-xs text-text-tertiary">
+        {isLoading ? (
+          <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
+            {tr("Loading agents...")}
+          </div>
+        ) : scopedAgents.length === 0 ? (
+          <div className="rounded-xl border border-border bg-bg-secondary p-5 text-sm text-text-secondary">
+            <p>{tr("Try a different keyword or clear the current search.")}</p>
+            <SharedUi.Button
+              onClick={resetFilters}
+              className="mt-3 rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
+            >
+              {tr("Reset filters")}
+            </SharedUi.Button>
+          </div>
+        ) : (
+          <div
+            data-testid="agents-market-results"
+            className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+          >
+            {scopedAgents.map((agent) => {
+              const favorite = favoriteAgentIdSet.has(agent.id);
+              return (
+                <article
+                  key={agent.id}
+                  onClick={() => handleOpenDetail(agent.id)}
+                  className="group cursor-pointer rounded-2xl border border-border bg-bg-secondary p-4 transition-all hover:border-primary/40 hover:bg-bg-hover"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-bg-tertiary text-xl">
+                        {agent.avatar || "AG"}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="truncate text-base font-semibold text-text-primary">
+                          {agent.name}
+                        </h3>
+                        <p className="truncate text-xs text-text-muted">
+                          {agent.config.creator || "OpenChat"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-medium ${getStatusClass(agent.status)}`}>
+                      {tr(formatStatus(agent.status))}
+                    </span>
+                  </div>
+
+                  <p className="mt-3 line-clamp-3 min-h-[56px] text-sm text-text-secondary">
+                    {agent.description || tr("No description.")}
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(agent.config.tags || []).slice(0, 4).map((tag) => (
+                      <span
+                        key={`${agent.id}-${tag}`}
+                        className="rounded-md bg-bg-tertiary px-2 py-1 text-xs text-text-tertiary"
+                      >
                         {tag}
                       </span>
-                    ))
-                  ) : (
-                    <span className="text-xs text-text-muted">{tr("No tags")}</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-border bg-bg-primary p-4">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Actions")}</h4>
-                <div className="mt-3 grid grid-cols-1 gap-2">
-                  <SharedUi.Button
-                    onClick={() => handleOpenDetail(selectedAgent.id)}
-                    className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-bg-hover"
-                  >
-                    {tr("Open detail workspace")}
-                  </SharedUi.Button>
-                  <SharedUi.Button
-                    onClick={() => handleLaunchChat(selectedAgent)}
-                    className="rounded-md bg-primary px-3 py-2 text-sm text-white transition-colors hover:brightness-110"
-                  >
-                    {tr("Start chat")}
-                  </SharedUi.Button>
-                  <SharedUi.Button
-                    onClick={() => handleToggleFavorite(selectedAgent.id)}
-                    className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning transition-colors hover:bg-warning/20"
-                  >
-                    {favoriteAgentIdSet.has(selectedAgent.id) ? tr("Remove from favorites") : tr("Save to favorites")}
-                  </SharedUi.Button>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-border bg-bg-primary p-4">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Starter Prompt")}</h4>
-                <p className="mt-2 text-xs text-text-secondary">
-                  {selectedAgent.config.welcomeMessage || tr("Describe your goal and expected outcome.")}
-                </p>
-                {examplePrompts.length > 0 ? (
-                  <div className="mt-2 space-y-1">
-                    {examplePrompts.map((prompt) => (
-                      <SharedUi.Button
-                        key={`${selectedAgent.id}-${prompt}`}
-                        onClick={() => handleLaunchChat(selectedAgent, prompt)}
-                        className="w-full rounded-md bg-bg-tertiary px-2.5 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-bg-hover"
-                      >
-                        {prompt}
-                      </SharedUi.Button>
                     ))}
                   </div>
-                ) : null}
-              </div>
 
-              {recentOpenedAgents.length > 0 ? (
-                <div className="rounded-lg border border-border bg-bg-primary p-4">
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Recently Opened")}</h4>
-                  <div className="mt-2 space-y-2">
-                    {recentOpenedAgents.map((item) => (
-                      <SharedUi.Button
-                        key={`opened-${item.id}`}
-                        onClick={() => setSelectedAgentId(item.id)}
-                        className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs text-text-secondary hover:bg-bg-hover"
-                      >
-                        <span className="truncate">{item.name}</span>
-                        <span className="text-text-muted">
-                          {favoriteAgentIdSet.has(item.id) ? tr("Saved") : tr("Recent")}
-                        </span>
-                      </SharedUi.Button>
-                    ))}
+                  <div className="mt-4 flex items-center justify-between gap-2 text-xs text-text-muted">
+                    <span>
+                      {tr("Rating")}{" "}
+                      {agent.config.rating !== undefined
+                        ? formatNumber(agent.config.rating, {
+                            minimumFractionDigits: 1,
+                            maximumFractionDigits: 1,
+                          })
+                        : "-"}
+                    </span>
+                    <span>
+                      {tr("Usage")} {formatNumber(agent.config.usageCount || 0)}
+                    </span>
                   </div>
-                </div>
-              ) : null}
 
-              {summary.recent.length > 0 ? (
-                <div className="rounded-lg border border-border bg-bg-primary p-4">
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{tr("Recently Updated")}</h4>
-                  <div className="mt-2 space-y-2">
-                    {summary.recent.slice(0, 3).map((item) => (
-                      <SharedUi.Button
-                        key={`recent-${item.id}`}
-                        onClick={() => setSelectedAgentId(item.id)}
-                        className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs text-text-secondary hover:bg-bg-hover"
-                      >
-                        <span className="truncate">{item.name}</span>
-                        <span className="text-text-muted">{formatDate(item.updatedAt, { dateStyle: "medium" })}</span>
-                      </SharedUi.Button>
-                    ))}
+                  <div className="mt-4 flex items-center gap-2">
+                    <SharedUi.Button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleOpenDetail(agent.id);
+                      }}
+                      className="rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-xs text-text-secondary hover:bg-bg-hover"
+                    >
+                      {tr("View Details")}
+                    </SharedUi.Button>
+                    <SharedUi.Button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleLaunchChat(agent);
+                      }}
+                      className="rounded-lg bg-primary px-3 py-2 text-xs text-white hover:brightness-110"
+                    >
+                      {tr("Start chat")}
+                    </SharedUi.Button>
+                    <SharedUi.Button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleToggleFavorite(agent.id);
+                      }}
+                      className={`rounded-lg px-3 py-2 text-xs transition-colors ${
+                        favorite
+                          ? "bg-warning/15 text-warning hover:bg-warning/25"
+                          : "border border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
+                      }`}
+                    >
+                      {favorite ? tr("Saved") : tr("Save")}
+                    </SharedUi.Button>
                   </div>
-                </div>
-              ) : null}
-            </div>
-          )}
-        </aside>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      <Modal
+        isOpen={isCreateOpen}
+        onClose={handleCreateClose}
+        title={tr("Create")}
+        size="lg"
+        bodyClassName="p-0"
+        footer={
+          <ModalButtonGroup
+            onCancel={handleCreateClose}
+            onConfirm={handleCreateAgent}
+            confirmText={tr("Create")}
+            isLoading={isCreating}
+            disabled={modalConfirmDisabled}
+          />
+        }
+      >
+        <div className="space-y-4 p-5">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="space-y-2 lg:col-span-2">
+              <label htmlFor="agent-create-name" className="text-xs text-text-muted">{tr("Name")}</label>
+              <SharedUi.Input
+                id="agent-create-name"
+                value={createName}
+                onChange={(event) => setCreateName(event.target.value)}
+                placeholder={tr("Display Name")}
+                className="h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary outline-none focus:border-primary"
+              />
+            </div>
+
+            <div className="space-y-2 lg:col-span-2">
+              <label htmlFor="agent-create-description" className="text-xs text-text-muted">{tr("Description")}</label>
+              <SharedUi.Textarea
+                id="agent-create-description"
+                value={createDescription}
+                onChange={(event) => setCreateDescription(event.target.value)}
+                placeholder={tr("Add details...")}
+                rows={4}
+                className="w-full resize-none rounded-lg border border-border bg-bg-tertiary p-3 text-sm text-text-primary outline-none focus:border-primary"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="agent-create-type" className="text-xs text-text-muted">{tr("Type")}</label>
+              <SharedUi.Select
+                id="agent-create-type"
+                value={createType}
+                onChange={(event) => setCreateType(event.target.value as AgentType)}
+                className="h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary outline-none focus:border-primary"
+              >
+                {typeOptions.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </SharedUi.Select>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="agent-create-category" className="text-xs text-text-muted">{tr("Category")}</label>
+              <SharedUi.Select
+                id="agent-create-category"
+                value={createCategory}
+                onChange={(event) => setCreateCategory(event.target.value as AgentCategory)}
+                className="h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary outline-none focus:border-primary"
+              >
+                {categoryOptions.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </SharedUi.Select>
+            </div>
+
+            <div className="space-y-2 lg:col-span-2">
+              <label htmlFor="agent-create-tags" className="text-xs text-text-muted">{tr("Tags")}</label>
+              <SharedUi.Input
+                id="agent-create-tags"
+                value={createTags}
+                onChange={(event) => setCreateTags(event.target.value)}
+                placeholder={tr("Quick Tags")}
+                className="h-10 w-full rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary outline-none focus:border-primary"
+              />
+            </div>
+          </div>
+
+          {createError ? (
+            <div className="rounded-lg border border-error/40 bg-error/10 px-3 py-2 text-sm text-error">
+              {tr(createError)}
+            </div>
+          ) : null}
+        </div>
+      </Modal>
     </section>
   );
 }

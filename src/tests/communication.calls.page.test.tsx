@@ -6,7 +6,12 @@ import { CallsPage } from "@sdkwork/openchat-pc-communication";
 describe("CallsPage desktop interactions", () => {
   it("supports keyboard queue navigation and call actions", () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <CallsPage />
       </MemoryRouter>,
     );
@@ -25,7 +30,12 @@ describe("CallsPage desktop interactions", () => {
 
   it("filters queue by status", () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <CallsPage />
       </MemoryRouter>,
     );

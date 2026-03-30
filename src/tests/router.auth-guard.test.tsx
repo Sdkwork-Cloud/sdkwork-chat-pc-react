@@ -66,7 +66,13 @@ describe("router auth hardening", () => {
 
   it("redirects unauthenticated private routes to login", async () => {
     const { container } = render(
-      <MemoryRouter initialEntries={[ROUTES.CHAT]}>
+      <MemoryRouter
+        initialEntries={[ROUTES.CHAT]}
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <AppRouter />
       </MemoryRouter>,
     );
@@ -80,7 +86,13 @@ describe("router auth hardening", () => {
     persistAuthSession();
 
     const { container } = render(
-      <MemoryRouter initialEntries={[ROUTES.LOGIN]}>
+      <MemoryRouter
+        initialEntries={[ROUTES.LOGIN]}
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <AppRouter />
       </MemoryRouter>,
     );

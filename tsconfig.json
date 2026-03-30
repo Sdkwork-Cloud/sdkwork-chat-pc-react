@@ -20,7 +20,10 @@
       "@/*": ["./src/*"],
       "@sdkwork/openchat-pc-*": ["./packages/sdkwork-openchat-pc-*/src/index.ts"],
       "@sdkwork/app-sdk": ["../../spring-ai-plus-app-api/sdkwork-sdk-app/sdkwork-app-sdk-typescript/src/index.ts"],
-      "@sdkwork/sdk-common": ["../../sdk/sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts"]
+      "@sdkwork/sdk-common": ["../../sdk/sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts"],
+      "@openchat/sdkwork-im-sdk": ["../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/composed/src/index.ts"],
+      "@openchat/sdkwork-im-wukongim-adapter": ["../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/adapter-wukongim/src/index.ts"],
+      "@sdkwork/im-backend-sdk": ["../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/generated/server-openapi/src/index.ts"]
     },
 
     /* Linting */

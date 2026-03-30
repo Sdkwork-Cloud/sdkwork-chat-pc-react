@@ -113,6 +113,45 @@ function findCommonsBridgeViolations(): string[] {
   });
 }
 
+function findThemeContractViolations(): string[] {
+  const checks: Array<{ path: string; patterns: string[] }> = [
+    {
+      path: "src/app/providers/ThemeManager.tsx",
+      patterns: [
+        "--theme-primary-50",
+        "--theme-primary-600",
+        "--theme-primary-950",
+        "--scrollbar-thumb",
+        "--scrollbar-track",
+      ],
+    },
+    {
+      path: "src/index.css",
+      patterns: [
+        "--theme-primary-600",
+        "--scrollbar-thumb",
+        "--scrollbar-track",
+      ],
+    },
+    {
+      path: "packages/sdkwork-openchat-pc-commons/src/shell/MainLayout.tsx",
+      patterns: [
+        "bg-[var(--bg-primary)]",
+        "text-[var(--text-primary)]",
+        "var(--ai-primary-glow)",
+        "bg-[var(--bg-secondary)]",
+      ],
+    },
+  ];
+
+  return checks.flatMap(({ path: relativePath, patterns }) => {
+    const absolutePath = path.join(REPO_ROOT, relativePath);
+    const source = readFileSync(absolutePath, "utf8");
+    const missing = patterns.filter((pattern) => !source.includes(pattern));
+    return missing.map((pattern) => `${relativePath} -> missing "${pattern}"`);
+  });
+}
+
 describe("ui foundation audit", () => {
   it("keeps business packages on shared wrapped controls instead of raw html controls", () => {
     const violations = findRawControlViolations();
@@ -148,6 +187,19 @@ describe("ui foundation audit", () => {
       violations,
       [
         "Commons foundation files should bridge into @sdkwork/openchat-pc-ui instead of carrying a second foundation.",
+        "Current violations:",
+        ...violations,
+      ].join("\n"),
+    ).toEqual([]);
+  });
+
+  it("publishes the claw-style theme contract across theme runtime, global css, and shell", () => {
+    const violations = findThemeContractViolations();
+
+    expect(
+      violations,
+      [
+        "Theme runtime and shell should expose the claw-studio style contract instead of the legacy AI-only contract.",
         "Current violations:",
         ...violations,
       ].join("\n"),

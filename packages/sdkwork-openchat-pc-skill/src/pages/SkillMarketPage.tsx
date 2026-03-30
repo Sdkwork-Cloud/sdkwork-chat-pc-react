@@ -1,20 +1,29 @@
-import { useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { SkillCard } from "../components/SkillCard";
-import type { SkillCategoryInfo, SkillMarketItem } from "../entities/skill.entity";
-import { SkillResultService, SkillService } from "../services";
-import { buildSkillWorkspaceSummary, filterSkillsByStage, type SkillPipelineStage } from "./skill.workspace.model";
+import { Search } from "lucide-react";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import * as SharedUi from "@sdkwork/openchat-pc-ui";
+import type { SkillCategoryInfo, SkillMarketItem } from "../entities/skill.entity";
+import { SkillResultService, SkillService } from "../services";
+import { filterSkillsByStage, type SkillPipelineStage } from "./skill.workspace.model";
+import { SkillMarketCard, SkillMarketEmptyState } from "../components/SkillMarketComponents";
 
 type SkillSortType = "popular" | "rating" | "newest";
 
-const stageOptions: Array<{ key: SkillPipelineStage; label: string; description: string }> = [
-  { key: "all", label: "All", description: "Browse full marketplace inventory" },
-  { key: "enabled", label: "Enabled", description: "Available in current workspace" },
-  { key: "disabled", label: "Disabled", description: "Not installed or turned off" },
-  { key: "needs_config", label: "Needs config", description: "Enabled but missing required setup" },
+const stageTabs: Array<{ key: SkillPipelineStage; label: string; description: string }> = [
+  { key: "all", label: "All", description: "Browse the full catalog" },
+  { key: "enabled", label: "Enabled", description: "Currently available" },
+  { key: "disabled", label: "Disabled", description: "Not installed or off" },
+  { key: "needs_config", label: "Needs config", description: "Enabled but pending setup" },
 ];
+
+function formatFallbackLabel(value: string): string {
+  if (!value) {
+    return value;
+  }
+
+  return value.slice(0, 1).toUpperCase() + value.slice(1);
+}
 
 export function SkillMarketPage() {
   const navigate = useNavigate();
@@ -26,13 +35,11 @@ export function SkillMarketPage() {
   const [category, setCategory] = useState("all");
   const [sortBy, setSortBy] = useState<SkillSortType>("popular");
   const [stage, setStage] = useState<SkillPipelineStage>("all");
-  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
   const [statusText, setStatusText] = useState("");
   const [processingSkillId, setProcessingSkillId] = useState<string | null>(null);
   const [favoriteSkillIds, setFavoriteSkillIds] = useState<string[]>([]);
-  const [recentSkillIds, setRecentSkillIds] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,16 +47,18 @@ export function SkillMarketPage() {
     const loadCategories = async () => {
       try {
         const result = await SkillResultService.getCategories();
-        if (!cancelled) {
-          if (!result.success || !result.data) {
-            setErrorText(result.error || result.message || tr("Failed to load categories."));
-            setCategories([{ id: "all", name: "All", icon: "ALL" }]);
-            return;
-          }
-          setCategories(result.data);
-          setFavoriteSkillIds(SkillService.getFavoriteSkillIds());
-          setRecentSkillIds(SkillService.getRecentSkillIds());
+        if (cancelled) {
+          return;
         }
+
+        if (!result.success || !result.data) {
+          setErrorText(result.error || result.message || tr("Failed to load categories."));
+          setCategories([{ id: "all", name: "All", icon: "ALL" }]);
+          return;
+        }
+
+        setCategories([{ id: "all", name: "All", icon: "ALL" }, ...result.data.filter((item) => item.id !== "all")]);
+        setFavoriteSkillIds(SkillService.getFavoriteSkillIds());
       } catch (error) {
         if (!cancelled) {
           setErrorText(error instanceof Error ? error.message : tr("Failed to load categories."));
@@ -62,7 +71,7 @@ export function SkillMarketPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [tr]);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,20 +79,25 @@ export function SkillMarketPage() {
       const loadSkills = async () => {
         setIsLoading(true);
         setErrorText("");
+
         try {
           const result = await SkillResultService.getSkills(
             category === "all" ? undefined : category,
             keyword.trim() || undefined,
             sortBy,
           );
-          if (!cancelled) {
-            if (!result.success || !result.data) {
-              setErrorText(result.error || result.message || tr("Failed to load skills."));
-              setSkills([]);
-              return;
-            }
-            setSkills(result.data);
+
+          if (cancelled) {
+            return;
           }
+
+          if (!result.success || !result.data) {
+            setErrorText(result.error || result.message || tr("Failed to load skills."));
+            setSkills([]);
+            return;
+          }
+
+          setSkills(result.data);
         } catch (error) {
           if (!cancelled) {
             setErrorText(error instanceof Error ? error.message : tr("Failed to load skills."));
@@ -103,59 +117,44 @@ export function SkillMarketPage() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [category, keyword, sortBy]);
+  }, [category, keyword, sortBy, tr]);
 
-  const summary = useMemo(() => buildSkillWorkspaceSummary(skills), [skills]);
   const visibleSkills = useMemo(() => filterSkillsByStage(skills, stage), [skills, stage]);
-
-  const featuredSkills = useMemo(() => {
-    return [...visibleSkills]
-      .sort((left, right) => right.rating * 10_000 + right.usageCount - (left.rating * 10_000 + left.usageCount))
-      .slice(0, 4);
-  }, [visibleSkills]);
+  const favoriteSkillIdSet = useMemo(() => new Set(favoriteSkillIds), [favoriteSkillIds]);
+  const categoryTabs = useMemo(
+    () => (categories.length > 0 ? categories : [{ id: "all", name: "All", icon: "ALL" }]),
+    [categories],
+  );
 
   useEffect(() => {
-    if (visibleSkills.length === 0) {
-      setSelectedSkillId(null);
-      return;
+    if (!categoryTabs.some((item) => item.id === category)) {
+      setCategory("all");
     }
+  }, [category, categoryTabs]);
 
-    if (!selectedSkillId || !visibleSkills.some((item) => item.id === selectedSkillId)) {
-      setSelectedSkillId(visibleSkills[0]!.id);
-    }
-  }, [visibleSkills, selectedSkillId]);
+  const handleOpenSkillDetail = (skillId: string) => {
+    SkillService.markSkillOpened(skillId);
+    navigate(`/skills/${skillId}`);
+  };
 
-  const selectedSkill = useMemo(() => {
-    if (!selectedSkillId) {
-      return null;
-    }
-    return visibleSkills.find((item) => item.id === selectedSkillId) || null;
-  }, [visibleSkills, selectedSkillId]);
-
-  const recentVisibleSkills = useMemo(() => {
-    const byId = new Map(visibleSkills.map((item) => [item.id, item]));
-    return recentSkillIds
-      .map((skillId) => byId.get(skillId))
-      .filter((item): item is SkillMarketItem => Boolean(item))
-      .slice(0, 5);
-  }, [visibleSkills, recentSkillIds]);
-
-  const isSelectedSkillFavorite = useMemo(() => {
-    if (!selectedSkill) {
-      return false;
-    }
-    return favoriteSkillIds.includes(selectedSkill.id);
-  }, [selectedSkill, favoriteSkillIds]);
+  const handleToggleFavorite = (skillId: string) => {
+    const enabled = SkillService.toggleFavoriteSkill(skillId);
+    setFavoriteSkillIds(SkillService.getFavoriteSkillIds());
+    setStatusText(enabled ? tr("Skill added to favorites.") : tr("Skill removed from favorites."));
+    setErrorText("");
+  };
 
   const handleEnable = async (skillId: string) => {
     setStatusText("");
     setProcessingSkillId(skillId);
+
     try {
       const result = await SkillResultService.enableSkill(skillId);
-        if (!result.success) {
-          setErrorText(result.error || result.message || tr("Failed to enable skill."));
-          return;
-        }
+      if (!result.success) {
+        setErrorText(result.error || result.message || tr("Failed to enable skill."));
+        return;
+      }
+
       setSkills((previous) =>
         previous.map((item) =>
           item.id === skillId
@@ -167,45 +166,32 @@ export function SkillMarketPage() {
             : item,
         ),
       );
-        setStatusText(tr("Skill enabled. Open detail workspace to complete policy configuration."));
-      } catch (error) {
-        setErrorText(error instanceof Error ? error.message : tr("Failed to enable skill."));
-      } finally {
-        setProcessingSkillId(null);
-      }
+      setStatusText(tr("Skill enabled. Open detail workspace to complete policy configuration."));
+    } catch (error) {
+      setErrorText(error instanceof Error ? error.message : tr("Failed to enable skill."));
+    } finally {
+      setProcessingSkillId(null);
+    }
   };
 
   const handleDisable = async (skillId: string) => {
     setStatusText("");
     setProcessingSkillId(skillId);
+
     try {
       const result = await SkillResultService.disableSkill(skillId);
-        if (!result.success) {
-          setErrorText(result.error || result.message || tr("Failed to disable skill."));
-          return;
-        }
+      if (!result.success) {
+        setErrorText(result.error || result.message || tr("Failed to disable skill."));
+        return;
+      }
+
       setSkills((previous) => previous.map((item) => (item.id === skillId ? { ...item, isEnabled: false } : item)));
       setStatusText(tr("Skill disabled."));
     } catch (error) {
-        setErrorText(error instanceof Error ? error.message : tr("Failed to disable skill."));
-      } finally {
-        setProcessingSkillId(null);
-      }
-  };
-
-  const handleOpenSkillDetail = (skillId: string) => {
-    const updatedRecent = SkillService.markSkillOpened(skillId);
-    setRecentSkillIds(updatedRecent);
-    navigate(`/skills/${skillId}`);
-  };
-
-  const handleToggleFavorite = (skillId: string) => {
-    const enabled = SkillService.toggleFavoriteSkill(skillId);
-    setFavoriteSkillIds(SkillService.getFavoriteSkillIds());
-    setStatusText(
-      enabled ? tr("Skill added to favorites.") : tr("Skill removed from favorites."),
-    );
-    setErrorText("");
+      setErrorText(error instanceof Error ? error.message : tr("Failed to disable skill."));
+    } finally {
+      setProcessingSkillId(null);
+    }
   };
 
   const resetFilters = () => {
@@ -215,332 +201,142 @@ export function SkillMarketPage() {
     setStage("all");
   };
 
+  const categoryLabel = (value: string, fallback?: string) =>
+    value === "all" ? tr("All") : fallback || formatFallbackLabel(value);
+
   return (
-    <section className="flex h-full min-w-0 flex-1 flex-col bg-bg-primary">
-      <header className="border-b border-border bg-bg-secondary/70 px-6 py-5 backdrop-blur-sm">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold text-text-primary">{tr("Skill Marketplace")}</h1>
-            <p className="mt-1 text-sm text-text-secondary">
-              {tr("Build a clear Discover, Enable, Configure workflow for reusable skill capabilities.")}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <SharedUi.Button
-              onClick={() => navigate("/agents")}
-              className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
+    <section className="flex h-full min-w-0 w-full flex-1 flex-col bg-bg-primary">
+      <header className="border-b border-border bg-bg-secondary/70 px-4 py-4 backdrop-blur-sm sm:px-6">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="overflow-x-auto pb-1">
+            <div
+              role="tablist"
+              aria-label={tr("Skill Marketplace")}
+              className="inline-flex min-w-full gap-2 rounded-2xl border border-border bg-bg-primary p-1 sm:min-w-0"
             >
-              {tr("Agent Market")}
-            </SharedUi.Button>
-            <SharedUi.Button
-              onClick={() => navigate("/appstore")}
-              className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
-            >
-              {tr("App Store")}
-            </SharedUi.Button>
-            <SharedUi.Button
-              onClick={() => navigate("/skills/my")}
-              className="rounded-full border border-border bg-bg-tertiary px-4 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-hover"
-            >
-              {tr("My Skills")}
-            </SharedUi.Button>
-          </div>
-        </div>
-      </header>
-
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-6 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
-        <aside className="min-h-0 overflow-auto rounded-2xl border border-border bg-bg-secondary p-4">
-          <h2 className="text-sm font-semibold text-text-primary">{tr("Pipeline")}</h2>
-          <div className="mt-3 grid grid-cols-1 gap-2">
-            <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">{tr("Discover")}</p>
-              <p className="mt-1 text-base font-semibold text-text-primary">{summary.total}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">{tr("Enable")}</p>
-              <p className="mt-1 text-base font-semibold text-text-primary">{summary.enabled}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-bg-primary p-3">
-              <p className="text-xs text-text-muted">{tr("Configure")}</p>
-              <p className="mt-1 text-base font-semibold text-text-primary">{summary.needsConfig}</p>
-            </div>
-          </div>
-
-          <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">
-            {tr("Stage Filter")}
-          </h3>
-          <div className="mt-2 space-y-2">
-            {stageOptions.map((option) => {
-              const active = stage === option.key;
-              return (
-                <SharedUi.Button
-                  key={option.key}
-                  onClick={() => setStage(option.key)}
-                  className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
-                    active
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-bg-primary text-text-secondary hover:bg-bg-hover"
-                  }`}
-                >
-                  <p className="text-sm font-medium">{tr(option.label)}</p>
-                  <p className="mt-1 text-xs opacity-80">{tr(option.description)}</p>
-                </SharedUi.Button>
-              );
-            })}
-          </div>
-
-          <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">
-            {tr("Category")}
-          </h3>
-          <div className="mt-2 space-y-1">
-            {categories.map((item) => {
-              const active = category === item.id;
-              return (
-                <SharedUi.Button
-                  key={item.id}
-                  onClick={() => setCategory(item.id)}
-                  className={`w-full rounded-md px-3 py-1.5 text-left text-sm transition-colors ${
-                    active ? "bg-primary/10 text-primary" : "text-text-secondary hover:bg-bg-hover"
-                  }`}
-                >
-                  {item.icon} {item.name}
-                </SharedUi.Button>
-              );
-            })}
-          </div>
-
-          <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">
-            {tr("Flow Advice")}
-          </h3>
-          <div className="mt-2 space-y-2 rounded-xl border border-border bg-bg-primary p-3">
-            <div className="text-xs text-text-secondary">{tr("1. Discover reusable capabilities.")}</div>
-            <div className="text-xs text-text-secondary">{tr("2. Enable and verify runtime behavior.")}</div>
-            <div className="text-xs text-text-secondary">{tr("3. Apply governance scope for rollout control.")}</div>
-          </div>
-        </aside>
-
-        <div className="min-h-0 overflow-auto rounded-2xl border border-border bg-bg-secondary p-4">
-          {recentVisibleSkills.length > 0 ? (
-            <div className="mb-4 rounded-xl border border-border bg-bg-primary p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-                {tr("Recently used")}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {recentVisibleSkills.map((skill) => (
+              {stageTabs.map((tab) => {
+                const active = tab.key === stage;
+                return (
                   <SharedUi.Button
-                    key={`recent-${skill.id}`}
-                    onClick={() => handleOpenSkillDetail(skill.id)}
-                    className="rounded-full border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-bg-hover"
+                    key={tab.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => {
+                      startTransition(() => {
+                        setStage(tab.key);
+                      });
+                    }}
+                    className={`inline-flex min-w-[120px] flex-1 items-center justify-center rounded-[14px] px-4 py-3 text-sm font-medium transition-all ${
+                      active
+                        ? "bg-primary text-white shadow-sm"
+                        : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+                    }`}
                   >
-                    {skill.icon} {skill.name}
+                    {tr(tab.label)}
                   </SharedUi.Button>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          ) : null}
+          </div>
 
-          {featuredSkills.length > 0 ? (
-            <div className="mb-4 rounded-xl border border-border bg-gradient-to-r from-primary/10 via-bg-primary to-bg-primary p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
-                {tr("Curated Skills")}
-              </p>
-              <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
-                {featuredSkills.map((skill) => (
-                  <SharedUi.Button
-                    key={`featured-${skill.id}`}
-                    onClick={() => setSelectedSkillId(skill.id)}
-                    className="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary px-3 py-2 text-left transition-colors hover:border-primary/40"
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-bg-tertiary text-xs font-semibold text-text-primary">
-                      {skill.icon}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-text-primary">{skill.name}</p>
-                      <p className="truncate text-xs text-text-muted">
-                        {formatNumber(skill.rating, {
-                          minimumFractionDigits: 1,
-                          maximumFractionDigits: 1,
-                        })} / {formatNumber(skill.usageCount)} {tr("uses")}
-                      </p>
-                    </div>
-                  </SharedUi.Button>
-                ))}
-              </div>
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center xl:w-auto">
+            <div className="relative w-full sm:w-[320px] xl:w-[340px]">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+              <SharedUi.Input
+                type="text"
+                value={keyword}
+                placeholder={tr("Search skills...")}
+                onChange={(event) => setKeyword(event.target.value)}
+                className="h-11 w-full rounded-xl border border-border bg-bg-primary pl-11 pr-4 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
+              />
             </div>
-          ) : null}
 
-          <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px]">
-            <SharedUi.Input
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
-              placeholder={tr("Search by name, description, or tags")}
-              className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
-            />
             <SharedUi.Select
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value as SkillSortType)}
-              className="h-10 rounded-lg border border-border bg-bg-tertiary px-3 text-sm text-text-primary focus:border-primary focus:outline-none"
+              className="h-11 w-full rounded-xl border border-border bg-bg-primary px-3 text-sm text-text-primary focus:border-primary focus:outline-none sm:w-[170px]"
             >
               <option value="popular">{tr("By popularity")}</option>
               <option value="rating">{tr("By rating")}</option>
               <option value="newest">{tr("By newest")}</option>
             </SharedUi.Select>
           </div>
-
-          {statusText ? (
-            <div className="mb-4 rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-sm text-success">
-              {statusText}
-            </div>
-          ) : null}
-
-          {errorText ? (
-            <div className="mb-4 rounded-lg border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
-              {errorText}
-            </div>
-          ) : null}
-
-          {isLoading ? (
-            <div className="rounded-xl border border-border bg-bg-primary p-5 text-sm text-text-secondary">
-              {tr("Loading skills...")}
-            </div>
-          ) : visibleSkills.length === 0 ? (
-            <div className="rounded-xl border border-border bg-bg-primary p-5 text-sm text-text-secondary">
-              <p>{tr("No skill matches current filters.")}</p>
-              <SharedUi.Button
-                onClick={resetFilters}
-                className="mt-3 rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
-              >
-                {tr("Reset filters")}
-              </SharedUi.Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {visibleSkills.map((skill) => (
-                <div key={skill.id} onClick={() => setSelectedSkillId(skill.id)}>
-                  <SkillCard
-                    skill={skill}
-                    onEnable={handleEnable}
-                    onDisable={handleDisable}
-                    onClick={() => setSelectedSkillId(skill.id)}
-                    disabled={processingSkillId === skill.id}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
-        <aside className="hidden min-h-0 overflow-auto rounded-2xl border border-border bg-bg-secondary p-4 xl:block">
-          <h2 className="text-sm font-semibold text-text-primary">{tr("Skill Preview")}</h2>
-          {!selectedSkill ? (
-            <div className="mt-3 rounded-lg border border-border bg-bg-primary p-4 text-sm text-text-secondary">
-              {tr("Select a skill to view detail.")}
-            </div>
-          ) : (
-            <div className="mt-3 space-y-4">
-              <div className="rounded-lg border border-border bg-bg-primary p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-bg-tertiary text-sm font-semibold text-text-primary">
-                    {selectedSkill.icon}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="truncate text-base font-semibold text-text-primary">{selectedSkill.name}</h3>
-                    <p className="truncate text-xs text-text-muted">v{selectedSkill.version}</p>
-                  </div>
-                </div>
-                <p className="mt-3 text-sm text-text-secondary">{selectedSkill.description}</p>
-              </div>
+        <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
+          {categoryTabs.map((item) => {
+            const active = item.id === category;
+            return (
+              <SharedUi.Button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  startTransition(() => {
+                    setCategory(item.id);
+                  });
+                }}
+                className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                  active
+                    ? "border-primary-200 bg-primary-50 text-primary-700 dark:border-primary-500/20 dark:bg-primary-500/10 dark:text-primary-200"
+                    : "border-border bg-bg-primary text-text-secondary hover:bg-bg-hover"
+                }`}
+              >
+                {item.icon} {categoryLabel(item.id, item.name)}
+              </SharedUi.Button>
+            );
+          })}
+        </div>
+      </header>
 
-              <div className="rounded-lg border border-border bg-bg-primary p-4">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-                  {tr("Capabilities")}
-                </h4>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {selectedSkill.isEnabled && !selectedSkill.isConfigured ? (
-                    <span className="text-xs text-warning">
-                      {tr("Enabled but not configured yet. Open detail workspace and save runtime policy.")}
-                    </span>
-                  ) : selectedSkill.capabilities.length > 0 ? (
-                    selectedSkill.capabilities.map((capability) => (
-                      <span key={`${selectedSkill.id}-${capability}`} className="rounded-md bg-bg-tertiary px-2 py-1 text-xs text-text-tertiary">
-                        {capability}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-xs text-text-muted">
-                      {tr("No capability metadata available.")}
-                    </span>
-                  )}
-                </div>
-              </div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4 sm:px-6">
+        {statusText ? (
+          <div className="mb-4 rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-sm text-success">
+            {statusText}
+          </div>
+        ) : null}
 
-              <div className="rounded-lg border border-border bg-bg-primary p-4">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-                  {tr("Actions")}
-                </h4>
-                <div className="mt-3 grid grid-cols-1 gap-2">
-                  {selectedSkill.isEnabled ? (
-                    <SharedUi.Button
-                      onClick={() => {
-                        void handleDisable(selectedSkill.id);
-                      }}
-                      disabled={processingSkillId === selectedSkill.id}
-                      className="rounded-md border border-warning/50 bg-warning/10 px-3 py-2 text-sm text-warning transition-colors hover:bg-warning/20 disabled:opacity-60"
-                    >
-                      {tr("Disable skill")}
-                    </SharedUi.Button>
-                  ) : (
-                    <SharedUi.Button
-                      onClick={() => {
-                        void handleEnable(selectedSkill.id);
-                      }}
-                      disabled={processingSkillId === selectedSkill.id}
-                      className="rounded-md bg-primary px-3 py-2 text-sm text-white transition-colors hover:brightness-110 disabled:opacity-60"
-                    >
-                      {tr("Enable skill")}
-                    </SharedUi.Button>
-                  )}
+        {errorText ? (
+          <div className="mb-4 rounded-lg border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+            {errorText}
+          </div>
+        ) : null}
 
-                  <SharedUi.Button
-                    onClick={() => handleOpenSkillDetail(selectedSkill.id)}
-                    className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-bg-hover"
-                  >
-                    {tr("Open detail workspace")}
-                  </SharedUi.Button>
-                  <SharedUi.Button
-                    onClick={() => handleToggleFavorite(selectedSkill.id)}
-                    className={`rounded-md border px-3 py-2 text-sm transition-colors ${
-                      isSelectedSkillFavorite
-                        ? "border-primary/40 bg-primary/10 text-primary hover:brightness-110"
-                        : "border-border bg-bg-tertiary text-text-secondary hover:bg-bg-hover"
-                    }`}
->
-                    {isSelectedSkillFavorite ? tr("Favorited") : tr("Add favorite")}
-                  </SharedUi.Button>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-border bg-bg-primary p-4">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-                  {tr("Rollout Advice")}
-                </h4>
-                <div className="mt-2 space-y-2 text-xs text-text-secondary">
-                  <p>
-                    {tr(
-                      "Scope: start from workspace canary, then expand to team/global after stability checks.",
-                    )}
-                  </p>
-                  <p>
-                    {tr("Reliability: enable timeout and retry policies for session-level quality.")}
-                  </p>
-                  <p>
-                    {tr("Docs: provide policy docs in detail workspace for team reuse.")}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </aside>
+        {isLoading ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {Array.from({ length: 8 }, (_, index) => (
+              <div
+                key={index}
+                className="h-[240px] rounded-2xl border border-border bg-bg-secondary"
+              />
+            ))}
+          </div>
+        ) : visibleSkills.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {visibleSkills.map((skill) => (
+              <SkillMarketCard
+                key={skill.id}
+                skill={skill}
+                isFavorite={favoriteSkillIdSet.has(skill.id)}
+                isBusy={processingSkillId === skill.id}
+                onOpen={() => handleOpenSkillDetail(skill.id)}
+                onEnable={handleEnable}
+                onDisable={handleDisable}
+                onToggleFavorite={handleToggleFavorite}
+                tr={tr}
+                formatNumber={formatNumber}
+                categoryLabel={formatFallbackLabel(skill.category)}
+              />
+            ))}
+          </div>
+        ) : (
+          <SkillMarketEmptyState
+            title={tr("No skill matches current filters.")}
+            description={tr("Try a different keyword, stage, or category, then clear filters if needed.")}
+            onReset={resetFilters}
+            resetLabel={tr("Reset filters")}
+          />
+        )}
       </div>
     </section>
   );

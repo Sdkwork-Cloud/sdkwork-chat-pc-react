@@ -86,6 +86,10 @@ export default defineConfig(({ mode }) => ({
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@sdkwork/app-sdk': path.resolve(__dirname, '../../spring-ai-plus-app-api/sdkwork-sdk-app/sdkwork-app-sdk-typescript/src/index.ts'),
+      '@sdkwork/sdk-common': path.resolve(__dirname, '../../sdk/sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts'),
+      '@openchat/sdkwork-im-sdk': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/composed/src/index.ts'),
+      '@openchat/sdkwork-im-wukongim-adapter': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/adapter-wukongim/src/index.ts'),
+      '@sdkwork/im-backend-sdk': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/generated/server-openapi/src/index.ts'),
       ...workspacePackageAlias,
     },
   },
@@ -165,5 +169,14 @@ export default defineConfig(({ mode }) => ({
   preview: {
     port: 4173,
     strictPort: false,
+  },
+
+  test: {
+    alias: {
+      '@sdkwork/sdk-common': path.resolve(__dirname, '../../sdk/sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts'),
+      '@openchat/sdkwork-im-sdk': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/composed/src/index.ts'),
+      '@openchat/sdkwork-im-wukongim-adapter': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/adapter-wukongim/src/index.ts'),
+      '@sdkwork/im-backend-sdk': path.resolve(__dirname, '../openchat/sdkwork-im-sdk/sdkwork-im-sdk-typescript/generated/server-openapi/src/index.ts'),
+    },
   },
 }));

@@ -1,22 +1,32 @@
+﻿/**
+ * 涓€鑷存€у搱甯屽疄鐜? *
+ * 鑱岃矗锛氬疄鐜版湇鍔″櫒璐熻浇鍧囪　锛岀‘淇濊妭鐐瑰鍑忔椂鏈€灏忓寲鏁版嵁杩佺Щ
+ * 搴旂敤锛歐ebSocket 鏈嶅姟鍣ㄩ€夋嫨銆佺紦瀛樺垎鐗囥€佹秷鎭矾鐢? *
+ * 鐗圭偣锛? * - 鍗曡皟鎬э細娣诲姞/鍒犻櫎鑺傜偣涓嶅奖鍝嶅凡鏈夋槧灏? * - 骞宠　鎬э細鏁版嵁鍧囧寑鍒嗗竷
+ * - 鍒嗘暎鎬э細鐩稿悓 key 鏄犲皠鍒扮浉鍚岃妭鐐? */
 
-
-
+/**
+ * 鍝堝笇鐜妭鐐? */
 interface HashRingNode {
   id: string;
   weight: number;
-  virtualNodes: number[]; 
+  virtualNodes: number[]; // 铏氭嫙鑺傜偣鍝堝笇鍊?}
 
-
+/**
+ * 涓€鑷存€у搱甯岀幆
+ */
 export class ConsistentHashRing {
-  private ring: Map<number, string> = new Map(); 
-  private nodes: Map<string, HashRingNode> = new Map(); 
-  private sortedHashes: number[] = []; 
+  private ring: Map<number, string> = new Map(); // 鍝堝笇鍊?-> 鑺傜偣ID
+  private nodes: Map<string, HashRingNode> = new Map(); // 鑺傜偣ID -> 鑺傜偣
+  private sortedHashes: number[] = []; // 鎺掑簭鍚庣殑鍝堝笇鍊?  private virtualNodesPerServer: number;
 
   constructor(virtualNodesPerServer: number = 150) {
     this.virtualNodesPerServer = virtualNodesPerServer;
   }
 
-  
+  /**
+   * MurmurHash3 瀹炵幇
+   */
   private hash(key: string): number {
     let h1 = 0;
     const c1 = 0xcc9e2d51;
@@ -73,7 +83,9 @@ export class ConsistentHashRing {
     return h1 >>> 0;
   }
 
-  
+  /**
+   * 娣诲姞鑺傜偣
+   */
   addNode(nodeId: string, weight: number = 1): void {
     if (this.nodes.has(nodeId)) {
       console.warn(`[ConsistentHash] Node ${nodeId} already exists`);
@@ -83,10 +95,11 @@ export class ConsistentHashRing {
     const virtualNodes: number[] = [];
     const virtualNodeCount = Math.floor(this.virtualNodesPerServer * weight);
 
+    // 鍒涘缓铏氭嫙鑺傜偣
     for (let i = 0; i < virtualNodeCount; i++) {
       const virtualKey = `${nodeId}#${i}`;
       const hash = this.hash(virtualKey);
-      
+
       this.ring.set(hash, nodeId);
       virtualNodes.push(hash);
     }
@@ -97,6 +110,7 @@ export class ConsistentHashRing {
       virtualNodes,
     });
 
+    // 閲嶆柊鎺掑簭
     this.sortedHashes = Array.from(this.ring.keys()).sort((a, b) => a - b);
 
     console.log(
@@ -104,7 +118,9 @@ export class ConsistentHashRing {
     );
   }
 
-  
+  /**
+   * 绉婚櫎鑺傜偣
+   */
   removeNode(nodeId: string): void {
     const node = this.nodes.get(nodeId);
     if (!node) {
@@ -112,18 +128,21 @@ export class ConsistentHashRing {
       return;
     }
 
+    // 绉婚櫎铏氭嫙鑺傜偣
     node.virtualNodes.forEach((hash) => {
       this.ring.delete(hash);
     });
 
     this.nodes.delete(nodeId);
 
+    // 閲嶆柊鎺掑簭
     this.sortedHashes = Array.from(this.ring.keys()).sort((a, b) => a - b);
 
     console.log(`[ConsistentHash] Removed node ${nodeId}`);
   }
 
-  
+  /**
+   * 鑾峰彇 key 瀵瑰簲鐨勮妭鐐?   */
   getNode(key: string): string | null {
     if (this.sortedHashes.length === 0) {
       return null;
@@ -131,6 +150,7 @@ export class ConsistentHashRing {
 
     const hash = this.hash(key);
 
+    // 浜屽垎鏌ユ壘绗竴涓ぇ浜庣瓑浜?hash 鐨勪綅缃?    let left = 0;
     let right = this.sortedHashes.length - 1;
 
     while (left < right) {
@@ -142,6 +162,7 @@ export class ConsistentHashRing {
       }
     }
 
+    // 濡傛灉 hash 澶т簬鎵€鏈夎妭鐐癸紝鍥炲埌绗竴涓妭鐐?    const targetHash =
       this.sortedHashes[left] >= hash
         ? this.sortedHashes[left]
         : this.sortedHashes[0];
@@ -149,7 +170,9 @@ export class ConsistentHashRing {
     return this.ring.get(targetHash) || null;
   }
 
-  
+  /**
+   * 鑾峰彇 key 瀵瑰簲鐨勮妭鐐癸紙甯﹀悗澶囪妭鐐癸級
+   */
   getNodes(key: string, count: number): string[] {
     if (this.sortedHashes.length === 0) {
       return [];
@@ -159,6 +182,7 @@ export class ConsistentHashRing {
     const results: string[] = [];
     const seen = new Set<string>();
 
+    // 浜屽垎鏌ユ壘璧峰浣嶇疆
     let left = 0;
     let right = this.sortedHashes.length - 1;
 
@@ -174,6 +198,7 @@ export class ConsistentHashRing {
     let index =
       this.sortedHashes[left] >= hash ? left : 0;
 
+    // 椤烘椂閽堟煡鎵句笉鍚岃妭鐐?    while (results.length < count && seen.size < this.nodes.size) {
       const nodeHash = this.sortedHashes[index];
       const nodeId = this.ring.get(nodeHash);
 
@@ -184,6 +209,7 @@ export class ConsistentHashRing {
 
       index = (index + 1) % this.sortedHashes.length;
 
+      // 闃叉鏃犻檺寰幆
       if (index === (this.sortedHashes[left] >= hash ? left : 0)) {
         break;
       }
@@ -192,22 +218,29 @@ export class ConsistentHashRing {
     return results;
   }
 
-  
+  /**
+   * 鑾峰彇鎵€鏈夎妭鐐?   */
   getAllNodes(): string[] {
     return Array.from(this.nodes.keys());
   }
 
-  
+  /**
+   * 鑾峰彇鑺傜偣鏁伴噺
+   */
   getNodeCount(): number {
     return this.nodes.size;
   }
 
-  
+  /**
+   * 鑾峰彇铏氭嫙鑺傜偣鏁伴噺
+   */
   getVirtualNodeCount(): number {
     return this.sortedHashes.length;
   }
 
-  
+  /**
+   * 鑾峰彇鑺傜偣鍒嗗竷缁熻
+   */
   getDistributionStats(): Record<string, number> {
     const stats: Record<string, number> = {};
 
@@ -221,7 +254,9 @@ export class ConsistentHashRing {
     return stats;
   }
 
-  
+  /**
+   * 璁＄畻鏍囧噯宸紙琛￠噺鍒嗗竷鍧囧寑鎬э級
+   */
   getStandardDeviation(): number {
     const stats = this.getDistributionStats();
     const values = Object.values(stats);
@@ -236,7 +271,9 @@ export class ConsistentHashRing {
     return Math.sqrt(variance);
   }
 
-  
+  /**
+   * 娓呯┖
+   */
   clear(): void {
     this.ring.clear();
     this.nodes.clear();
@@ -244,7 +281,9 @@ export class ConsistentHashRing {
   }
 }
 
-
+/**
+ * 鏈嶅姟鍣ㄨ矾鐢辩鐞嗗櫒
+ */
 export class ServerRouter {
   private hashRing: ConsistentHashRing;
   private serverHealth: Map<string, { healthy: boolean; lastCheck: number }> = new Map();
@@ -255,28 +294,34 @@ export class ServerRouter {
     this.startHealthCheck();
   }
 
-  
+  /**
+   * 娣诲姞鏈嶅姟鍣?   */
   addServer(serverId: string, weight: number = 1): void {
     this.hashRing.addNode(serverId, weight);
     this.serverHealth.set(serverId, { healthy: true, lastCheck: Date.now() });
   }
 
-  
+  /**
+   * 绉婚櫎鏈嶅姟鍣?   */
   removeServer(serverId: string): void {
     this.hashRing.removeNode(serverId);
     this.serverHealth.delete(serverId);
   }
 
-  
+  /**
+   * 鑾峰彇璺敱鐩爣
+   */
   getRoute(key: string): string | null {
     const primary = this.hashRing.getNode(key);
-    
+
     if (!primary) return null;
 
+    // 妫€鏌ヤ富鑺傜偣鍋ュ悍鐘舵€?    const health = this.serverHealth.get(primary);
     if (health?.healthy) {
       return primary;
     }
 
+    // 涓昏妭鐐逛笉鍋ュ悍锛屾煡鎵惧悗澶囪妭鐐?    const backups = this.hashRing.getNodes(key, 3);
     for (const backup of backups) {
       const backupHealth = this.serverHealth.get(backup);
       if (backupHealth?.healthy) {
@@ -287,32 +332,42 @@ export class ServerRouter {
     return null;
   }
 
-  
+  /**
+   * 鏍囪鏈嶅姟鍣ㄥ仴搴风姸鎬?   */
   setServerHealth(serverId: string, healthy: boolean): void {
     this.serverHealth.set(serverId, { healthy, lastCheck: Date.now() });
   }
 
-  
+  /**
+   * 鍚姩鍋ュ悍妫€鏌?   */
   private startHealthCheck(): void {
     this.healthCheckInterval = setInterval(() => {
       this.checkServerHealth();
-    }, 30000); 
+    }, 30000); // 30绉掓鏌ヤ竴娆?  }
 
-  
+  /**
+   * 妫€鏌ユ湇鍔″櫒鍋ュ悍
+   */
   private checkServerHealth(): void {
     this.serverHealth.forEach((health, serverId) => {
+      // 杩欓噷鍙互瀹炵幇瀹為檯鐨勫仴搴锋鏌ラ€昏緫
+      // 鏆傛椂妯℃嫙鍋ュ悍妫€鏌?      if (Date.now() - health.lastCheck > 60000) {
+        // 瓒呰繃60绉掓湭鏇存柊锛屾爣璁颁负涓嶅仴搴?        this.setServerHealth(serverId, false);
       }
     });
   }
 
-  
+  /**
+   * 鑾峰彇鍋ュ悍鏈嶅姟鍣ㄥ垪琛?   */
   getHealthyServers(): string[] {
     return Array.from(this.serverHealth.entries())
       .filter(([, health]) => health.healthy)
       .map(([serverId]) => serverId);
   }
 
-  
+  /**
+   * 鑾峰彇缁熻淇℃伅
+   */
   getStats() {
     return {
       totalServers: this.hashRing.getNodeCount(),
@@ -322,7 +377,8 @@ export class ServerRouter {
     };
   }
 
-  
+  /**
+   * 閿€姣?   */
   destroy(): void {
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
@@ -332,9 +388,12 @@ export class ServerRouter {
   }
 }
 
+// 鍏ㄥ眬鏈嶅姟鍣ㄨ矾鐢卞櫒
 let serverRouter: ServerRouter | null = null;
 
-
+/**
+ * 鑾峰彇鏈嶅姟鍣ㄨ矾鐢卞櫒
+ */
 export function getServerRouter(): ServerRouter {
   if (!serverRouter) {
     serverRouter = new ServerRouter();
@@ -342,12 +401,16 @@ export function getServerRouter(): ServerRouter {
   return serverRouter;
 }
 
-
+/**
+ * 璺敱鐢ㄦ埛鍒版湇鍔″櫒
+ */
 export function routeUser(userId: string): string | null {
   return getServerRouter().getRoute(userId);
 }
 
-
+/**
+ * 璺敱娑堟伅鍒版湇鍔″櫒
+ */
 export function routeMessage(messageId: string): string | null {
   return getServerRouter().getRoute(messageId);
 }

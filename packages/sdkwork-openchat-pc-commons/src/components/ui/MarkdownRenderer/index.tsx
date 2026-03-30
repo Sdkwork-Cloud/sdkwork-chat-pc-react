@@ -1,4 +1,10 @@
-
+﻿/**
+ * MarkdownRenderer 缁勪欢 - Markdown 娓叉煋鍣? *
+ * 鍔熻兘锛? * - Markdown 娓叉煋
+ * - 浠ｇ爜楂樹寒
+ * - AI 涓婚鏍峰紡
+ * - 鎬ц兘浼樺寲
+ */
 
 import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -12,12 +18,16 @@ export interface MarkdownRendererProps {
   className?: string;
 }
 
-
+/**
+ * Markdown 娓叉煋缁勪欢
+ */
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({
   content,
   className = '',
 }) => {
   const components = useMemo(() => ({
+    // 浠ｇ爜鍧?
+    code({ node, inline, className, children, ...props }: any) {
       const match = /language-(\w+)/.exec(className || '');
       const language = match ? match[1] : 'text';
 
@@ -34,7 +44,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({
 
       return (
         <div className="my-3 rounded-xl overflow-hidden border border-white/10 shadow-sm">
-          {}
+          {/* 浠ｇ爜鍧楀ご閮?*/}
           <div className="flex items-center justify-between px-4 py-2 bg-bg-secondary border-b border-white/5">
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 rounded-full bg-red-500"></div>
@@ -43,7 +53,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({
             </div>
             <span className="text-xs text-text-muted uppercase font-medium tracking-wider">{language}</span>
           </div>
-          {}
+          {/* 浠ｇ爜鍐呭 */}
           <SyntaxHighlighter
             language={language}
             style={vscDarkPlus}
@@ -68,10 +78,12 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({
       );
     },
 
+    // 娈佃惤
     p({ children }: any) {
       return <p className="mb-3 leading-relaxed text-text-secondary last:mb-0">{children}</p>;
     },
 
+    // 鏍囬
     h1({ children }: any) {
       return <h1 className="text-2xl font-bold mb-4 text-text-primary mt-6 border-b border-border pb-2">{children}</h1>;
     },
@@ -85,6 +97,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({
       return <h4 className="text-base font-semibold mb-2 text-text-primary mt-3">{children}</h4>;
     },
 
+    // 鍒楄〃
     ul({ children }: any) {
       return <ul className="mb-3 pl-5 space-y-1 list-disc text-text-secondary marker:text-text-muted">{children}</ul>;
     },
@@ -95,6 +108,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({
       return <li className="leading-relaxed">{children}</li>;
     },
 
+    // 寮曠敤
     blockquote({ children }: any) {
       return (
         <blockquote className="mb-3 pl-4 border-l-4 border-primary bg-primary/5 py-2 px-3 rounded-r-lg text-text-tertiary italic">
@@ -103,6 +117,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({
       );
     },
 
+    // 閾炬帴
     a({ children, href }: any) {
       return (
         <a
@@ -116,6 +131,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({
       );
     },
 
+    // 寮鸿皟
     strong({ children }: any) {
       return <strong className="font-bold text-text-primary">{children}</strong>;
     },
@@ -123,9 +139,12 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({
       return <em className="italic text-text-secondary">{children}</em>;
     },
 
+    // 鍒犻櫎绾?
+    del({ children }: any) {
       return <del className="line-through text-text-muted">{children}</del>;
     },
 
+    // 琛ㄦ牸
     table({ children }: any) {
       return (
         <div className="overflow-x-auto mb-3 rounded-lg border border-border">
@@ -151,9 +170,12 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({
       return <td className="px-4 py-2 text-text-secondary">{children}</td>;
     },
 
+    // 姘村钩绾?
+    hr() {
       return <hr className="my-6 border-border" />;
     },
 
+    // 鍥剧墖
     img({ src, alt }: any) {
       return (
         <img

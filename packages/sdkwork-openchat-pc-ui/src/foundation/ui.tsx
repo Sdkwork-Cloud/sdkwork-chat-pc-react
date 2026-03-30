@@ -11,6 +11,7 @@ import {
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@sdkwork/openchat-pc-kernel";
 import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import { useTheme, type ThemeType } from "./theme";
@@ -37,19 +38,19 @@ export type ButtonSize =
   | "icon";
 
 const buttonVariantClass: Record<ButtonVariant, string> = {
-  default: "bg-[var(--ai-primary)] text-white hover:brightness-110",
-  primary: "bg-[var(--ai-primary)] text-white hover:brightness-110",
+  default: "bg-primary-600 text-white shadow-sm hover:bg-primary-700",
+  primary: "bg-primary-600 text-white shadow-sm hover:bg-primary-700",
   secondary:
-    "bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)] hover:bg-[var(--bg-tertiary)]",
+    "bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700",
   outline:
-    "bg-transparent text-[var(--text-primary)] border border-[var(--border-color)] hover:border-[var(--ai-primary)] hover:text-[var(--ai-primary)]",
+    "border border-zinc-200 bg-white text-zinc-900 shadow-sm hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800",
   ghost:
-    "bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]",
-  danger: "bg-red-600 text-white hover:bg-red-700",
-  destructive: "bg-red-600 text-white hover:bg-red-700",
-  success: "bg-emerald-600 text-white hover:bg-emerald-700",
-  warning: "bg-amber-500 text-black hover:bg-amber-400",
-  link: "bg-transparent text-[var(--ai-primary)] underline-offset-4 hover:underline",
+    "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
+  danger: "bg-red-600 text-white shadow-sm hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600",
+  destructive: "bg-red-600 text-white shadow-sm hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600",
+  success: "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600",
+  warning: "bg-amber-500 text-zinc-950 shadow-sm hover:bg-amber-400",
+  link: "bg-transparent text-primary-600 underline-offset-4 hover:underline dark:text-primary-400",
   unstyled: "",
 };
 
@@ -83,6 +84,8 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
   leadingIcon?: ReactNode;
   trailingIcon?: ReactNode;
+  icon?: ReactNode;
+  iconPosition?: "left" | "right";
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
@@ -96,12 +99,16 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     children,
     leadingIcon,
     trailingIcon,
+    icon,
+    iconPosition = "left",
     ...props
   },
   ref,
 ) {
   const resolvedVariant = variant ?? (className ? "unstyled" : "primary");
   const isUnstyled = resolvedVariant === "unstyled";
+  const resolvedLeadingIcon = leadingIcon ?? (iconPosition === "left" ? icon : null);
+  const resolvedTrailingIcon = trailingIcon ?? (iconPosition === "right" ? icon : null);
 
   return (
     <button
@@ -109,18 +116,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       type={type}
       disabled={disabled || loading}
       className={cn(
-        "appearance-none border-0 bg-transparent font-inherit text-inherit transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60",
+        "appearance-none border-0 bg-transparent font-inherit text-inherit transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-60",
         !isUnstyled &&
-          "inline-flex items-center justify-center gap-2 rounded-lg font-medium active:scale-[0.98]",
+          "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950",
         !isUnstyled && buttonVariantClass[resolvedVariant],
         !isUnstyled && buttonSizeClass[size],
         className,
       )}
       {...props}
     >
-      {loading ? <Spinner className="h-4 w-4" /> : leadingIcon}
+      {loading ? <Spinner className="h-4 w-4" /> : resolvedLeadingIcon}
       {children}
-      {!loading ? trailingIcon : null}
+      {!loading ? resolvedTrailingIcon : null}
     </button>
   );
 });
@@ -136,11 +143,11 @@ const inputSizeClass: Record<InputSize, string> = {
 
 const inputVariantClass: Record<InputVariant, string> = {
   default:
-    "bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-[var(--text-primary)] focus-within:border-[var(--ai-primary)] focus-within:ring-2 focus-within:ring-[var(--ai-primary-soft)]",
+    "border border-zinc-200 bg-white text-zinc-900 shadow-sm focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2 focus-within:ring-offset-white dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus-within:ring-offset-zinc-950",
   filled:
-    "bg-[var(--bg-secondary)] border border-transparent text-[var(--text-primary)] focus-within:border-[var(--ai-primary)] focus-within:ring-2 focus-within:ring-[var(--ai-primary-soft)]",
+    "border border-transparent bg-zinc-100 text-zinc-900 focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2 focus-within:ring-offset-white dark:bg-zinc-900 dark:text-zinc-100 dark:focus-within:ring-offset-zinc-950",
   outlined:
-    "bg-transparent border border-[var(--border-color)] text-[var(--text-primary)] focus-within:border-[var(--ai-primary)] focus-within:ring-2 focus-within:ring-[var(--ai-primary-soft)]",
+    "border border-zinc-200 bg-transparent text-zinc-900 focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2 focus-within:ring-offset-white dark:border-zinc-800 dark:text-zinc-100 dark:focus-within:ring-offset-zinc-950",
 };
 
 export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "size" | "prefix"> {
@@ -204,7 +211,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         onChange={handleChange}
         className={cn(
           type === "checkbox" || type === "radio"
-            ? "h-4 w-4 rounded border-[var(--border-color)] text-[var(--ai-primary)] focus:ring-[var(--ai-primary)]"
+            ? "h-4 w-4 rounded border-zinc-300 text-primary-600 focus:ring-primary-500 dark:border-zinc-700 dark:text-primary-400"
             : "",
           className,
         )}
@@ -223,7 +230,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       readOnly={readOnly}
       onChange={handleChange}
       className={cn(
-        "w-full bg-transparent outline-none placeholder:text-[var(--text-muted)] disabled:cursor-not-allowed",
+        "w-full bg-transparent outline-none placeholder:text-zinc-500 disabled:cursor-not-allowed dark:placeholder:text-zinc-400",
         inputSizeClass[size],
         prefix ? "pl-2" : "",
         suffix || allowClear ? "pr-2" : "",
@@ -299,7 +306,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
       ref={ref}
       onChange={handleChange}
       className={cn(
-        "min-h-[96px] w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--ai-primary)] focus:ring-1 focus:ring-[var(--ai-primary)] disabled:cursor-not-allowed disabled:opacity-60",
+        "min-h-[96px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm outline-none transition-colors placeholder:text-zinc-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:ring-offset-zinc-950",
         className,
       )}
       {...props}
@@ -325,7 +332,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
       ref={ref}
       onChange={handleChange}
       className={cn(
-        "h-10 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-3 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--ai-primary)] focus:ring-1 focus:ring-[var(--ai-primary)] disabled:cursor-not-allowed disabled:opacity-60",
+        "h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 shadow-sm outline-none transition-colors focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-offset-zinc-950",
         className,
       )}
       {...props}
@@ -349,7 +356,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
       ref={ref}
       type="checkbox"
       className={cn(
-        "mt-0.5 h-4 w-4 rounded border-[var(--border-color)] text-[var(--ai-primary)] focus:ring-[var(--ai-primary)]",
+        "mt-0.5 h-4 w-4 rounded border-zinc-300 text-primary-600 focus:ring-primary-500 dark:border-zinc-700 dark:text-primary-400",
         className,
       )}
       {...props}
@@ -396,7 +403,7 @@ export function Switch({
       onClick={() => onCheckedChange(!checked)}
       className={cn(
         "relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-        checked ? "bg-[var(--ai-primary)]" : "bg-[var(--bg-tertiary)]",
+        checked ? "bg-primary-600 dark:bg-primary-500" : "bg-zinc-200 dark:bg-zinc-700",
         className,
       )}
       {...props}
@@ -422,7 +429,7 @@ export const Label = forwardRef<HTMLLabelElement, LabelProps>(function Label(
   return (
     <label
       ref={ref}
-      className={cn("text-sm font-medium text-[var(--text-secondary)]", className)}
+      className={cn("text-sm font-medium text-zinc-900 dark:text-zinc-100", className)}
       {...props}
     >
       {children}
@@ -523,10 +530,10 @@ export interface StatusNoticeProps extends Omit<HTMLAttributes<HTMLDivElement>, 
 }
 
 const noticeToneClass: Record<NonNullable<StatusNoticeProps["tone"]>, string> = {
-  info: "border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]",
-  success: "border-[var(--ai-success)]/30 bg-[var(--ai-success-soft)] text-[var(--ai-success)]",
-  warning: "border-[var(--ai-warning)]/30 bg-[var(--ai-warning-soft)] text-[var(--ai-warning)]",
-  error: "border-[var(--ai-error)]/30 bg-[var(--ai-error-soft)] text-[var(--ai-error)]",
+  info: "border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300",
+  success: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300",
+  warning: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300",
+  error: "border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300",
 };
 
 export const StatusNotice = forwardRef<HTMLDivElement, StatusNoticeProps>(
@@ -534,7 +541,7 @@ export const StatusNotice = forwardRef<HTMLDivElement, StatusNoticeProps>(
     return (
       <div
         ref={ref}
-        className={cn("rounded-xl border p-3", noticeToneClass[tone], className)}
+        className={cn("rounded-2xl border p-4", noticeToneClass[tone], className)}
         {...props}
       >
         {title ? <div className="mb-1 text-sm font-semibold">{title}</div> : null}
@@ -556,7 +563,7 @@ export const LoadingBlock = forwardRef<HTMLDivElement, LoadingBlockProps>(functi
     <div
       ref={ref}
       className={cn(
-        "flex items-center justify-center gap-3 py-8 text-sm text-[var(--text-muted)]",
+        "flex items-center justify-center gap-3 py-8 text-sm text-zinc-500 dark:text-zinc-400",
         className,
       )}
       {...props}
@@ -581,14 +588,14 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(function E
     <div
       ref={ref}
       className={cn(
-        "rounded-xl border border-dashed border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 text-center",
+        "rounded-[1.75rem] border border-dashed border-zinc-200 bg-white p-6 text-center dark:border-zinc-800 dark:bg-zinc-900",
         className,
       )}
       {...props}
     >
-      {title ? <div className="text-sm font-semibold text-[var(--text-primary)]">{title}</div> : null}
+      {title ? <div className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{title}</div> : null}
       {description ? (
-        <p className="mt-2 text-sm text-[var(--text-muted)]">{description}</p>
+        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{description}</p>
       ) : null}
       {children}
       {actions ? <div className="mt-4 flex items-center justify-center gap-3">{actions}</div> : null}
@@ -601,12 +608,12 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const badgeVariantClass: Record<NonNullable<BadgeProps["variant"]>, string> = {
-  default: "bg-[var(--ai-primary-soft)] text-[var(--ai-primary-light)]",
-  secondary: "bg-[var(--bg-tertiary)] text-[var(--text-secondary)]",
-  success: "bg-[var(--ai-success-soft)] text-[var(--ai-success)]",
-  warning: "bg-[var(--ai-warning-soft)] text-[var(--ai-warning)]",
-  error: "bg-[var(--ai-error-soft)] text-[var(--ai-error)]",
-  outline: "border border-[var(--border-color)] text-[var(--text-secondary)]",
+  default: "bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-200",
+  secondary: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
+  success: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
+  warning: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300",
+  error: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300",
+  outline: "border border-zinc-200 text-zinc-700 dark:border-zinc-800 dark:text-zinc-300",
 };
 
 export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(function Badge(
@@ -633,7 +640,7 @@ export const Separator = forwardRef<HTMLHRElement, HTMLAttributes<HTMLHRElement>
     return (
       <hr
         ref={ref}
-        className={cn("border-0 border-t border-[var(--border-color)]", className)}
+        className={cn("border-0 border-t border-zinc-200 dark:border-zinc-800", className)}
         {...props}
       />
     );
@@ -716,32 +723,35 @@ export function Modal({
     panelStyle.height = customHeight;
   }
 
-  return (
+  const modalNode = (
     <div
       className={cn(
         "fixed inset-0 z-50 flex p-4",
         placement === "top" ? "items-start justify-center" : "items-center justify-center",
-        "bg-black/55",
+        "bg-zinc-950/45 backdrop-blur-sm",
         overlayClassName,
       )}
     >
       <div className="absolute inset-0" onClick={closeOnOverlayClick ? onClose : undefined} />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={typeof title === "string" ? title : undefined}
         className={cn(
-          "relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] shadow-2xl",
+          "relative mx-auto flex max-h-[90vh] w-full flex-col overflow-hidden rounded-[28px] border border-zinc-200/80 bg-white shadow-2xl shadow-zinc-950/12 dark:border-zinc-800 dark:bg-zinc-900",
           widthClass,
           contentClassName,
         )}
         style={panelStyle}
       >
         {title ? (
-          <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-4">
-            <h3 className="text-base font-semibold text-[var(--text-primary)]">{title}</h3>
+          <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-5 dark:border-zinc-800">
+            <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{title}</h3>
             <Button
               aria-label={tr("Close modal")}
               variant="unstyled"
               onClick={onClose}
-              className="rounded p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
+              className="rounded-full p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
             >
               x
             </Button>
@@ -749,13 +759,15 @@ export function Modal({
         ) : null}
         <div className={cn("flex-1 overflow-auto", bodyClassName)}>{children}</div>
         {footer ? (
-          <div className="border-t border-[var(--border-color)] bg-[var(--bg-secondary)] px-5 py-4">
+          <div className="border-t border-zinc-100 bg-zinc-50/70 px-6 py-5 dark:border-zinc-800 dark:bg-zinc-950/50">
             {footer}
           </div>
         ) : null}
       </div>
     </div>
   );
+
+  return typeof document === "undefined" ? modalNode : createPortal(modalNode, document.body);
 }
 
 export interface DrawerProps extends Omit<ModalProps, "size"> {
@@ -794,24 +806,24 @@ export function Drawer({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-black/55">
+    <div className="fixed inset-0 z-50 flex bg-zinc-950/45 backdrop-blur-sm">
       <div className="absolute inset-0" onClick={closeOnOverlayClick ? onClose : undefined} />
       <div
         className={cn(
-          "relative flex h-full max-w-[90vw] flex-col bg-[var(--bg-primary)] shadow-2xl",
-          side === "left" ? "mr-auto border-r border-[var(--border-color)]" : "ml-auto border-l border-[var(--border-color)]",
+          "relative flex h-full max-w-[90vw] flex-col rounded-[28px] border border-zinc-200/80 bg-white shadow-2xl shadow-zinc-950/12 dark:border-zinc-800 dark:bg-zinc-900",
+          side === "left" ? "mr-auto border-r" : "ml-auto border-l",
           contentClassName,
         )}
         style={{ width }}
       >
         {title ? (
-          <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-4">
-            <h3 className="text-base font-semibold text-[var(--text-primary)]">{title}</h3>
+          <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-5 dark:border-zinc-800">
+            <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{title}</h3>
             <Button
               aria-label={tr("Close drawer")}
               variant="unstyled"
               onClick={onClose}
-              className="rounded p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
+              className="rounded-full p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
             >
               x
             </Button>
@@ -819,7 +831,7 @@ export function Drawer({
         ) : null}
         <div className={cn("flex-1 overflow-auto", bodyClassName)}>{children}</div>
         {footer ? (
-          <div className="border-t border-[var(--border-color)] bg-[var(--bg-secondary)] px-5 py-4">
+          <div className="border-t border-zinc-100 bg-zinc-50/70 px-6 py-5 dark:border-zinc-800 dark:bg-zinc-950/50">
             {footer}
           </div>
         ) : null}
@@ -883,7 +895,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
     <div
       ref={ref}
       className={cn(
-        "rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-sm",
+        "rounded-[1.5rem] border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900",
         className,
       )}
       {...props}
@@ -922,7 +934,7 @@ export const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(function
     <h3
       ref={ref}
       className={cn(
-        "text-lg font-semibold leading-none tracking-tight text-[var(--text-primary)]",
+        "text-lg font-semibold leading-none tracking-tight text-zinc-950 dark:text-zinc-50",
         className,
       )}
       {...props}
@@ -935,7 +947,7 @@ export const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(function
 export const CardDescription = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLParagraphElement>>(
   function CardDescription({ className, children, ...props }, ref) {
     return (
-      <p ref={ref} className={cn("text-sm text-[var(--text-muted)]", className)} {...props}>
+      <p ref={ref} className={cn("text-sm text-zinc-500 dark:text-zinc-400", className)} {...props}>
         {children}
       </p>
     );

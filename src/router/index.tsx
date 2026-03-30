@@ -8,9 +8,10 @@ import {
   type ErrorInfo,
   type ReactNode,
 } from "react";
-import { AuthPage } from "@sdkwork/openchat-pc-auth";
-import { MainLayout } from "@sdkwork/openchat-pc-commons";
+import { AuthOAuthCallbackPage, AuthPage } from "@sdkwork/openchat-pc-auth";
 import { translate } from "@sdkwork/openchat-pc-i18n";
+import { Button } from "@sdkwork/openchat-pc-ui";
+import { MainLayout } from "../layouts/MainLayout";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { ROUTES } from "./constants";
 import { authGuard, executeGuards, type RouteGuard } from "./guards";
@@ -192,9 +193,9 @@ const AppStoreDetailPage = lazyRoutePage("appStoreDetail");
 
 function RouteLoading() {
   return (
-    <div className="flex h-full min-h-[220px] items-center justify-center bg-bg-primary">
-      <div className="flex items-center gap-3 text-sm text-text-secondary">
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+    <div className="flex h-full min-h-[220px] items-center justify-center">
+      <div className="flex items-center gap-3 rounded-[28px] border border-[color:var(--border-color)] bg-[var(--bg-secondary)] px-5 py-3 text-sm text-[var(--text-secondary)] shadow-[var(--shadow-xl)]">
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
         {translate("Loading page...")}
       </div>
     </div>
@@ -240,26 +241,27 @@ class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, RouteErrorBo
   render(): ReactNode {
     if (this.state.hasError) {
       return (
-        <div className="flex h-full min-h-[260px] flex-col items-center justify-center gap-4 bg-bg-primary px-6 text-center">
-          <div className="text-base font-medium text-text-primary">{translate("Page failed to render")}</div>
-          <div className="max-w-xl text-sm text-text-secondary">
+        <div className="flex h-full min-h-[260px] flex-col items-center justify-center gap-4 px-6 text-center">
+          <div className="rounded-[32px] border border-[color:var(--border-color)] bg-[var(--bg-elevated)] px-8 py-7 shadow-[var(--shadow-xl)]">
+            <div className="text-base font-medium text-[var(--text-primary)]">{translate("Page failed to render")}</div>
+            <div className="mt-2 max-w-xl text-sm text-[var(--text-secondary)]">
             {this.state.errorMessage || translate("An unexpected route error occurred.")}
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={this.handleReset}
-              className="rounded-md border border-border bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover"
-            >
-              {translate("Retry")}
-            </button>
-            <button
-              type="button"
-              onClick={() => window.location.assign(ROUTES.CHAT)}
-              className="rounded-md bg-primary px-3 py-1.5 text-xs text-white hover:brightness-110"
-            >
-              {translate("Back to Chat")}
-            </button>
+            </div>
+            <div className="mt-5 flex items-center justify-center gap-3">
+              <Button
+                variant="outline"
+                onClick={this.handleReset}
+                className="h-9 rounded-xl px-4 text-xs font-semibold"
+              >
+                {translate("Retry")}
+              </Button>
+              <Button
+                onClick={() => window.location.assign(ROUTES.CHAT)}
+                className="h-9 rounded-xl px-4 text-xs font-semibold"
+              >
+                {translate("Back to Chat")}
+              </Button>
+            </div>
           </div>
         </div>
       );
@@ -318,10 +320,22 @@ function renderProtectedRoute(node: ReactNode): ReactNode {
   );
 }
 
-function renderGuestRoute(initialMode: "login" | "register" | "forgotPassword"): ReactNode {
+function renderGuestRoute(): ReactNode {
   return (
     <GuardedRoute guards={AUTH_ROUTE_GUARDS}>
-      <AuthPage initialMode={initialMode} />
+      <div className="relative flex h-screen flex-col overflow-hidden bg-[var(--bg-primary)] font-sans text-[var(--text-primary)] transition-colors duration-300">
+        <div className="pointer-events-none absolute inset-0">
+          <div
+            className="absolute inset-x-0 top-0 h-40"
+            style={{
+              background: "radial-gradient(circle at top, var(--ai-primary-glow), transparent 68%)",
+            }}
+          />
+        </div>
+        <main className="relative z-10 min-h-0 flex-1 overflow-auto scrollbar-hide">
+          <AuthPage />
+        </main>
+      </div>
     </GuardedRoute>
   );
 }
@@ -331,9 +345,17 @@ export function AppRouter() {
     <Routes>
       <Route path={ROUTES.HOME} element={<Navigate to={ROUTES.CHAT} replace />} />
 
-      <Route path={ROUTES.LOGIN} element={renderGuestRoute("login")} />
-      <Route path={ROUTES.REGISTER} element={renderGuestRoute("register")} />
-      <Route path={ROUTES.FORGOT_PASSWORD} element={renderGuestRoute("forgotPassword")} />
+      <Route path={ROUTES.LOGIN} element={renderGuestRoute()} />
+      <Route path={ROUTES.REGISTER} element={renderGuestRoute()} />
+      <Route path={ROUTES.FORGOT_PASSWORD} element={renderGuestRoute()} />
+      <Route
+        path={ROUTES.LOGIN_OAUTH_CALLBACK}
+        element={(
+          <GuardedRoute guards={AUTH_ROUTE_GUARDS}>
+            <AuthOAuthCallbackPage />
+          </GuardedRoute>
+        )}
+      />
 
       <Route path={`${ROUTES.CHAT}/*`} element={renderProtectedRoute(<ChatPage />)} />
       <Route path={`${ROUTES.CONTACTS}/*`} element={renderProtectedRoute(<ContactsPage />)} />

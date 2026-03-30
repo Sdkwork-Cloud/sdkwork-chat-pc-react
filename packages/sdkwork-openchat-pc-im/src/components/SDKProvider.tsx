@@ -6,18 +6,20 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import { OpenChatClient } from "@openchat/typescript-sdk";
 import { translate } from "@sdkwork/openchat-pc-i18n";
 import {
   destroySDK,
+  getSDKState,
   initializeSDK,
   isSDKInitialized,
+  subscribeToSDKState,
+  type OpenChatClientFacade,
   type SDKAdapterConfig,
 } from "../adapters/sdk-adapter";
-import { MessageResultService } from "../services";
+import { destroyMessageEventListeners, MessageResultService } from "../services";
 
 interface SDKContextType {
-  client: OpenChatClient | null;
+  client: OpenChatClientFacade | null;
   isInitialized: boolean;
   isConnected: boolean;
   isConnecting: boolean;
@@ -40,7 +42,7 @@ export function SDKProvider({
   onInitialized,
   onError,
 }: SDKProviderProps) {
-  const [client, setClient] = useState<OpenChatClient | null>(null);
+  const [client, setClient] = useState<OpenChatClientFacade | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -58,8 +60,6 @@ export function SDKProvider({
     try {
       const sdkClient = await initializeSDK(config);
       setClient(sdkClient);
-      setIsInitialized(true);
-      setIsConnected(true);
 
       const registerResult =
         MessageResultService.registerMessageEventListeners();
@@ -89,6 +89,7 @@ export function SDKProvider({
       return;
     }
 
+    destroyMessageEventListeners();
     destroySDK();
     setClient(null);
     setIsInitialized(false);
@@ -98,26 +99,32 @@ export function SDKProvider({
   }, [initSDK, isConnecting]);
 
   useEffect(() => {
+    const unsubscribe = subscribeToSDKState((state) => {
+      setIsInitialized(state.initialized);
+      setIsConnected(state.connected);
+      setIsConnecting(state.connecting);
+      setError(state.error ? new Error(state.error) : null);
+    });
+
+    const currentState = getSDKState();
+    setIsInitialized(currentState.initialized);
+    setIsConnected(currentState.connected);
+    setIsConnecting(currentState.connecting);
+    setError(currentState.error ? new Error(currentState.error) : null);
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
     void initSDK();
 
     return () => {
+      destroyMessageEventListeners();
       destroySDK();
     };
   }, [initSDK]);
-
-  useEffect(() => {
-    if (!client) {
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setIsConnected(client.isConnected());
-    }, 5000);
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, [client]);
 
   return (
     <SDKContext.Provider

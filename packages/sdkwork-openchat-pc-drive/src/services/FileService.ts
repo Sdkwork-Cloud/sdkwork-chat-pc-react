@@ -182,8 +182,14 @@ function normalizeFile(raw: Partial<FileNode>): FileNode | null {
     url: raw.url,
     thumbnail: raw.thumbnail,
     mimeType: raw.mimeType,
+    path: raw.path,
+    status: raw.status,
+    previewUrl: raw.previewUrl,
+    objectKey: raw.objectKey,
     isStarred: raw.isStarred,
     isShared: raw.isShared,
+    trashedAt: typeof raw.trashedAt === "number" ? raw.trashedAt : null,
+    accessedAt: typeof raw.accessedAt === "number" ? raw.accessedAt : undefined,
     createTime: typeof raw.createTime === "number" ? raw.createTime : Date.now(),
     updateTime: typeof raw.updateTime === "number" ? raw.updateTime : Date.now(),
   };
@@ -219,6 +225,27 @@ function saveFiles(files: FileNode[]): void {
   );
 }
 
+function loadAllFiles(): FileNode[] {
+  return loadFiles();
+}
+
+function getParentChain(files: FileNode[], fileId: string): BreadcrumbItem[] {
+  const breadcrumbs: BreadcrumbItem[] = [];
+  let current = files.find((item) => item.id === fileId);
+  let guard = 0;
+
+  while (current && guard < 32) {
+    breadcrumbs.unshift({ id: current.id, name: current.name });
+    if (!current.parentId) {
+      break;
+    }
+    current = files.find((item) => item.id === current?.parentId);
+    guard += 1;
+  }
+
+  return breadcrumbs;
+}
+
 function uniqueStrings(items: string[]): string[] {
   return Array.from(new Set(items));
 }
@@ -233,6 +260,24 @@ function loadFavoriteFileIds(): string[] {
 
 function saveFavoriteFileIds(ids: string[]): void {
   writeJson(FAVORITE_FILE_STORAGE_KEY, uniqueStrings(ids));
+}
+
+function setFavoriteState(fileId: string, starred: boolean): boolean {
+  const nextFavorites = starred
+    ? uniqueStrings([fileId, ...loadFavoriteFileIds()])
+    : loadFavoriteFileIds().filter((id) => id !== fileId);
+
+  saveFavoriteFileIds(nextFavorites);
+
+  const files = loadFiles();
+  const target = files.find((item) => item.id === fileId);
+  if (target) {
+    target.isStarred = starred;
+    target.updateTime = Date.now();
+    saveFiles(files);
+  }
+
+  return starred;
 }
 
 function loadRecentFileIds(): string[] {
@@ -278,6 +323,14 @@ function compareFiles(left: FileNode, right: FileNode): number {
     return 1;
   }
   return (right.updateTime || 0) - (left.updateTime || 0);
+}
+
+function isTrashed(item: FileNode): boolean {
+  return Boolean(item.trashedAt) || item.status === "DELETED";
+}
+
+function isActiveFile(item: FileNode): boolean {
+  return !isTrashed(item);
 }
 
 function collectDescendantIds(allFiles: FileNode[], parentId: string): Set<string> {
@@ -449,13 +502,7 @@ export const FileService = {
 
   toggleFavoriteFile(fileId: string): boolean {
     const favorites = loadFavoriteFileIds();
-    if (favorites.includes(fileId)) {
-      saveFavoriteFileIds(favorites.filter((id) => id !== fileId));
-      return false;
-    }
-
-    saveFavoriteFileIds([fileId, ...favorites]);
-    return true;
+    return setFavoriteState(fileId, !favorites.includes(fileId));
   },
 
   getRecentFileIds(): string[] {
@@ -466,6 +513,16 @@ export const FileService = {
     const recent = loadRecentFileIds();
     const next = [fileId, ...recent.filter((id) => id !== fileId)].slice(0, MAX_RECENT_FILE_COUNT);
     saveRecentFileIds(next);
+
+    const files = loadFiles();
+    const target = files.find((item) => item.id === fileId);
+    if (target) {
+      const now = Date.now();
+      target.accessedAt = now;
+      target.updateTime = now;
+      saveFiles(files);
+    }
+
     return next;
   },
 
@@ -491,6 +548,7 @@ export const FileService = {
         .filter((item) => (filter.type ? item.type === filter.type : true))
         .filter((item) => (filter.search ? item.name.toLowerCase().includes(filter.search.toLowerCase()) : true))
         .filter((item) => (filter.isStarred !== undefined ? item.isStarred === filter.isStarred : true))
+        .filter((item) => (filter.includeTrashed ? true : !isTrashed(item)))
         .sort(compareFiles)
         .map(cloneNode);
 
@@ -504,13 +562,48 @@ export const FileService = {
       .filter((item) => (filter.type ? item.type === filter.type : true))
       .filter((item) => (filter.search ? item.name.toLowerCase().includes(filter.search.toLowerCase()) : true))
       .filter((item) => (filter.isStarred !== undefined ? item.isStarred === filter.isStarred : true))
+      .filter((item) => (filter.includeTrashed ? true : !isTrashed(item)))
       .sort(compareFiles)
       .map(cloneNode);
 
     return ok(files);
   },
 
-  async getBreadcrumbs(folderId: string | null): Promise<BreadcrumbItem[]> {
+  async getAllFiles(includeTrashed = false): Promise<ServiceResponse<FileNode[]>> {
+    try {
+      const files = loadAllFiles()
+        .filter((item) => (includeTrashed ? true : !isTrashed(item)))
+        .sort(compareFiles)
+        .map(cloneNode);
+      return ok(files);
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : "Failed to load drive files.");
+    }
+  },
+
+  async getFileById(id: string): Promise<ServiceResponse<FileNode | null>> {
+    try {
+      const target = loadAllFiles().find((item) => item.id === id) || null;
+      return ok(target ? cloneNode(target) : null);
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : "Failed to load drive file.");
+    }
+  },
+
+  async getBreadcrumbs(folderId: string | null): Promise<ServiceResponse<BreadcrumbItem[]>> {
+    try {
+      if (!folderId) {
+        return ok([]);
+      }
+
+      const files = loadAllFiles();
+      return ok(getParentChain(files, folderId));
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : "Failed to load breadcrumbs.");
+    }
+  },
+
+  async getBreadcrumbsLocal(folderId: string | null): Promise<BreadcrumbItem[]> {
     if (!folderId) {
       return [];
     }
@@ -683,6 +776,53 @@ export const FileService = {
     }
 
     const files = loadFiles();
+    const trashAt = Date.now();
+    for (const id of idSet) {
+      const target = files.find((item) => item.id === id);
+      if (!target) {
+        continue;
+      }
+
+      target.trashedAt = trashAt;
+      target.status = "DELETED";
+      target.updateTime = trashAt;
+
+      if (target.type === "folder") {
+        const descendants = collectDescendantIds(files, id);
+        descendants.forEach((descendantId) => {
+          const descendant = files.find((item) => item.id === descendantId);
+          if (descendant) {
+            descendant.trashedAt = trashAt;
+            descendant.status = "DELETED";
+            descendant.updateTime = trashAt;
+          }
+        });
+      }
+    }
+
+    saveFiles(files);
+
+    return ok(undefined);
+  },
+
+  async purgeFiles(ids: string[]): Promise<ServiceResponse<void>> {
+    const idSet = new Set(ids);
+    if (idSet.size === 0) {
+      return ok(undefined);
+    }
+
+    try {
+      await Promise.all(
+        Array.from(idSet).map((id) =>
+          getAppSdkClientWithSession().drive.deleteItem(id),
+        ),
+      );
+      return ok(undefined);
+    } catch {
+      // Fallback to local data when SDK is unavailable.
+    }
+
+    const files = loadFiles();
     const deleteSet = new Set<string>(idSet);
     for (const id of idSet) {
       const target = files.find((item) => item.id === id);
@@ -696,7 +836,56 @@ export const FileService = {
     saveFiles(remaining);
     saveFavoriteFileIds(loadFavoriteFileIds().filter((id) => !deleteSet.has(id)));
     saveRecentFileIds(loadRecentFileIds().filter((id) => !deleteSet.has(id)));
+    return ok(undefined);
+  },
 
+  async restoreFiles(ids: string[]): Promise<ServiceResponse<void>> {
+    const idSet = new Set(ids);
+    if (idSet.size === 0) {
+      return ok(undefined);
+    }
+
+    try {
+      await Promise.all(
+        Array.from(idSet).map((id) =>
+          getAppSdkClientWithSession().drive.restoreItem(id),
+        ),
+      );
+      return ok(undefined);
+    } catch {
+      // Fallback to local data when SDK is unavailable.
+    }
+
+    const files = loadFiles();
+    const now = Date.now();
+    for (const id of idSet) {
+      const target = files.find((item) => item.id === id);
+      if (!target) {
+        continue;
+      }
+
+      target.trashedAt = null;
+      target.status = undefined;
+      target.updateTime = now;
+    }
+
+    saveFiles(files);
+    return ok(undefined);
+  },
+
+  async emptyTrash(): Promise<ServiceResponse<void>> {
+    try {
+      await getAppSdkClientWithSession().drive.clearTrash();
+      return ok(undefined);
+    } catch {
+      // Fallback to local data when SDK is unavailable.
+    }
+
+    const files = loadFiles();
+    const remaining = files.filter((item) => !isTrashed(item));
+    saveFiles(remaining);
+    saveFavoriteFileIds(loadFavoriteFileIds().filter((id) => remaining.some((item) => item.id === id)));
+    saveRecentFileIds(loadRecentFileIds().filter((id) => remaining.some((item) => item.id === id)));
     return ok(undefined);
   },
 
@@ -755,6 +944,7 @@ export const FileService = {
       } else {
         await getAppSdkClientWithSession().drive.favoriteItem(id);
       }
+      setFavoriteState(id, !favorited);
       return ok(undefined);
     } catch {
       // Fallback to local data when SDK is unavailable.
@@ -766,8 +956,19 @@ export const FileService = {
       return fail("File not found.");
     }
 
-    target.isStarred = !target.isStarred;
-    target.updateTime = Date.now();
+    setFavoriteState(id, !target.isStarred);
+    return ok(undefined);
+  },
+
+  async markOpened(id: string): Promise<ServiceResponse<void>> {
+    const files = loadFiles();
+    const target = files.find((item) => item.id === id);
+    if (!target) {
+      return fail("File not found.");
+    }
+
+    target.accessedAt = Date.now();
+    target.updateTime = target.accessedAt;
     saveFiles(files);
     return ok(undefined);
   },
@@ -830,20 +1031,19 @@ export const FileService = {
       byType,
     });
   },
-
   getFileIcon(type: FileType): { icon: string; color: string; bg: string } {
     const map: Record<FileType, { icon: string; color: string; bg: string }> = {
-      folder: { icon: "📁", color: "#F59E0B", bg: "rgba(245, 158, 11, 0.15)" },
-      image: { icon: "🖼️", color: "#16A34A", bg: "rgba(22, 163, 74, 0.15)" },
-      video: { icon: "🎬", color: "#DC2626", bg: "rgba(220, 38, 38, 0.15)" },
-      audio: { icon: "🎵", color: "#DB2777", bg: "rgba(219, 39, 119, 0.15)" },
-      doc: { icon: "📝", color: "#2563EB", bg: "rgba(37, 99, 235, 0.15)" },
-      pdf: { icon: "📄", color: "#EA580C", bg: "rgba(234, 88, 12, 0.15)" },
-      xls: { icon: "📊", color: "#16A34A", bg: "rgba(22, 163, 74, 0.15)" },
-      ppt: { icon: "📽️", color: "#F97316", bg: "rgba(249, 115, 22, 0.15)" },
-      zip: { icon: "📦", color: "#D97706", bg: "rgba(217, 119, 6, 0.15)" },
-      code: { icon: "💻", color: "#0891B2", bg: "rgba(8, 145, 178, 0.15)" },
-      unknown: { icon: "📄", color: "#6B7280", bg: "rgba(107, 114, 128, 0.15)" },
+      folder: { icon: "DIR", color: "#F59E0B", bg: "rgba(245, 158, 11, 0.15)" },
+      image: { icon: "IMG", color: "#16A34A", bg: "rgba(22, 163, 74, 0.15)" },
+      video: { icon: "VID", color: "#DC2626", bg: "rgba(220, 38, 38, 0.15)" },
+      audio: { icon: "AUD", color: "#DB2777", bg: "rgba(219, 39, 119, 0.15)" },
+      doc: { icon: "DOC", color: "#2563EB", bg: "rgba(37, 99, 235, 0.15)" },
+      pdf: { icon: "PDF", color: "#EA580C", bg: "rgba(234, 88, 12, 0.15)" },
+      xls: { icon: "XLS", color: "#16A34A", bg: "rgba(22, 163, 74, 0.15)" },
+      ppt: { icon: "PPT", color: "#F97316", bg: "rgba(249, 115, 22, 0.15)" },
+      zip: { icon: "ZIP", color: "#D97706", bg: "rgba(217, 119, 6, 0.15)" },
+      code: { icon: "CODE", color: "#0891B2", bg: "rgba(8, 145, 178, 0.15)" },
+      unknown: { icon: "FILE", color: "#6B7280", bg: "rgba(107, 114, 128, 0.15)" },
     };
     return map[type] || map.unknown;
   },

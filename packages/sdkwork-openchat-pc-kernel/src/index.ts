@@ -2,6 +2,8 @@ export * from "./foundation/env";
 export * from "./foundation/cn";
 export * from "./foundation/uuid";
 export * from "./foundation/apiClient";
+export * from "./foundation/imSdkRuntime";
+export * from "./foundation/runtime";
 export { default as contactsApi } from "./foundation/contactsApi";
 export * from "./foundation/contactsApi";
 

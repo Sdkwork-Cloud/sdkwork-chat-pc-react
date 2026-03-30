@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -9,23 +10,24 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: 'var(--ai-primary)',
-          hover: 'var(--ai-primary-hover)',
-          light: 'var(--ai-primary-light)',
-          dark: 'var(--ai-primary-dark)',
+          DEFAULT: 'var(--theme-primary-500)',
+          hover: 'var(--theme-primary-600)',
+          light: 'var(--theme-primary-400)',
+          dark: 'var(--theme-primary-700)',
           soft: 'var(--ai-primary-soft)',
           medium: 'var(--ai-primary-medium)',
           glow: 'var(--ai-primary-glow)',
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: 'var(--theme-primary-50)',
+          100: 'var(--theme-primary-100)',
+          200: 'var(--theme-primary-200)',
+          300: 'var(--theme-primary-300)',
+          400: 'var(--theme-primary-400)',
+          500: 'var(--theme-primary-500)',
+          600: 'var(--theme-primary-600)',
+          700: 'var(--theme-primary-700)',
+          800: 'var(--theme-primary-800)',
+          900: 'var(--theme-primary-900)',
+          950: 'var(--theme-primary-950)',
         },
         cyan: {
           DEFAULT: 'var(--ai-cyan)',

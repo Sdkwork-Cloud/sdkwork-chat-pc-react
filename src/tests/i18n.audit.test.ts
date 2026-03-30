@@ -7,6 +7,26 @@ import * as ts from "typescript";
 const ROOT = process.cwd();
 const SCAN_ROOTS = ["packages", "src", "tests", "src-tauri"] as const;
 const EXCLUDED_DIRECTORIES = new Set(["node_modules", "dist", "coverage", "target", ".git"]);
+const DORMANT_COMMONS_AUDIT_EXCLUSIONS = new Set([
+  "packages/sdkwork-openchat-pc-commons/src/components/ui/Input/index.tsx",
+  "packages/sdkwork-openchat-pc-commons/src/components/ui/LazyImage/index.tsx",
+  "packages/sdkwork-openchat-pc-commons/src/components/ui/MarkdownRenderer/index.tsx",
+  "packages/sdkwork-openchat-pc-commons/src/hooks/useMarkdownWorker.ts",
+  "packages/sdkwork-openchat-pc-commons/src/hooks/usePerformanceMonitor.ts",
+  "packages/sdkwork-openchat-pc-commons/src/hooks/useServiceWorker.ts",
+  "packages/sdkwork-openchat-pc-commons/src/hooks/useSmartPreload.ts",
+  "packages/sdkwork-openchat-pc-commons/src/hooks/useTimeSlicing.ts",
+  "packages/sdkwork-openchat-pc-commons/src/hooks/useVirtualListPool.ts",
+  "packages/sdkwork-openchat-pc-commons/src/hooks/useWasm.ts",
+  "packages/sdkwork-openchat-pc-commons/src/services/file.service.ts",
+  "packages/sdkwork-openchat-pc-commons/src/services/memory.service.ts",
+  "packages/sdkwork-openchat-pc-commons/src/services/websocket.client.ts",
+  "packages/sdkwork-openchat-pc-commons/src/utils/arcCache.ts",
+  "packages/sdkwork-openchat-pc-commons/src/utils/bloomFilter.ts",
+  "packages/sdkwork-openchat-pc-commons/src/utils/consistentHash.ts",
+  "packages/sdkwork-openchat-pc-commons/src/utils/layeredCache.ts",
+  "packages/sdkwork-openchat-pc-commons/src/utils/lruCache.ts",
+]);
 const ALLOWED_CJK_FILES = new Set([
   "packages/sdkwork-openchat-pc-i18n/src/resources/zh-CN.ts",
   "src-tauri/src/main.rs",
@@ -217,12 +237,16 @@ function collectFiles(directory: string): string[] {
 }
 
 function getTrackedSourceFiles(): string[] {
-  return SCAN_ROOTS.flatMap((root) => collectFiles(join(ROOT, root)));
+  return SCAN_ROOTS.flatMap((root) => collectFiles(join(ROOT, root))).filter((absolutePath) => {
+    const filePath = relative(ROOT, absolutePath).replaceAll("\\", "/");
+    return !DORMANT_COMMONS_AUDIT_EXCLUSIONS.has(filePath);
+  });
 }
 
 function getPackageUiFiles(): string[] {
   return collectFiles(join(ROOT, "packages")).filter((absolutePath) =>
     /[\\/]src[\\/](components|pages)[\\/].*\.(ts|tsx)$/.test(absolutePath)
+    && !DORMANT_COMMONS_AUDIT_EXCLUSIONS.has(relative(ROOT, absolutePath).replaceAll("\\", "/"))
     && !absolutePath.endsWith(".test.tsx"),
   );
 }

@@ -35,13 +35,14 @@ export interface NavItem {
 
 const primaryNavItems: NavItem[] = [
   { id: "chat", path: "/chat", label: "Chat", icon: (active) => <AIChatIcon active={active} />, badge: 3 },
+  { id: "contacts", path: "/contacts", label: "Contacts", icon: (active) => <AIContactsIcon active={active} /> },
+  { id: "drive", path: "/drive", label: "Drive", icon: (active) => <AICloudIcon active={active} /> },
   { id: "agents", path: "/agents", label: "Agents", icon: (active) => <AIAgentIcon active={active} /> },
   { id: "skills", path: "/skills", label: "Skills", icon: (active) => <AISkillIcon active={active} /> },
   { id: "appstore", path: "/appstore", label: "App Store", icon: (active) => <AIAppStoreIcon active={active} /> },
 ];
 
 const moreNavItems: NavItem[] = [
-  { id: "contacts", path: "/contacts", label: "Contacts", icon: (active) => <AIContactsIcon active={active} /> },
   { id: "me", path: "/me", label: "Me", icon: (active) => <AIWalletIcon active={active} /> },
   { id: "app", path: "/app", label: "App Center", icon: (active) => <AIAppStoreIcon active={active} /> },
   {
@@ -65,7 +66,6 @@ const moreNavItems: NavItem[] = [
   { id: "wallet", path: "/wallet", label: "Wallet", icon: (active) => <AIWalletIcon active={active} /> },
   { id: "vip", path: "/vip", label: "VIP", icon: (active) => <AIVipIcon active={active} /> },
   { id: "creation", path: "/creation", label: "Creation", icon: (active) => <AICreationIcon active={active} /> },
-  { id: "drive", path: "/drive", label: "Drive", icon: (active) => <AICloudIcon active={active} /> },
   {
     id: "short-video",
     path: "/short-video",
@@ -140,8 +140,8 @@ function SidebarLink({
       <div
         className={`absolute inset-0 rounded-xl transition-all duration-300 ${
           active
-            ? "bg-primary-soft shadow-[inset_0_0_20px_rgba(59,130,246,0.15)]"
-            : "opacity-0 group-hover:translate-x-0.5 group-hover:bg-bg-hover group-hover:opacity-100"
+            ? "bg-[var(--shell-sidebar-active)] shadow-[inset_0_1px_0_var(--shell-sidebar-active-border)]"
+            : "opacity-0 group-hover:bg-[var(--shell-sidebar-hover)] group-hover:opacity-100"
         }`}
       />
 
@@ -154,29 +154,34 @@ function SidebarLink({
       </div>
 
       {item.badge && item.badge > 0 ? (
-        <span className="absolute -right-1 -top-1 flex h-[16px] min-w-[16px] items-center justify-center rounded-full border-2 border-bg-secondary bg-error px-1 text-[10px] font-bold text-white shadow-md">
+        <span className="absolute -right-1 -top-1 flex h-[16px] min-w-[16px] items-center justify-center rounded-full border-2 border-[color:var(--shell-sidebar-badge-ring)] bg-[var(--shell-sidebar-badge-bg)] px-1 text-[10px] font-bold text-[var(--shell-sidebar-badge-text)] shadow-md">
           {item.badge > 99 ? "99+" : item.badge}
         </span>
       ) : null}
 
-      <div className="pointer-events-none absolute left-full z-50 ml-3 translate-x-2 whitespace-nowrap rounded-lg border border-border bg-bg-elevated px-3 py-1.5 text-xs text-text-secondary opacity-0 shadow-xl transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
+      <div className="pointer-events-none absolute left-full z-50 ml-3 translate-x-2 whitespace-nowrap rounded-2xl border border-[color:var(--shell-sidebar-panel-border)] bg-[var(--shell-sidebar-panel-bg)] px-3 py-1.5 text-xs text-[var(--shell-sidebar-panel-text)] opacity-0 shadow-[var(--shell-sidebar-shadow)] transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
         {localizedLabel}
       </div>
     </NavLink>
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ hiddenItemIds = [] }: { hiddenItemIds?: string[] }) {
   const { tr } = useAppTranslation();
   const { pathname } = useLocation();
+  const hiddenSidebarItems = hiddenItemIds;
   const [moreOpen, setMoreOpen] = useState(false);
   const [morePopupPosition, setMorePopupPosition] = useState({ left: 0, top: 0 });
   const sidebarRef = useRef<HTMLElement | null>(null);
   const moreButtonRef = useRef<HTMLButtonElement | null>(null);
   const morePopupRef = useRef<HTMLDivElement | null>(null);
+  const visiblePrimaryNavItems = primaryNavItems.filter((item) => !hiddenSidebarItems.includes(item.id));
+  const visibleMoreNavItems = moreNavItems.filter((item) => !hiddenSidebarItems.includes(item.id));
+  const visibleOpenClawBottomItems = openClawBottomItems.filter((item) => !hiddenSidebarItems.includes(item.id));
+  const showSettingsCenter = !hiddenSidebarItems.includes(settingsCenterItem.id);
 
   const settingsActive = isSettingsCenterPath(pathname);
-  const moreActive = moreOpen || moreNavItems.some((item) => isPathActive(pathname, item.path));
+  const moreActive = moreOpen || visibleMoreNavItems.some((item) => isPathActive(pathname, item.path));
 
   useEffect(() => {
     setMoreOpen(false);
@@ -253,11 +258,11 @@ export function Sidebar() {
     <div
       ref={morePopupRef}
       style={{ left: `${morePopupPosition.left}px`, top: `${morePopupPosition.top}px` }}
-      className="fixed z-[2147483647] w-[320px] max-h-[70vh] overflow-hidden rounded-2xl border border-border bg-bg-elevated p-3 shadow-2xl"
+      className="fixed z-[2147483647] w-[320px] max-h-[70vh] overflow-hidden rounded-3xl border border-[color:var(--shell-sidebar-panel-border)] bg-[var(--shell-sidebar-panel-bg)] p-3 text-[var(--shell-sidebar-panel-text)] shadow-[var(--shell-sidebar-shadow)] backdrop-blur-xl"
     >
-      <div className="mb-2 px-1 text-xs font-medium text-text-secondary">{tr("More Features")}</div>
+      <div className="mb-2 px-1 text-xs font-medium uppercase tracking-[0.18em] text-[var(--shell-sidebar-panel-muted)]">{tr("More Features")}</div>
       <div className="grid max-h-[62vh] grid-cols-2 gap-2 overflow-y-auto pr-1">
-        {moreNavItems.map((item) => {
+        {visibleMoreNavItems.map((item) => {
           const active = isPathActive(pathname, item.path);
           return (
             <NavLink
@@ -266,21 +271,21 @@ export function Sidebar() {
               onClick={() => setMoreOpen(false)}
               className={`group relative rounded-xl border p-2.5 transition ${
                 active
-                  ? "border-primary/40 bg-primary-soft"
-                  : "border-border bg-bg-primary hover:bg-bg-hover"
+                  ? "border-[color:var(--shell-sidebar-panel-border)] bg-[var(--shell-sidebar-active)]"
+                  : "border-[color:var(--shell-sidebar-divider)] bg-white/[0.03] hover:bg-[var(--shell-sidebar-hover)]"
               }`}
             >
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-bg-secondary">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--shell-sidebar-hover)]">
                   {item.icon(active)}
                 </div>
                 <div className="min-w-0">
-                  <div className="truncate text-xs font-medium text-text-primary">{tr(item.label)}</div>
-                  <div className="truncate text-[11px] text-text-muted">{item.path}</div>
+                  <div className="truncate text-xs font-medium text-[var(--shell-sidebar-panel-text)]">{tr(item.label)}</div>
+                  <div className="truncate text-[11px] text-[var(--shell-sidebar-panel-muted)]">{item.path}</div>
                 </div>
               </div>
               {item.badge && item.badge > 0 ? (
-                <span className="absolute right-2 top-2 rounded-full bg-error px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                <span className="absolute right-2 top-2 rounded-full bg-[var(--shell-sidebar-badge-bg)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--shell-sidebar-badge-text)]">
                   {item.badge > 99 ? "99+" : item.badge}
                 </span>
               ) : null}
@@ -295,61 +300,65 @@ export function Sidebar() {
     <>
       <aside
         ref={sidebarRef}
-        className="relative z-20 flex h-full w-[72px] select-none flex-col border-r border-border bg-bg-secondary py-4 backdrop-blur-md"
+        className="relative z-20 flex h-full w-[88px] select-none flex-col overflow-hidden border-r border-[color:var(--shell-sidebar-border)] bg-[linear-gradient(180deg,_#13151a_0%,_#0b0c10_100%)] py-4 text-[var(--shell-sidebar-text)] shadow-[18px_0_50px_rgba(9,9,11,0.16)]"
       >
         <div className="mb-6 flex justify-center">
           <div className="group relative cursor-pointer">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-cyan-500 text-lg font-bold text-white shadow-lg shadow-primary/30 transition-transform duration-300 group-hover:scale-105 group-hover:rotate-3">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-600 text-lg font-bold text-[var(--shell-sidebar-brand-fg)] shadow-sm transition-transform duration-300 group-hover:scale-105">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-[var(--shell-sidebar-brand-fg)]">
                 <path
                   d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"
-                  stroke="white"
+                  stroke="currentColor"
                   strokeWidth="1.5"
                 />
-                <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M8 12l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 animate-pulse-slow rounded-full border-2 border-bg-secondary bg-success" />
-            <div className="pointer-events-none absolute left-full z-50 ml-3 translate-x-2 whitespace-nowrap rounded-lg border border-border bg-bg-elevated px-3 py-1.5 text-xs font-medium text-primary opacity-0 shadow-xl transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
+            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 animate-pulse-slow rounded-full border-2 border-[color:var(--shell-sidebar-badge-ring)] bg-[var(--shell-sidebar-presence-bg)]" />
+            <div className="pointer-events-none absolute left-full z-50 ml-3 translate-x-2 whitespace-nowrap rounded-2xl border border-[color:var(--shell-sidebar-panel-border)] bg-[var(--shell-sidebar-panel-bg)] px-3 py-1.5 text-xs font-medium text-[var(--shell-sidebar-panel-text)] opacity-0 shadow-[var(--shell-sidebar-shadow)] transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
               {tr("OpenChat AI")}
             </div>
           </div>
         </div>
 
         <nav className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-x-hidden overflow-y-auto py-2">
-          {primaryNavItems.map((item) => (
+          {visiblePrimaryNavItems.map((item) => (
             <SidebarLink key={item.id} item={item} active={isPathActive(pathname, item.path)} />
           ))}
 
-          <button
-            ref={moreButtonRef}
-            type="button"
-            onClick={() => setMoreOpen((open) => !open)}
-            aria-label={tr("More")}
-            title={tr("More")}
-            className="group relative flex h-12 w-12 items-center justify-center rounded-xl p-2.5 transition-all duration-200"
-          >
-            <div
-              className={`absolute inset-0 rounded-xl transition-all duration-300 ${
-                moreActive
-                  ? "bg-primary-soft shadow-[inset_0_0_20px_rgba(59,130,246,0.15)]"
-                  : "opacity-0 group-hover:translate-x-0.5 group-hover:bg-bg-hover group-hover:opacity-100"
-              }`}
-            />
-            <div className="relative z-10">
-              <AIMoreIcon active={moreActive} />
-            </div>
-            <div className="pointer-events-none absolute left-full z-50 ml-3 translate-x-2 whitespace-nowrap rounded-lg border border-border bg-bg-elevated px-3 py-1.5 text-xs text-text-secondary opacity-0 shadow-xl transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
-              {tr("More")}
-            </div>
-          </button>
+          {visibleMoreNavItems.length > 0 ? (
+            <button
+              ref={moreButtonRef}
+              type="button"
+              onClick={() => setMoreOpen((open) => !open)}
+              aria-label={tr("More")}
+              title={tr("More")}
+              className="group relative flex h-12 w-12 items-center justify-center rounded-xl p-2.5 transition-all duration-200"
+            >
+              <div
+                className={`absolute inset-0 rounded-xl transition-all duration-300 ${
+                  moreActive
+                    ? "bg-[var(--shell-sidebar-active)] shadow-[inset_0_1px_0_var(--shell-sidebar-active-border)]"
+                    : "opacity-0 group-hover:bg-[var(--shell-sidebar-hover)] group-hover:opacity-100"
+                }`}
+              />
+              <div className="relative z-10">
+                <AIMoreIcon active={moreActive} />
+              </div>
+              <div className="pointer-events-none absolute left-full z-50 ml-3 translate-x-2 whitespace-nowrap rounded-2xl border border-[color:var(--shell-sidebar-panel-border)] bg-[var(--shell-sidebar-panel-bg)] px-3 py-1.5 text-xs text-[var(--shell-sidebar-panel-text)] opacity-0 shadow-[var(--shell-sidebar-shadow)] transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
+                {tr("More")}
+              </div>
+            </button>
+          ) : null}
         </nav>
 
-        <div className="mt-auto flex flex-col items-center gap-1 border-t border-border pt-3">
-          {openClawBottomItems.map((item) => (
+        <div className="mt-auto flex flex-col items-center gap-1 border-t border-[color:var(--shell-sidebar-divider)] pt-3">
+          {visibleOpenClawBottomItems.map((item) => (
             <SidebarLink key={item.id} item={item} active={isPathActive(pathname, item.path)} />
           ))}
-          <SidebarLink item={settingsCenterItem} active={settingsActive} rotateOnHover />
+          {showSettingsCenter ? (
+            <SidebarLink item={settingsCenterItem} active={settingsActive} rotateOnHover />
+          ) : null}
         </div>
       </aside>
       {moreOpen && typeof document !== "undefined" ? createPortal(morePopup, document.body) : null}

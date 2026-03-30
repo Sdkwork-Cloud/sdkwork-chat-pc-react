@@ -114,14 +114,7 @@ export class RTCSDKFactory {
 
   
   static getDefaultProvider(): RTCProviderType {
-    const userAgent = typeof navigator === 'undefined' ? '' : navigator.userAgent;
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    if (isMobile) {
-      return 'volcengine';
-    }
-    
-    return 'webrtc';
+    return 'volcengine';
   }
 }
 
@@ -872,82 +865,134 @@ class VolcEngineRTCSDKAdapter implements RTCSDK {
 
 class TencentCloudRTCSDKAdapter implements RTCSDK {
   private config: RTCConfig;
-  private instance: any = null;
+  private listeners: Map<string, Set<Function>> = new Map();
 
   constructor(config: RTCConfig) {
     this.config = config;
   }
 
   async init(config: RTCConfig): Promise<void> {
-    // import TRTC from 'trtc-js-sdk';
-    console.log('Initializing TencentCloud RTC SDK', config);
+    this.config = config;
+    this.ensureTRTCRuntime();
   }
 
   async joinRoom(roomId: string, userId: string, token: string, callType: CallType): Promise<string> {
-    console.log('TencentCloud joinRoom', { roomId, userId, callType });
-    return roomId;
+    void userId;
+    void token;
+    void callType;
+    this.ensureTRTCRuntime();
+    throw new Error('TencentCloud RTC media adapter is not available in this build.');
   }
 
   async leaveRoom(roomId: string): Promise<void> {
-    console.log('TencentCloud leaveRoom', roomId);
+    void roomId;
   }
 
   async publishStream(stream: MediaStream, options?: any): Promise<void> {
-    console.log('TencentCloud publishStream', options);
+    void stream;
+    void options;
+    throw new Error('TencentCloud RTC media adapter is not available in this build.');
   }
 
   async unpublishStream(): Promise<void> {
-    console.log('TencentCloud unpublishStream');
+    throw new Error('TencentCloud RTC media adapter is not available in this build.');
   }
 
   async subscribeStream(remoteUserId: string, options?: any): Promise<void> {
-    console.log('TencentCloud subscribeStream', { remoteUserId, options });
+    void remoteUserId;
+    void options;
+    throw new Error('TencentCloud RTC media adapter is not available in this build.');
   }
 
   async unsubscribeStream(remoteUserId: string): Promise<void> {
-    console.log('TencentCloud unsubscribeStream', remoteUserId);
+    void remoteUserId;
   }
 
   async getLocalStream(constraints: MediaConstraints): Promise<MediaStream> {
-    console.log('TencentCloud getLocalStream', constraints);
-    return new MediaStream();
+    void constraints;
+    throw new Error('TencentCloud RTC media adapter is not available in this build.');
   }
 
   async stopLocalStream(): Promise<void> {
-    console.log('TencentCloud stopLocalStream');
   }
 
   async switchDevice(deviceType: DeviceType, deviceId: string): Promise<void> {
-    console.log('TencentCloud switchDevice', { deviceType, deviceId });
+    void deviceType;
+    void deviceId;
+    throw new Error('TencentCloud RTC media adapter is not available in this build.');
   }
 
   async getDevices(deviceType: DeviceType): Promise<DeviceInfo[]> {
-    console.log('TencentCloud getDevices', deviceType);
-    return [];
+    if (!navigator?.mediaDevices?.enumerateDevices) {
+      return [];
+    }
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    return devices
+      .filter((device) => {
+        if (deviceType === 'camera') return device.kind === 'videoinput';
+        if (deviceType === 'microphone') return device.kind === 'audioinput';
+        return device.kind === 'audiooutput';
+      })
+      .map((device) => ({
+        id: device.deviceId,
+        name: device.label || `Unknown ${deviceType}`,
+      }));
   }
 
   async setLocalStreamEnabled(audio: boolean, video: boolean): Promise<void> {
-    console.log('TencentCloud setLocalStreamEnabled', { audio, video });
+    void audio;
+    void video;
+    throw new Error('TencentCloud RTC media adapter is not available in this build.');
   }
 
   async setRemoteStreamEnabled(remoteUserId: string, audio: boolean, video: boolean): Promise<void> {
-    console.log('TencentCloud setRemoteStreamEnabled', { remoteUserId, audio, video });
+    void remoteUserId;
+    void audio;
+    void video;
+    throw new Error('TencentCloud RTC media adapter is not available in this build.');
   }
 
   async sendSignal(signal: CallSignal): Promise<void> {
-    console.log('TencentCloud sendSignal', signal);
+    console.warn('TencentCloud sendSignal should be handled by the IM signaling flow', signal);
   }
 
   on(event: string, callback: Function): void {
-    console.log('TencentCloud on', event);
+    const listeners = this.listeners.get(event) ?? new Set();
+    listeners.add(callback);
+    this.listeners.set(event, listeners);
   }
 
   off(event: string, callback: Function): void {
-    console.log('TencentCloud off', event);
+    const listeners = this.listeners.get(event);
+    if (!listeners) {
+      return;
+    }
+    listeners.delete(callback);
+    if (listeners.size === 0) {
+      this.listeners.delete(event);
+    }
   }
 
   async destroy(): Promise<void> {
-    console.log('TencentCloud destroy');
+    this.listeners.clear();
+  }
+
+  private ensureTRTCRuntime(): any {
+    const runtime = (globalThis as any).TRTC;
+    if (!runtime) {
+      throw new Error('TRTC runtime is unavailable. Load trtc-js-sdk before initializing TencentCloud RTC.');
+    }
+    return runtime;
+  }
+
+  private emit(event: string, payload: unknown): void {
+    const listeners = this.listeners.get(event);
+    if (!listeners || listeners.size === 0) {
+      return;
+    }
+    for (const listener of listeners) {
+      listener(payload);
+    }
   }
 }
 
@@ -1165,4 +1210,3 @@ export const DEFAULT_RTC_CONFIG: RTCConfig = {
   enableStats: true,
   enableDualStream: false
 };
-

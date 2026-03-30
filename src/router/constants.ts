@@ -41,6 +41,7 @@ export const ROUTES = {
   LOGIN: "/login",
   REGISTER: "/register",
   FORGOT_PASSWORD: "/forgot-password",
+  LOGIN_OAUTH_CALLBACK: "/login/oauth/callback/:provider",
 
   NOTIFICATIONS: "/notifications",
 

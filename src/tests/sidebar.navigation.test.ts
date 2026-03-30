@@ -32,4 +32,15 @@ describe("sidebar navigation contract", () => {
 
     expect(unmatchedPaths).toEqual([]);
   });
+
+  it("keeps contacts directly under chat in the default sidebar stack", () => {
+    const ids = sidebarNavItems.map((item) => item.id);
+    const chatIndex = ids.indexOf("chat");
+    const contactsIndex = ids.indexOf("contacts");
+    const agentsIndex = ids.indexOf("agents");
+
+    expect(chatIndex).toBeGreaterThanOrEqual(0);
+    expect(contactsIndex).toBe(chatIndex + 1);
+    expect(contactsIndex).toBeLessThan(agentsIndex);
+  });
 });

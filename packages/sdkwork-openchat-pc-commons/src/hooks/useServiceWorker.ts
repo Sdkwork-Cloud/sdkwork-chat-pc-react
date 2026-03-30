@@ -1,4 +1,8 @@
-
+﻿/**
+ * Service Worker Hook
+ *
+ * 鑱岃矗锛氱鐞?Service Worker 娉ㄥ唽銆佹洿鏂板拰娑堟伅閫氫俊
+ */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 
@@ -10,7 +14,78 @@ interface ServiceWorkerState {
   offlineReady: boolean;
 }
 
+/**
+ * Service Worker Hook
+ */
+export function useServiceWorker() {
+  const [state, setState] = useState<ServiceWorkerState>({
+    isSupported: 'serviceWorker' in navigator,
+    isRegistered: false,
+    isUpdating: false,
+    hasUpdate: false,
+    offlineReady: false,
+  });
 
+  const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
+  const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 娉ㄥ唽 Service Worker
+  useEffect(() => {
+    if (!state.isSupported) {
+      console.log('[SW] Service Worker not supported');
+      return;
+    }
+
+    const registerSW = async () => {
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js', {
+          scope: '/',
+        });
+
+        registrationRef.current = registration;
+
+        console.log('[SW] Registered:', registration.scope);
+
+        setState((prev) => ({ ...prev, isRegistered: true }));
+
+        // 鐩戝惉鏇存柊
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('[SW] New version available');
+                setState((prev) => ({ ...prev, hasUpdate: true }));
+              }
+            });
+          }
+        });
+
+        // 妫€鏌ユ槸鍚﹀凡婵€娲?        if (registration.active) {
+          setState((prev) => ({ ...prev, offlineReady: true }));
+        }
+      } catch (error) {
+        console.error('[SW] Registration failed:', error);
+      }
+    };
+
+    registerSW();
+
+    // 瀹氭湡妫€鏌ユ洿鏂帮紙姣?1 灏忔椂锛?    updateIntervalRef.current = setInterval(() => {
+      registrationRef.current?.update();
+    }, 60 * 60 * 1000);
+
+    return () => {
+      if (updateIntervalRef.current) {
+        clearInterval(updateIntervalRef.current);
+      }
+    };
+  }, [state.isSupported]);
+
+  /**
+   * 鏇存柊 Service Worker
+   */
   const updateServiceWorker = useCallback(async () => {
     if (!registrationRef.current) return;
 
@@ -19,6 +94,7 @@ interface ServiceWorkerState {
     try {
       await registrationRef.current.update();
 
+      // 濡傛灉鏈夌瓑寰呬腑鐨?worker锛岃Е鍙?skipWaiting
       if (registrationRef.current.waiting) {
         registrationRef.current.waiting.postMessage({ type: 'SKIP_WAITING' });
       }
@@ -34,17 +110,21 @@ interface ServiceWorkerState {
     }
   }, []);
 
-  
+  /**
+   * 璺宠繃绛夊緟骞跺埛鏂?   */
   const skipWaitingAndReload = useCallback(() => {
     if (!registrationRef.current?.waiting) return;
 
     registrationRef.current.waiting.postMessage({ type: 'SKIP_WAITING' });
 
+    // 鐩戝惉 controllerchange 鍚庡埛鏂?    navigator.serviceWorker.addEventListener('controllerchange', () => {
       window.location.reload();
     });
   }, []);
 
-  
+  /**
+   * 鍚庡彴鍚屾
+   */
   const sync = useCallback(async (tag: string = 'sync-messages') => {
     if (!registrationRef.current) return false;
 
@@ -62,14 +142,18 @@ interface ServiceWorkerState {
     }
   }, []);
 
-  
+  /**
+   * 鍙戦€佹秷鎭埌 Service Worker
+   */
   const postMessage = useCallback((message: unknown) => {
     if (!registrationRef.current?.active) return;
 
     registrationRef.current.active?.postMessage(message);
   }, []);
 
-  
+  /**
+   * 鑾峰彇缂撳瓨鐗堟湰
+   */
   const getCacheVersion = useCallback(async (): Promise<string | null> => {
     if (!registrationRef.current?.active) return null;
 
@@ -90,7 +174,9 @@ interface ServiceWorkerState {
     });
   }, []);
 
-  
+  /**
+   * 娓呯悊缂撳瓨
+   */
   const clearCache = useCallback(async () => {
     postMessage({ type: 'CLEAR_CACHE' });
   }, [postMessage]);
@@ -106,7 +192,8 @@ interface ServiceWorkerState {
   };
 }
 
-
+/**
+ * 浣跨敤缃戠粶鐘舵€? */
 export function useNetworkStatus() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [connectionType, setConnectionType] = useState<string>('unknown');
@@ -118,6 +205,7 @@ export function useNetworkStatus() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // 鑾峰彇杩炴帴绫诲瀷
     const connection = (navigator as any).connection;
     if (connection) {
       setConnectionType(connection.effectiveType || 'unknown');
@@ -136,7 +224,9 @@ export function useNetworkStatus() {
   return { isOnline, connectionType };
 }
 
-
+/**
+ * 浣跨敤鍚庡彴鍚屾
+ */
 export function useBackgroundSync() {
   const { sync } = useServiceWorker();
 

@@ -1,0 +1,48 @@
+module.exports = {
+  root: true,
+  env: {
+    browser: true,
+    es2022: true,
+    node: true,
+  },
+  parser: "@typescript-eslint/parser",
+  parserOptions: {
+    ecmaVersion: "latest",
+    sourceType: "module",
+    ecmaFeatures: {
+      jsx: true,
+    },
+  },
+  plugins: ["@typescript-eslint"],
+  extends: [],
+  ignorePatterns: [
+    "node_modules/",
+    "dist/",
+    "build/",
+    "coverage/",
+    "*.config.js",
+    "*.config.cjs",
+    "*.config.mjs",
+    // Legacy dormant commons modules: not exported from package entrypoints and
+    // excluded from package tsconfig include, but still present in the tree.
+    "packages/sdkwork-openchat-pc-commons/src/components/ui/Input/**",
+    "packages/sdkwork-openchat-pc-commons/src/components/ui/LazyImage/**",
+    "packages/sdkwork-openchat-pc-commons/src/components/ui/MarkdownRenderer/**",
+    "packages/sdkwork-openchat-pc-commons/src/hooks/useMarkdownWorker.ts",
+    "packages/sdkwork-openchat-pc-commons/src/hooks/usePerformanceMonitor.ts",
+    "packages/sdkwork-openchat-pc-commons/src/hooks/useServiceWorker.ts",
+    "packages/sdkwork-openchat-pc-commons/src/hooks/useSmartPreload.ts",
+    "packages/sdkwork-openchat-pc-commons/src/hooks/useTimeSlicing.ts",
+    "packages/sdkwork-openchat-pc-commons/src/hooks/useVirtualListPool.ts",
+    "packages/sdkwork-openchat-pc-commons/src/hooks/useWasm.ts",
+    "packages/sdkwork-openchat-pc-commons/src/services/file.service.ts",
+    "packages/sdkwork-openchat-pc-commons/src/services/memory.service.ts",
+    "packages/sdkwork-openchat-pc-commons/src/services/websocket.client.ts",
+    "packages/sdkwork-openchat-pc-commons/src/utils/arcCache.ts",
+    "packages/sdkwork-openchat-pc-commons/src/utils/bloomFilter.ts",
+    "packages/sdkwork-openchat-pc-commons/src/utils/consistentHash.ts",
+    "packages/sdkwork-openchat-pc-commons/src/utils/layeredCache.ts",
+    "packages/sdkwork-openchat-pc-commons/src/utils/lruCache.ts",
+  ],
+  rules: {},
+};

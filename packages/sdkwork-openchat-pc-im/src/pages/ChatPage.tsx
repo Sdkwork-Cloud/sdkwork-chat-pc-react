@@ -676,20 +676,22 @@ export function ChatPage() {
               }}
             />
 
-            <div className="flex-1 overflow-y-auto px-6 py-5">
-              {isLoadingMessages && selectedConversationFromSDK ? (
-                <div className="text-sm text-text-muted">
-                  {tr("Loading messages...")}
-                </div>
-              ) : null}
+            <div className="flex-1 overflow-y-auto py-5">
+              <div className="chat-content-lane chat-message-lane">
+                {isLoadingMessages && selectedConversationFromSDK ? (
+                  <div className="text-sm text-text-muted">
+                    {tr("Loading messages...")}
+                  </div>
+                ) : null}
 
-              {messages.map((message) => (
-                <MessageBubble key={message.id} message={message} />
-              ))}
-              <div ref={messageEndRef} />
+                {messages.map((message) => (
+                  <MessageBubble key={message.id} message={message} />
+                ))}
+                <div ref={messageEndRef} />
+              </div>
             </div>
 
-            <footer className="border-t border-border bg-bg-secondary">
+            <footer className="bg-transparent">
               <ChatInput
                 onSend={(messageText, messageAttachments) => {
                   void handleSend(messageText, messageAttachments);

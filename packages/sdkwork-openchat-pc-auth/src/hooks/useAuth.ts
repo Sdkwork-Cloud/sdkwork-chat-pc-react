@@ -5,7 +5,9 @@ import type {
   IMConfig,
   PasswordStrength,
   RegisterRequest,
+  User,
 } from "../entities/auth.entity";
+import { useAuthStore } from "../stores/useAuthStore";
 import {
   appAuthService,
   loadAuthData,
@@ -54,14 +56,56 @@ export interface UseAuthReturn extends AuthState {
   isDevAutoLoginDisabled: () => boolean;
 }
 
+function mapStoreUserToLegacyUser(user: ReturnType<typeof useAuthStore.getState>["user"]): User | null {
+  if (!user) {
+    return null;
+  }
+
+  const storedUser = loadAuthData()?.user;
+  if (storedUser?.email && storedUser.email === user.email) {
+    return storedUser;
+  }
+
+  return {
+    id: storedUser?.id || user.email || user.displayName,
+    uid: storedUser?.uid || storedUser?.id || user.email || user.displayName,
+    username: storedUser?.username || user.email || user.displayName,
+    email: user.email,
+    phone: storedUser?.phone || "",
+    nickname: user.displayName,
+    avatar: user.avatarUrl || storedUser?.avatar,
+    status: storedUser?.status,
+  };
+}
+
+function buildSessionUserInfo(authData: ReturnType<typeof loadAuthData>): Parameters<
+  ReturnType<typeof useAuthStore.getState>["applySession"]
+>[0]["userInfo"] {
+  if (!authData?.user) {
+    return undefined;
+  }
+
+  return {
+    username: authData.user.username,
+    email: authData.user.email,
+    nickname: authData.user.nickname,
+    avatar: authData.user.avatar,
+  };
+}
+
 export function useAuth(): UseAuthReturn {
-  const [state, setState] = useState<AuthState>({
-    isAuthenticated: false,
-    user: null,
-    imConfig: null,
-    isLoading: true,
-    error: null,
-  });
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const storeUser = useAuthStore((state) => state.user);
+  const signIn = useAuthStore((state) => state.signIn);
+  const registerStore = useAuthStore((state) => state.register);
+  const signOut = useAuthStore((state) => state.signOut);
+  const sendPasswordReset = useAuthStore((state) => state.sendPasswordReset);
+  const applySession = useAuthStore((state) => state.applySession);
+  const resetStore = useAuthStore((state) => state.reset);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [imConfig, setImConfig] = useState<IMConfig | null>(() => loadAuthData()?.imConfig ?? null);
 
   const disableDevAutoLogin = useCallback(() => {
     localStorage.setItem(DEV_AUTO_LOGIN_KEY, "true");
@@ -80,168 +124,128 @@ export function useAuth(): UseAuthReturn {
       try {
         const restoreResult = await appAuthService.restoreAuth();
         if (restoreResult) {
-          setState({
-            isAuthenticated: true,
-            user: restoreResult.user,
-            imConfig: restoreResult.imConfig,
-            isLoading: false,
-            error: null,
+          applySession({
+            ...restoreResult.session,
+            userInfo: {
+              username: restoreResult.user.username,
+              email: restoreResult.user.email,
+              nickname: restoreResult.user.nickname,
+              avatar: restoreResult.user.avatar,
+            },
           });
+          setImConfig(restoreResult.imConfig);
+          setIsLoading(false);
           return;
         }
 
         if (IS_DEV && !isDevAutoLoginDisabled()) {
           try {
-            await appAuthService.login({
+            const session = await appAuthService.login({
               username: DEV_TEST_ACCOUNT.username,
               password: DEV_TEST_ACCOUNT.password,
             });
+            applySession({
+              ...session,
+              userInfo: session.userInfo || buildSessionUserInfo(loadAuthData()),
+            });
+            setImConfig(loadAuthData()?.imConfig ?? null);
+            setIsLoading(false);
+            return;
           } catch {
             // Keep dev init flow resilient when default account is unavailable.
           }
-          const authData = loadAuthData();
-          if (authData) {
-            setState({
-              isAuthenticated: true,
-              user: authData.user,
-              imConfig: authData.imConfig,
-              isLoading: false,
-              error: null,
-            });
-            return;
-          }
         }
-      } catch (error) {
-        console.error("Failed to initialize auth state:", error);
+      } catch (nextError) {
+        console.error("Failed to initialize auth state:", nextError);
       }
 
-      setState((prev) => ({ ...prev, isLoading: false }));
+      resetStore();
+      setImConfig(null);
+      setIsLoading(false);
     };
 
     void initAuth();
-  }, [isDevAutoLoginDisabled]);
+  }, [applySession, isDevAutoLoginDisabled, resetStore]);
 
   const login = useCallback(async (username: string, password: string): Promise<boolean> => {
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    setIsLoading(true);
+    setError(null);
 
     try {
-      await appAuthService.login({ username, password });
-      const authData = loadAuthData();
-      if (!authData) {
-        throw new Error("Login session not found");
-      }
-
-      setState({
-        isAuthenticated: true,
-        user: authData.user,
-        imConfig: authData.imConfig,
-        isLoading: false,
-        error: null,
-      });
+      await signIn({ email: username, password });
+      setImConfig(loadAuthData()?.imConfig ?? null);
+      setIsLoading(false);
       return true;
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : "Login failed.",
-      }));
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Login failed.");
+      setIsLoading(false);
       return false;
     }
-  }, []);
+  }, [signIn]);
 
   const register = useCallback(async (request: RegisterRequest): Promise<boolean> => {
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    setIsLoading(true);
+    setError(null);
 
     try {
-      await appAuthService.register({
-        username: request.username,
-        password: request.password,
-        confirmPassword: request.confirmPassword,
+      await registerStore({
+        name: request.nickname || request.username,
         email: request.email,
-        phone: request.phone,
-        name: request.nickname,
+        password: request.password,
       });
-
-      const authData = loadAuthData();
-      if (authData) {
-        setState({
-          isAuthenticated: true,
-          user: authData.user,
-          imConfig: authData.imConfig,
-          isLoading: false,
-          error: null,
-        });
-      } else {
-        setState((prev) => ({ ...prev, isLoading: false, error: null }));
-      }
-
+      setImConfig(loadAuthData()?.imConfig ?? null);
+      setIsLoading(false);
       return true;
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : "Register failed.",
-      }));
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Register failed.");
+      setIsLoading(false);
       return false;
     }
-  }, []);
+  }, [registerStore]);
 
   const logout = useCallback(async (): Promise<void> => {
-    setState((prev) => ({ ...prev, isLoading: true }));
+    setIsLoading(true);
 
     try {
-      await appAuthService.logout();
-    } catch (error) {
-      console.error("Logout failed:", error);
+      await signOut();
+    } catch (nextError) {
+      console.error("Logout failed:", nextError);
     } finally {
-      setState({
-        isAuthenticated: false,
-        user: null,
-        imConfig: null,
-        isLoading: false,
-        error: null,
-      });
+      setImConfig(null);
+      setError(null);
+      setIsLoading(false);
     }
-  }, []);
+  }, [signOut]);
 
   const loginWithThirdParty = useCallback(async (provider: string): Promise<boolean> => {
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    setIsLoading(true);
+    setError(null);
 
     try {
       const normalizedProvider = provider.trim().toLowerCase();
-      if (!["wechat", "github", "google", "apple"].includes(normalizedProvider)) {
+      if (!["wechat", "github", "google", "apple", "douyin"].includes(normalizedProvider)) {
         throw new Error("Unsupported social login provider.");
       }
-      await appAuthService.loginWithSocial({
-        provider: normalizedProvider as "wechat" | "github" | "google" | "apple",
+
+      const session = await appAuthService.loginWithSocial({
+        provider: normalizedProvider as "wechat" | "github" | "google" | "apple" | "douyin",
       });
-
-      const authData = loadAuthData();
-      if (!authData) {
-        throw new Error("Social login session not found.");
-      }
-
-      setState({
-        isAuthenticated: true,
-        user: authData.user,
-        imConfig: authData.imConfig,
-        isLoading: false,
-        error: null,
+      applySession({
+        ...session,
+        userInfo: session.userInfo || buildSessionUserInfo(loadAuthData()),
       });
-
+      setImConfig(loadAuthData()?.imConfig ?? null);
+      setIsLoading(false);
       return true;
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : "Third-party login failed.",
-      }));
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Third-party login failed.");
+      setIsLoading(false);
       return false;
     }
-  }, []);
+  }, [applySession]);
 
   const clearError = useCallback(() => {
-    setState((prev) => ({ ...prev, error: null }));
+    setError(null);
   }, []);
 
   const checkPasswordStrength = useCallback((password: string): PasswordStrength => {
@@ -265,65 +269,75 @@ export function useAuth(): UseAuthReturn {
   }, []);
 
   const forgotPassword = useCallback(async (email?: string, phone?: string): Promise<boolean> => {
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    setIsLoading(true);
+    setError(null);
 
     try {
       const account = (email || phone || "").trim();
       if (!account) {
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          error: "Email or phone is required.",
-        }));
-        return false;
+        throw new Error("Email or phone is required.");
       }
-      await appAuthService.requestPasswordReset({
-        account,
-        channel: email ? "EMAIL" : "SMS",
-      });
 
-      setState((prev) => ({ ...prev, isLoading: false, error: null }));
+      if (email) {
+        await sendPasswordReset(account);
+      } else {
+        await appAuthService.requestPasswordReset({
+          account,
+          channel: "SMS",
+        });
+      }
+
+      setIsLoading(false);
       return true;
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error:
-          error instanceof Error ? error.message : "Failed to send password reset request.",
-      }));
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : "Failed to send password reset request.",
+      );
+      setIsLoading(false);
       return false;
     }
-  }, []);
+  }, [sendPasswordReset]);
 
   const requestPasswordReset = useCallback(
     async (account: string, channel: "EMAIL" | "SMS"): Promise<boolean> => {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+      setIsLoading(true);
+      setError(null);
       try {
         const normalizedAccount = account.trim();
         if (!normalizedAccount) {
           throw new Error("Email or phone is required.");
         }
-        await appAuthService.requestPasswordReset({
-          account: normalizedAccount,
-          channel,
-        });
-        setState((prev) => ({ ...prev, isLoading: false, error: null }));
+
+        if (channel === "EMAIL") {
+          await sendPasswordReset(normalizedAccount);
+        } else {
+          await appAuthService.requestPasswordReset({
+            account: normalizedAccount,
+            channel,
+          });
+        }
+
+        setIsLoading(false);
         return true;
-      } catch (error) {
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          error: error instanceof Error ? error.message : "Failed to send password reset request.",
-        }));
+      } catch (nextError) {
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : "Failed to send password reset request.",
+        );
+        setIsLoading(false);
         return false;
       }
     },
-    [],
+    [sendPasswordReset],
   );
 
   const verifyPasswordResetCode = useCallback(
     async (account: string, code: string, channel: "EMAIL" | "SMS"): Promise<boolean> => {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+      setIsLoading(true);
+      setError(null);
       try {
         const normalizedAccount = account.trim();
         const normalizedCode = code.trim();
@@ -342,14 +356,13 @@ export function useAuth(): UseAuthReturn {
         if (!verified) {
           throw new Error("Invalid or expired verification code.");
         }
-        setState((prev) => ({ ...prev, isLoading: false, error: null }));
+        setIsLoading(false);
         return true;
-      } catch (error) {
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          error: error instanceof Error ? error.message : "Failed to verify reset code.",
-        }));
+      } catch (nextError) {
+        setError(
+          nextError instanceof Error ? nextError.message : "Failed to verify reset code.",
+        );
+        setIsLoading(false);
         return false;
       }
     },
@@ -363,7 +376,8 @@ export function useAuth(): UseAuthReturn {
       newPassword: string,
       confirmPassword: string,
     ): Promise<boolean> => {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+      setIsLoading(true);
+      setError(null);
       try {
         const normalizedAccount = account.trim();
         const normalizedCode = code.trim();
@@ -387,14 +401,11 @@ export function useAuth(): UseAuthReturn {
           confirmPassword,
         });
 
-        setState((prev) => ({ ...prev, isLoading: false, error: null }));
+        setIsLoading(false);
         return true;
-      } catch (error) {
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          error: error instanceof Error ? error.message : "Failed to reset password.",
-        }));
+      } catch (nextError) {
+        setError(nextError instanceof Error ? nextError.message : "Failed to reset password.");
+        setIsLoading(false);
         return false;
       }
     },
@@ -402,32 +413,33 @@ export function useAuth(): UseAuthReturn {
   );
 
   const updateIMConfig = useCallback((config: Partial<IMConfig>) => {
-    setState((prev) => {
-      if (!prev.imConfig) {
-        return prev;
+    setImConfig((current) => {
+      const existing = current || loadAuthData()?.imConfig || null;
+      if (!existing) {
+        return current;
       }
 
-      const nextConfig = { ...prev.imConfig, ...config };
-      if (prev.user) {
-        const currentAuth = loadAuthData();
+      const nextConfig = { ...existing, ...config };
+      const currentAuth = loadAuthData();
+      if (currentAuth?.user) {
         saveAuthData({
-          user: prev.user,
-          token: currentAuth?.token || "",
-          authToken: currentAuth?.authToken,
-          accessToken: currentAuth?.accessToken,
+          ...currentAuth,
           imToken: nextConfig.token,
-          refreshToken: currentAuth?.refreshToken,
           imConfig: nextConfig,
           timestamp: Date.now(),
         });
       }
 
-      return { ...prev, imConfig: nextConfig };
+      return nextConfig;
     });
   }, []);
 
   return {
-    ...state,
+    isAuthenticated,
+    user: mapStoreUserToLegacyUser(storeUser),
+    imConfig,
+    isLoading,
+    error,
     login,
     loginWithThirdParty,
     register,

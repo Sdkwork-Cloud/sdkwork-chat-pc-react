@@ -40,10 +40,16 @@ export function useRTC(): UseRTCReturn {
   const [session, setSession] = useState<CallSession | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const sessionRef = useRef<CallSession | null>(null);
 
   const serviceRef = useRef(getRTCService({
     onSessionChange: (newSession: CallSession | null) => {
+      sessionRef.current = newSession;
       setSession(newSession);
+      if (!newSession) {
+        setLocalStream(null);
+        setRemoteStream(null);
+      }
     },
     onLocalStream: (stream: MediaStream) => {
       setLocalStream(stream);
@@ -120,11 +126,12 @@ export function useRTC(): UseRTCReturn {
 
   useEffect(() => {
     return () => {
-      if (session && session.status !== 'ended' && session.status !== 'failed') {
+      const activeSession = sessionRef.current;
+      if (activeSession && activeSession.status !== 'ended' && activeSession.status !== 'failed') {
         serviceRef.current.hangup();
       }
     };
-  }, [session]);
+  }, []);
 
   return {
     session,

@@ -49,6 +49,17 @@ export interface PlatformAPI {
   
   
   maximizeWindow(): Promise<void>;
+
+
+  restoreWindow(): Promise<void>;
+
+
+  isWindowMaximized(): Promise<boolean>;
+
+
+  subscribeWindowMaximized(
+    callback: (isMaximized: boolean) => void,
+  ): Promise<() => void | Promise<void>>;
   
   
   closeWindow(): Promise<void>;

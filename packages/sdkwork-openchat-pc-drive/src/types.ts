@@ -1,6 +1,17 @@
-import type { BaseEntity } from '@sdkwork/openchat-pc-contracts';
+import type { BaseEntity } from "@sdkwork/openchat-pc-contracts";
 
-export type FileType = 'folder' | 'image' | 'video' | 'audio' | 'doc' | 'pdf' | 'xls' | 'ppt' | 'zip' | 'code' | 'unknown';
+export type FileType =
+  | "folder"
+  | "image"
+  | "video"
+  | "audio"
+  | "doc"
+  | "pdf"
+  | "xls"
+  | "ppt"
+  | "zip"
+  | "code"
+  | "unknown";
 
 export interface FileNode extends BaseEntity {
   parentId: string | null;
@@ -10,14 +21,23 @@ export interface FileNode extends BaseEntity {
   url?: string;
   thumbnail?: string;
   mimeType?: string;
+  path?: string;
+  status?: string;
+  previewUrl?: string;
+  objectKey?: string;
   isStarred?: boolean;
   isShared?: boolean;
+  trashedAt?: number | null;
+  accessedAt?: number;
 }
+
+export type DriveItem = FileNode;
 
 export interface FileFilter {
   type?: FileType;
   search?: string;
   isStarred?: boolean;
+  includeTrashed?: boolean;
 }
 
 export interface StorageStats {
@@ -31,5 +51,4 @@ export interface BreadcrumbItem {
   id: string | null;
   name: string;
 }
-
 

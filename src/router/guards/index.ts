@@ -43,8 +43,9 @@ function buildLoginRedirect(location: Location): string {
 export const authGuard: RouteGuard = ({ location }) => {
   const pathname = normalizePathname(location.pathname);
   const isAuthenticated = hasPersistedAuthSession();
+  const isOAuthCallbackRoute = pathname.startsWith("/login/oauth/callback/");
 
-  if (GUEST_ROUTE_PATHS.has(pathname)) {
+  if (GUEST_ROUTE_PATHS.has(pathname) || isOAuthCallbackRoute) {
     return isAuthenticated ? ROUTES.CHAT : true;
   }
 

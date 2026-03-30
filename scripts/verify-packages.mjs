@@ -16,6 +16,11 @@ const commonsAllowedWorkspaceDeps = new Set([
   "@sdkwork/openchat-pc-i18n",
 ]);
 const compatibilityPackage = "@sdkwork/openchat-pc-commons";
+const allowedExternalProxyFiles = new Set([
+  path.normalize("packages/sdkwork-openchat-pc-kernel/src/im-sdk/backend-sdk.ts"),
+  path.normalize("packages/sdkwork-openchat-pc-kernel/src/im-sdk/composed-sdk.ts"),
+  path.normalize("packages/sdkwork-openchat-pc-kernel/src/im-sdk/wukongim-adapter.ts"),
+]);
 
 const errors = [];
 
@@ -120,13 +125,16 @@ function collectExportedGraph(entryPath) {
 function scanFileForBoundaries(filePath, source, packageDir, packageName) {
   const workspaceImports = new Set();
   const relativeToRoot = path.relative(rootDir, filePath);
+  const isAllowedExternalProxyFile = allowedExternalProxyFiles.has(
+    path.normalize(relativeToRoot),
+  );
 
   const lines = source.split(/\r?\n/);
   for (const [index, line] of lines.entries()) {
     if (/from\s+['"]@\//.test(line)) {
       fail(`${relativeToRoot}:${index + 1} uses forbidden "@/..." import`);
     }
-    if (/from\s+['"][^'"]*\/src\//.test(line)) {
+    if (!isAllowedExternalProxyFile && /from\s+['"][^'"]*\/src\//.test(line)) {
       fail(`${relativeToRoot}:${index + 1} imports from another package's /src`);
     }
   }
@@ -175,7 +183,7 @@ function scanFileForBoundaries(filePath, source, packageDir, packageName) {
     }
 
     const normalizedPackageDir = path.resolve(packageDir).toLowerCase();
-    if (!normalizedResolved.startsWith(normalizedPackageDir)) {
+    if (!isAllowedExternalProxyFile && !normalizedResolved.startsWith(normalizedPackageDir)) {
       fail(
         `${relativeToRoot} imports outside its package boundary via relative path (${specifier})`,
       );

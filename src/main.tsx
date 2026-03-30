@@ -1,7 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./app/App";
+import { isTauriRuntime } from "./app/desktop/runtime";
 import { initializeI18n } from "./i18n";
+import { initializePlatform } from "./platform";
+import { createWebPlatform } from "./platform-impl/web";
+import { createDesktopApp } from "./app/desktop/bootstrap/createDesktopApp";
 import "./index.css";
 
 const SW_CLEANUP_RELOAD_FLAG = "openchat-sw-cleanup-reload-v1";
@@ -16,7 +20,6 @@ function normalizeSecurityMetaTags() {
     }
 
     if (httpEquiv === "x-frame-options") {
-      // This directive is only valid as an HTTP response header.
       metaTag.remove();
       return;
     }
@@ -88,7 +91,8 @@ async function cleanupLegacyServiceWorkers(): Promise<boolean> {
   return false;
 }
 
-function renderApp() {
+function renderWebApp() {
+  initializePlatform(createWebPlatform());
   ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
       <App />
@@ -103,7 +107,13 @@ async function bootstrap() {
   if (reloading) {
     return;
   }
-  renderApp();
+
+  if (isTauriRuntime()) {
+    await createDesktopApp();
+    return;
+  }
+
+  renderWebApp();
 }
 
 void bootstrap();

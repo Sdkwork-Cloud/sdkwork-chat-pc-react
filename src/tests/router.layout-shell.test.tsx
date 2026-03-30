@@ -86,6 +86,7 @@ describe("router layout shell contract", () => {
       expect(mainElement).toBeTruthy();
       expect(mainElement).toHaveClass("min-h-0");
       expect(mainElement).toHaveClass("overflow-hidden");
+      expect(mainElement).toHaveClass("bg-[var(--bg-secondary)]");
 
       unmount();
     }

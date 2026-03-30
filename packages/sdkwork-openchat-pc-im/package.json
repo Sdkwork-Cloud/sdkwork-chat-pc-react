@@ -20,7 +20,6 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
-    "@openchat/typescript-sdk": "file:../../vendor/openchat-typescript-sdk",
     "@sdkwork/openchat-pc-agent": "workspace:*",
     "@sdkwork/openchat-pc-contracts": "workspace:*",
     "@sdkwork/openchat-pc-contacts": "workspace:*",
@@ -29,9 +28,6 @@
     "@sdkwork/openchat-pc-rtc": "workspace:*",
     "@sdkwork/openchat-pc-ui": "workspace:*",
     "@tanstack/react-virtual": "^3.13.18",
-    "@tiptap/extension-placeholder": "^3.18.0",
-    "@tiptap/react": "^3.18.0",
-    "@tiptap/starter-kit": "^3.18.0",
     "react": "^18.2.0",
     "react-router-dom": "^6.20.0"
   }

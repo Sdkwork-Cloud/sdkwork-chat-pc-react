@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { useAppTranslation } from "@sdkwork/openchat-pc-i18n";
+import { formatDate, formatTime, useAppTranslation } from "@sdkwork/openchat-pc-i18n";
 import type { Conversation, ConversationType } from "../entities/conversation.entity";
 
 interface ConversationItemProps {
@@ -17,6 +17,19 @@ const getAvatarColor = (type: ConversationType): string => {
   }
   return "bg-success";
 };
+
+function formatConversationTime(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  const now = new Date();
+  const isSameDay = parsed.toDateString() === now.toDateString();
+  return isSameDay
+    ? formatTime(parsed, { hour: "2-digit", minute: "2-digit" })
+    : formatDate(parsed, { month: "short", day: "numeric" });
+}
 
 export const ConversationItem = memo(
   ({ conversation, isSelected, onClick }: ConversationItemProps) => {
@@ -54,7 +67,7 @@ export const ConversationItem = memo(
               {conversation.name}
             </h3>
             <span className="flex-shrink-0 text-xs text-text-muted">
-              {conversation.lastMessageTime}
+              {formatConversationTime(conversation.lastMessageTime)}
             </span>
           </div>
 

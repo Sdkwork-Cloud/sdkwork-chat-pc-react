@@ -1,9 +1,14 @@
 import type { Conversation } from "../entities/conversation.entity";
 import {
-  convertSDKConversationToFrontend,
+  deleteConversation as sdkDeleteConversation,
+  getConversation as sdkGetConversation,
   getConversationList,
-  getSDKClient,
+  getTotalUnreadCount as sdkGetTotalUnreadCount,
+  markConversationAsRead as sdkMarkConversationAsRead,
+  muteConversation as sdkMuteConversation,
+  pinConversation as sdkPinConversation,
   registerSDKEvents,
+  setConversationDraft as sdkSetConversationDraft,
 } from "../adapters/sdk-adapter";
 
 export interface ConversationQueryParams {
@@ -46,19 +51,7 @@ export async function getConversation(
   conversationId: string,
 ): Promise<Conversation | null> {
   try {
-    const client = getSDKClient(false);
-    if (!client) {
-      throw new Error("SDK not initialized");
-    }
-
-    const sdkConversation = await client.im.conversations.getConversation(
-      conversationId,
-    );
-    if (!sdkConversation) {
-      return null;
-    }
-
-    return convertSDKConversationToFrontend(sdkConversation);
+    return await sdkGetConversation(conversationId);
   } catch (error) {
     console.error("Failed to load conversation details:", error);
     return null;
@@ -67,11 +60,7 @@ export async function getConversation(
 
 export async function deleteConversation(conversationId: string): Promise<void> {
   try {
-    const client = getSDKClient(false);
-    if (!client) {
-      throw new Error("SDK not initialized");
-    }
-    await client.im.conversations.deleteConversation(conversationId);
+    await sdkDeleteConversation(conversationId);
   } catch (error) {
     console.error("Failed to delete conversation:", error);
     throw error;
@@ -83,11 +72,7 @@ export async function pinConversation(
   isPinned: boolean,
 ): Promise<void> {
   try {
-    const client = getSDKClient(false);
-    if (!client) {
-      throw new Error("SDK not initialized");
-    }
-    await client.im.conversations.pinConversation(conversationId, isPinned);
+    await sdkPinConversation(conversationId, isPinned);
   } catch (error) {
     console.error("Failed to pin conversation:", error);
     throw error;
@@ -99,11 +84,7 @@ export async function muteConversation(
   isMuted: boolean,
 ): Promise<void> {
   try {
-    const client = getSDKClient(false);
-    if (!client) {
-      throw new Error("SDK not initialized");
-    }
-    await client.im.conversations.muteConversation(conversationId, isMuted);
+    await sdkMuteConversation(conversationId, isMuted);
   } catch (error) {
     console.error("Failed to mute conversation:", error);
     throw error;
@@ -114,11 +95,7 @@ export async function markConversationAsRead(
   conversationId: string,
 ): Promise<void> {
   try {
-    const client = getSDKClient(false);
-    if (!client) {
-      throw new Error("SDK not initialized");
-    }
-    await client.im.messages.markConversationAsRead(conversationId);
+    await sdkMarkConversationAsRead(conversationId);
   } catch (error) {
     console.error("Failed to mark conversation as read:", error);
     throw error;
@@ -130,11 +107,7 @@ export async function setConversationDraft(
   draft: string,
 ): Promise<void> {
   try {
-    const client = getSDKClient(false);
-    if (!client) {
-      throw new Error("SDK not initialized");
-    }
-    await client.im.conversations.setConversationDraft(conversationId, draft);
+    await sdkSetConversationDraft(conversationId, draft);
   } catch (error) {
     console.error("Failed to set conversation draft:", error);
     throw error;
@@ -143,11 +116,7 @@ export async function setConversationDraft(
 
 export async function getTotalUnreadCount(): Promise<number> {
   try {
-    const conversations = await getConversationList();
-    return conversations.reduce(
-      (total, item) => total + (item.unreadCount || 0),
-      0,
-    );
+    return await sdkGetTotalUnreadCount();
   } catch (error) {
     console.error("Failed to load unread count:", error);
     return 0;
