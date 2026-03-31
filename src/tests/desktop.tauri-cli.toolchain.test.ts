@@ -54,6 +54,39 @@ describe("desktop tauri cli rust toolchain bootstrap", () => {
     expect(plan.env.PATH?.split(";")).toContain(rustupBinDir);
   });
 
+  it("prefers the workspace tauri cli binary when invoked outside pnpm script shells", async () => {
+    const originalArgv1 = process.argv[1];
+    process.argv[1] = path.resolve(__dirname, "desktop.tauri-cli.toolchain.test.ts");
+    const { createTauriCliPlan } = await import(runTauriCliModuleUrl);
+    process.argv[1] = originalArgv1;
+
+    const rustupBinDir = path.win32.join("C:\\Users\\admin", ".cargo", "bin");
+    const localTauriCli = path.win32.join(
+      "C:\\workspace\\sdkwork-chat-pc-react",
+      "node_modules",
+      ".bin",
+      "tauri.cmd",
+    );
+
+    const plan = createTauriCliPlan({
+      argv: ["build", "--vite-mode", "production"],
+      cwd: "C:\\workspace\\sdkwork-chat-pc-react",
+      env: {
+        PATH: "C:\\Windows\\System32",
+        USERPROFILE: "C:\\Users\\admin",
+      },
+      platform: "win32",
+      pathExists: (candidatePath: string) =>
+        candidatePath === rustupBinDir || candidatePath === localTauriCli,
+      inspectCommand: (command: string) => ({
+        available: true,
+        command,
+      }),
+    });
+
+    expect(plan.command).toBe(localTauriCli);
+  });
+
   it("surfaces a clear windows rust toolchain hint when cargo is still unavailable", async () => {
     const originalArgv1 = process.argv[1];
     process.argv[1] = path.resolve(__dirname, "desktop.tauri-cli.toolchain.test.ts");

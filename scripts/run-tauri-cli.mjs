@@ -63,6 +63,26 @@ export function resolvePathApiForPlatform(platform = process.platform) {
   return platform === 'win32' ? path.win32 : path.posix;
 }
 
+export function resolveTauriCliCommand({
+  cwd = process.cwd(),
+  platform = process.platform,
+  pathExists = fs.existsSync,
+} = {}) {
+  const pathApi = resolvePathApiForPlatform(platform);
+  const localCliPath = pathApi.resolve(
+    cwd,
+    'node_modules',
+    '.bin',
+    platform === 'win32' ? 'tauri.cmd' : 'tauri',
+  );
+
+  if (pathExists(localCliPath)) {
+    return localCliPath;
+  }
+
+  return platform === 'win32' ? 'tauri.cmd' : 'tauri';
+}
+
 export function resolveRustToolchainBinCandidates({
   env = process.env,
   platform = process.platform,
@@ -247,7 +267,11 @@ export function createTauriCliPlan({
   );
 
   return {
-    command: platform === 'win32' ? 'tauri.cmd' : 'tauri',
+    command: resolveTauriCliCommand({
+      cwd,
+      platform,
+      pathExists,
+    }),
     args,
     cwd,
     env: planEnv,
