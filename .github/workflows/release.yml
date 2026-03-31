@@ -156,7 +156,7 @@ jobs:
             platform: windows
             arch: x64
             target: x86_64-pc-windows-msvc
-          - runner: windows-11-arm
+          - runner: windows-2022
             platform: windows
             arch: arm64
             target: aarch64-pc-windows-msvc
@@ -234,8 +234,37 @@ jobs:
       - name: Build shared SDK packages
         run: pnpm prepare:shared-sdk
 
-      - name: Build desktop bundle
-        if: matrix.platform != 'macos'
+      - name: Build Windows desktop bundle
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        env:
+          CMAKE_GENERATOR: Visual Studio 17 2022
+          HOST_CMAKE_GENERATOR: Visual Studio 17 2022
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path $vswhere)) {
+            throw "vswhere.exe not found at $vswhere"
+          }
+
+          $installPath = & $vswhere -latest -products * -property installationPath
+          if (-not $installPath) {
+            throw 'Visual Studio installation was not found on the runner.'
+          }
+
+          $devCmd = Join-Path $installPath 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path $devCmd)) {
+            throw "VsDevCmd.bat not found at $devCmd"
+          }
+
+          $targetArch = if ('${{ matrix.arch }}' -eq 'arm64') { 'arm64' } else { 'amd64' }
+          $buildCommand = "call `"$devCmd`" -no_logo -host_arch=amd64 -arch=$targetArch && node scripts\\run-tauri-cli.mjs build --vite-mode ${{ needs.prepare.outputs.build_environment }} --target ${{ matrix.target }}"
+          & cmd.exe /d /s /c $buildCommand
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+      - name: Build Linux desktop bundle
+        if: matrix.platform == 'linux'
         run: node scripts/run-tauri-cli.mjs build --vite-mode ${{ needs.prepare.outputs.build_environment }} --target ${{ matrix.target }}
 
       - name: Build macOS desktop bundle

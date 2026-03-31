@@ -26,7 +26,6 @@ test('repository exposes a cross-platform desktop release workflow', () => {
   assert.match(workflow, /desktop-release:/);
   assert.match(workflow, /publish:/);
   assert.match(workflow, /windows-2022/);
-  assert.match(workflow, /windows-11-arm/);
   assert.match(workflow, /ubuntu-22\.04/);
   assert.match(workflow, /ubuntu-22\.04-arm/);
   assert.match(workflow, /macos-15-intel/);
@@ -60,6 +59,9 @@ test('repository exposes a cross-platform desktop release workflow', () => {
   assert.match(workflow, /pnpm run test/);
   assert.match(workflow, /pnpm run typecheck:packages/);
   assert.match(workflow, /pnpm run verify:packages/);
+  assert.match(workflow, /VsDevCmd\.bat/);
+  assert.match(workflow, /CMAKE_GENERATOR:\s*Visual Studio 17 2022/);
+  assert.match(workflow, /HOST_CMAKE_GENERATOR:\s*Visual Studio 17 2022/);
   assert.match(workflow, /node scripts\/run-tauri-cli\.mjs build --vite-mode/);
   assert.match(workflow, /node scripts\/release\/package-release-assets\.mjs desktop/);
   assert.match(workflow, /softprops\/action-gh-release@/);
