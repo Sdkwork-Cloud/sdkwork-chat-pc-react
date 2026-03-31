@@ -22,7 +22,7 @@ test('repository exposes mainline CI verification for desktop release prerequisi
   assert.match(workflow, /push:\s*[\s\S]*branches:\s*[\s\S]*-\s*main/);
   assert.match(workflow, /pull_request:\s*[\s\S]*branches:\s*[\s\S]*-\s*main/);
   assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /ubuntu-latest/);
+  assert.match(workflow, /ubuntu-22\.04/);
   assert.match(workflow, /windows-2022/);
   assert.match(workflow, /SDKWORK_SHARED_SDK_MODE:\s*git/);
   assert.match(workflow, /SDKWORK_SHARED_SDK_APP_GIT_REF:\s*[0-9a-f]{40}/);
@@ -39,5 +39,9 @@ test('repository exposes mainline CI verification for desktop release prerequisi
   assert.match(workflow, /pnpm run test/);
   assert.match(workflow, /pnpm run typecheck:packages/);
   assert.match(workflow, /pnpm run verify:packages/);
+  assert.match(workflow, /libfuse2/);
+  assert.match(workflow, /libwebkit2gtk-4\.0-dev/);
+  assert.match(workflow, /libjavascriptcoregtk-4\.0-dev/);
+  assert.match(workflow, /libsoup2\.4-dev/);
   assert.match(workflow, /cargo check --manifest-path src-tauri\/Cargo\.toml/);
 });

@@ -27,8 +27,8 @@ test('repository exposes a cross-platform desktop release workflow', () => {
   assert.match(workflow, /publish:/);
   assert.match(workflow, /windows-2022/);
   assert.match(workflow, /windows-11-arm/);
-  assert.match(workflow, /ubuntu-24\.04/);
-  assert.match(workflow, /ubuntu-24\.04-arm/);
+  assert.match(workflow, /ubuntu-22\.04/);
+  assert.match(workflow, /ubuntu-22\.04-arm/);
   assert.match(workflow, /macos-15-intel/);
   assert.match(workflow, /macos-15/);
   assert.match(workflow, /target:\s*x86_64-pc-windows-msvc/);
@@ -51,7 +51,11 @@ test('repository exposes a cross-platform desktop release workflow', () => {
   assert.ok(gitPreparationCount >= 2);
   assert.ok(sharedSdkPreparationCount >= 2);
   assert.match(workflow, /pnpm install --frozen-lockfile/);
+  assert.match(workflow, /libfuse2/);
   assert.match(workflow, /libgtk-3-dev/);
+  assert.match(workflow, /libwebkit2gtk-4\.0-dev/);
+  assert.match(workflow, /libjavascriptcoregtk-4\.0-dev/);
+  assert.match(workflow, /libsoup2\.4-dev/);
   assert.match(workflow, /libpipewire-0\.3-dev/);
   assert.match(workflow, /pnpm run test/);
   assert.match(workflow, /pnpm run typecheck:packages/);
